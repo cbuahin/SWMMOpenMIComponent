@@ -36,12 +36,11 @@ using System.Threading;
 
 namespace SWMMOpenMIComponent
 {
-    public class SWMMOpenMIComponent : ITimeSpaceComponent
+    public class SWMMOpenMIComponent : Identifiable , ITimeSpaceComponent
     {
         # region variables
 
         LinkableComponentStatus status = LinkableComponentStatus.Created;
-        string id = "SWMM OpenMI 2.0 Model Component", caption = "SWMM OpenMI 2.0 Model Component", description = "SWMM OpenMI 2.0 Component";
         List<IBaseInput> inputs;
         List<IBaseOutput> outputs;
         List<IAdaptedOutputFactory> adaptedOutputFactories;
@@ -60,6 +59,11 @@ namespace SWMMOpenMIComponent
 
         public SWMMOpenMIComponent()
         {
+
+            Id = "SWMM OpenMI 2.0 Model Component";
+            Caption = "SWMM OpenMI 2.0 Model Component";
+            Description = "SWMM OpenMI 2.0 Component";
+
             //initialize lists
             inputs = new List<IBaseInput>();
             outputs = new List<IBaseOutput>();
@@ -91,47 +95,6 @@ namespace SWMMOpenMIComponent
         #endregion
 
         # region properties
-
-        # region Identifiable
-
-        public string Id
-        {
-            get
-            {
-                return id;
-            }
-
-            set
-            {
-                id = value;
-            }
-        }
-
-        public string Caption
-        {
-            get
-            {
-                return caption;
-            }
-            set
-            {
-                caption = value;
-            }
-        }
-
-        public string Description
-        {
-            get
-            {
-                return description;
-            }
-            set
-            {
-                description = value;
-            }
-        }
-
-        #endregion
 
         #region baselinkablecomponent
 
@@ -299,7 +262,6 @@ namespace SWMMOpenMIComponent
         {
             if (Status == LinkableComponentStatus.Updating)
             {
-                // Update call that was invoked by bidirectional link
                 return;
             }
 
@@ -327,23 +289,17 @@ namespace SWMMOpenMIComponent
                 }
                 else
                 {
-                    timeExtent.Times.RemoveRange(0, timeExtent.Times.Count - 1);
-                    timeExtent.Times[0] = time;
+                    timeExtent.Times.Clear();
+                    timeExtent.Times.Add(time);
                 }
             }
 
 
             UpdateRequiredOutputExchangeItems();
 
-
-            if (model.CurrentDateTime >= timeExtent.TimeHorizon.End().ToDateTime())
-            {
-                Status = LinkableComponentStatus.Done;
-                return;
-            }
-
-
-            Status = LinkableComponentStatus.Updated;
+            Status = model.CurrentDateTime >= timeExtent.TimeHorizon.End().ToDateTime() ? 
+                OutputItemsStillRequireData() ? LinkableComponentStatus.Finishing : LinkableComponentStatus.Done 
+                : LinkableComponentStatus.Updated;
         }
 
         public void Finish()
@@ -450,7 +406,7 @@ namespace SWMMOpenMIComponent
             timeExtent.TimeHorizon = new Time(model.StartDateTime) { DurationInDays = (model.EndDateTime - model.StartDateTime).TotalDays };
         }
 
-        void InitializeGeometricItems()
+        void InitializeSpace()
         {
 
         }
@@ -462,7 +418,7 @@ namespace SWMMOpenMIComponent
 
         void InitializeInputExchangeItems()
         {
-
+            //Update input item requestedTime and 
         }
 
         void UpdateRequiredInputExchangeItems()
@@ -486,6 +442,11 @@ namespace SWMMOpenMIComponent
         void UpdateRequiredOutputExchangeItems()
         {
 
+        }
+
+        bool OutputItemsStillRequireData()
+        {
+            return false;
         }
 
         #endregion

@@ -43,10 +43,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Describable.cs" />
+    <Compile Include="Identifiable.cs" />
+    <Compile Include="ISWMMExchangeItem.cs" />
     <Compile Include="SWMM.cs" />
+    <Compile Include="SWMMInputExchangeItem.cs" />
     <Compile Include="SWMMObjects.cs" />
     <Compile Include="SWMMOpenMIComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SWMMOutputExchangeItem.cs" />
     <Compile Include="WinLibraryLoader.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -13,28 +13,28 @@ namespace SWMMOpenMIComponent
     class SWMM : IDisposable
     {
 
-        enum SWMMModelStatus
-        {
-           
-        }
-
         # region SWMMDelegates
 
-        public delegate int OpenDelegate(string inputFile, string reportFile, string outFile);
+        delegate int OpenDelegate(string inputFile, string reportFile, string outFile);
 
-        public delegate int StartModelDelegate(int saveResults);
+        delegate int StartModelDelegate(int saveResults);
 
-        public delegate int PerformTimeStepDelegate(ref double elapsedTime);
+        delegate int PerformTimeStepDelegate(ref double elapsedTime);
 
-        public delegate int EndRunDelegate();
+        delegate int EndRunDelegate();
 
-        public delegate int CloseModelDelegate();
+        delegate int CloseModelDelegate();
 
-        public delegate string GetErrorMessageDelegate(ref string message, int errorCode);
+        delegate string GetErrorMessageDelegate(ref string message, int errorCode);
 
-        public delegate void DecodeDateTimeDelegate(double dateTime, ref int year, ref int month, ref int day, ref int hour, ref int minute, ref int second);
+        delegate void DecodeDateTimeDelegate(double dateTime, ref int year, ref int month, ref int day, ref int hour, ref int minute, ref int second);
 
         delegate double GetDateTimeDelegate(string name);
+
+        delegate int GetObjectTypeCountDelegate(ObjectType type);
+
+        delegate  IntPtr GetObjectDelegate(int index);
+
 
         # endregion    
     
@@ -47,6 +47,8 @@ namespace SWMMOpenMIComponent
         double startDateTimeD, endDateTimeD;
 
         IntPtr hModule;
+
+        //Internal delegates
         OpenDelegate open;
         StartModelDelegate startModel;
         PerformTimeStepDelegate performTimeStep;
@@ -55,6 +57,11 @@ namespace SWMMOpenMIComponent
         GetErrorMessageDelegate getErrorMessage;
         DecodeDateTimeDelegate decodeDateTime;
         GetDateTimeDelegate getDateTime;
+        GetObjectDelegate getNode;
+        GetObjectDelegate getLink;
+
+        //Direct delegate calls
+        public GetObjectTypeCountDelegate GetObjectTypeCount;
 
         # endregion
 
@@ -76,7 +83,7 @@ namespace SWMMOpenMIComponent
             this.outPutFile = outputFile;
             this.reportFile = reportFile;
 
-            AssignFunctions();
+            AssignFunctionsToDelegates();
         }
 
         #endregion
@@ -121,7 +128,7 @@ namespace SWMMOpenMIComponent
         # region Functions
 
 
-        private void AssignFunctions()
+        private void AssignFunctionsToDelegates()
         {
             open = WinLibraryLoader.LoadFunction<OpenDelegate>(ref hModule, "swmm_open");
             CheckIfLibraryError();
@@ -145,6 +152,15 @@ namespace SWMMOpenMIComponent
             CheckIfLibraryError();
 
             getDateTime = WinLibraryLoader.LoadFunction<GetDateTimeDelegate>(ref hModule, "swmm_getDateTime");
+            CheckIfLibraryError();
+
+            GetObjectTypeCount = WinLibraryLoader.LoadFunction<GetObjectTypeCountDelegate>(ref hModule, "getObjectTypeCount");
+            CheckIfLibraryError();
+
+            getNode = WinLibraryLoader.LoadFunction<GetObjectDelegate>(ref hModule, "getNode");
+            CheckIfLibraryError();
+
+            getLink = WinLibraryLoader.LoadFunction<GetObjectDelegate>(ref hModule, "getLink");
             CheckIfLibraryError();
 
         }
@@ -262,7 +278,20 @@ namespace SWMMOpenMIComponent
                 //throw new Win32Exception(error);
             }
         }
+        
+        public TNode GetNode( int index)
+        {
+            IntPtr nodePtr = getNode(index);
 
+            return new TNode();
+        }
+
+        public TNode GetLink(int index)
+        {
+            return new TNode();
+        }
+       
+       
         # endregion
     }
 }
