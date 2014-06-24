@@ -184,8 +184,6 @@ namespace SWMMOpenMIComponent
             if (timeElapsed == 0)
             {
                 currentDateTime = endDateTime;
-                endRun();
-
                 return false;
             }
             else
