@@ -1,0 +1,13 @@
+<opr
+  version="2.0">
+  <models>
+    <model
+      omi="SWMMOpenMIComponent\SWMMOpenMIComponent.omi"
+      rect_x="30"
+      rect_y="30"
+      rect_width="100"
+      rect_height="51"
+      is_trigger="true" />
+  </models>
+  <connections />
+</opr>

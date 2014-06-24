@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<LinkableComponent  xmlns ="http://www.openmi.org" Type="SWMMOpenMIComponent.SWMMOpenMIComponent" Assembly="C:\Users\Caleb\Desktop\Projects\SWMMOpenMIComponent\Source\SWMMOpenMIComponent\bin\Debug\SWMMOpenMIComponent.dll">
+  <Arguments>
+    <Argument Key="ModelID" ReadOnly="true" Value="TestModelID" />
+	<Argument Key="Caption" ReadOnly="true" Value="SWMM Model Component Caption" />
+	<Argument Key="Description" ReadOnly="true" Value="SWMM Model Component Caption" />
+	<Argument Key="SWMMLibrary" ReadOnly="true" Value="C:\Users\Caleb\Desktop\Projects\QOpenMI\Source\QOpenMIEditor\x64\Debug\SWMMQOpenMI.dll"  IsOptional = "false" />
+    <Argument Key="ProjectFile" ReadOnly="true" Value="C:\Users\Caleb\Desktop\Projects\SWMM-OpenMI\Test-data\Test-SWMM-Network.inp"  IsOptional = "false"/>
+    <Argument Key="ReportFile" ReadOnly="true" Value="C:\Users\Caleb\Desktop\Projects\SWMM-OpenMI\Test-data\Test-SWMM-Network.rpt" />
+    <Argument Key="OutputFile" ReadOnly="true" Value="C:\Users\Caleb\Desktop\Projects\SWMM-OpenMI\Test-data\Test-SWMM-Network.out" />
+  </Arguments>
+</LinkableComponent>
+
+0
