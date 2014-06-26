@@ -1,0 +1,137 @@
+﻿using OpenMI.Standard2.TimeSpace;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace SWMMOpenMIComponent
+{
+    public class SWMMTimeSpaceValueSet<T> : ITimeSpaceValueSet
+    {
+        IList<IList<T>> values;
+
+        public IList<IList> Values2D
+        {
+            get
+            {
+                return (IList<IList>)values;
+            }
+            set
+            {
+                if (value is IList<IList<T>>)
+                {
+                    values = (IList<IList<T>>)value;
+                }
+            }
+        }
+
+        public object GetValue(int timeIndex, int elementIndex)
+        {
+            IList<T> tvalue = values[timeIndex];
+            return tvalue[elementIndex];
+        }
+
+        public void SetValue(int timeIndex, int elementIndex, object value)
+        {
+            IList<T> tvalue = values[timeIndex];
+            tvalue[elementIndex] = (T)value;
+        }
+
+        public IList GetTimeSeriesValuesForElement(int elementIndex)
+        {
+            IList temp = new List<T>();
+
+            for (int i = 0; i < values.Count; i++)
+            {
+                IList<T> tvalue = values[i];
+                temp.Add(tvalue[elementIndex]);
+            }
+
+            return temp;
+        }
+
+        public void SetTimeSeriesValuesForElement(int elementIndex, IList values)
+        {
+            if (this.values.Count == values.Count)
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    IList<T> tvalue = this.values[i];
+                    tvalue[elementIndex] = (T)values[i];
+                }
+            }
+            else
+            {
+                throw new Exception("Time mismatch between values");
+            }
+        }
+
+        public IList GetElementValuesForTime(int timeIndex)
+        {
+            return (IList)values[timeIndex];
+        }
+
+        public void SetElementValuesForTime(int timeIndex, IList values)
+        {
+            values[timeIndex] = values;
+        }
+
+        public Type ValueType
+        {
+            get
+            {
+                return typeof(T);
+            }
+        }
+
+        public int NumberOfIndices
+        {
+            get
+            {
+                return 2; 
+            }
+        }
+
+        public int GetIndexCount(int[] indices)
+        {
+            if(indices == null || indices.Length == 0)
+            {
+                return values.Count;
+            }
+            else if(indices.Length == 1)
+            {
+                return values[indices[0]].Count;
+            }
+            else
+            {
+                throw new ArgumentException("Indices does not have the correct length, length must be smaller than 2", "indices");
+            }
+        }
+
+        public object GetValue(int[] indices)
+        {
+            if(indices.Length == 2)
+            {
+                return values[indices[0]][indices[1]];
+            }
+            else
+            {
+                throw new ArgumentException("Indices does not have the correct length, length must be smaller than 2", "indices");
+            }
+        }
+
+        public void SetValue(int[] indices, object value)
+        {
+            if (indices.Length == 2)
+            {
+                 values[indices[0]][indices[1]] = (T)value;
+            }
+            else
+            {
+                throw new ArgumentException("Indices does not have the correct length, length must be smaller than 2", "indices");
+            }
+        }
+    }
+}

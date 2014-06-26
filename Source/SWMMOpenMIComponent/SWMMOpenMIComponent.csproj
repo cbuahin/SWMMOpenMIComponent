@@ -52,6 +52,7 @@
     <Compile Include="SWMMOpenMIComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SWMMOutputExchangeItem.cs" />
+    <Compile Include="SWMMTimeSpaceValueSet.cs" />
     <Compile Include="WinLibraryLoader.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -65,17 +66,26 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="SWMMOpenMIComponent.cd" />
-    <None Include="SWMMOpenMIComponent.omi">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Include="Model_1.omi">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Model_2.omi">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="SWMMOpenMIComponent.cd" />
     <None Include="SWMMOpenMIComponent.opr">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestModel_1.inp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestModel_2.inp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="SWMMQOpenMI.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

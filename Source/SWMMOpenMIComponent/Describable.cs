@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SWMMOpenMIComponent
 {
-    class Describable : IDescribable
+    public class Describable : IDescribable
     {
 
         public string Caption

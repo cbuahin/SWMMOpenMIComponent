@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SWMMOpenMIComponent
 {
-    class Identifiable : Describable , IIdentifiable
+    public class Identifiable : Describable , IIdentifiable
     {
         public string Id
         {

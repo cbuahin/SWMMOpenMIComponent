@@ -7,8 +7,7 @@ using System.Threading.Tasks;
 
 namespace SWMMOpenMIComponent
 {
-
-        //-------------------------------------
+    //-------------------------------------
     // Names of major object types
     //-------------------------------------
     public enum ObjectType
@@ -48,10 +47,29 @@ namespace SWMMOpenMIComponent
         WEIR,
         OUTLET
     }
-
-
-    interface ISWMMExchangeItem
+   
+    interface ISWMMExchangeItem : ITimeSpaceExchangeItem
     {
+        List<SWMMObjectIdentifier> SWMMObjects{get;set;}
 
+        string PropertyName { get; set; }
+
+        ObjectType ObjectType { get; set; }
+
+        bool CacheValues
+        {
+            get;
+            set;
+        }
+    }
+
+    interface ISWMMInputExchangeItem : ISWMMExchangeItem
+    {
+        void UpdateModel(ref SWMM model);
+    }
+
+    interface ISWMMOutputExchangeItem : ISWMMExchangeItem
+    {
+        void RetrieveFromModel(ref SWMM model);
     }
 }
