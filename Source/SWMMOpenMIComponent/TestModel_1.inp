@@ -1,0 +1,861 @@
+[TITLE]
+Test-SWMM
+
+[OPTIONS]
+FLOW_UNITS           CMS
+INFILTRATION         CURVE_NUMBER
+FLOW_ROUTING         DYNWAVE
+START_DATE           01/01/2007
+START_TIME           00:00:00
+REPORT_START_DATE    01/01/2007
+REPORT_START_TIME    00:00:00
+END_DATE             01/31/2007
+END_TIME             23:45:00
+SWEEP_START          01/01
+SWEEP_END            12/31
+DRY_DAYS             0
+REPORT_STEP          00:01:00
+WET_STEP             00:01:00
+DRY_STEP             00:01:00
+ROUTING_STEP         0:00:05 
+ALLOW_PONDING        NO
+INERTIAL_DAMPING     PARTIAL
+VARIABLE_STEP        1.00
+LENGTHENING_STEP     0
+MIN_SURFAREA         0
+NORMAL_FLOW_LIMITED  BOTH
+SKIP_STEADY_STATE    NO
+FORCE_MAIN_EQUATION  H-W
+LINK_OFFSETS         DEPTH
+MIN_SLOPE            0
+
+[EVAPORATION]
+;;Type       Parameters
+;;---------- ----------
+CONSTANT     0.0
+DRY_ONLY     NO
+
+[JUNCTIONS]
+;;               Invert     Max.       Init.      Surcharge  Ponded    
+;;Name           Elev.      Depth      Depth      Depth      Area      
+;;-------------- ---------- ---------- ---------- ---------- ----------
+N1               55         0          0          0          0         
+N2               53         0          0          0          0         
+N3               52.00      6          0          0          0         
+
+[CONDUITS]
+;;               Inlet            Outlet                      Manning    Inlet      Outlet     Init.      Max.      
+;;Name           Node             Node             Length     N          Offset     Offset     Flow       Flow      
+;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
+L1               N1               N2               400        0.018      0          0          0          0         
+
+[WEIRS]
+;;               Inlet            Outlet           Weir         Crest      Disch.     Flap End      End       
+;;Name           Node             Node             Type         Height     Coeff.     Gate Con.     Coeff.    
+;;-------------- ---------------- ---------------- ------------ ---------- ---------- ---- -------- ----------
+L2               N2               N3               TRANSVERSE   0          3.33       NO   0        0         
+
+[XSECTIONS]
+;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels   
+;;-------------- ------------ ---------------- ---------- ---------- ---------- ----------
+L1               RECT_OPEN    6                6          0          0          1                    
+L2               RECT_OPEN    1                1          0          0         
+
+[LOSSES]
+;;Link           Inlet      Outlet     Average    Flap Gate 
+;;-------------- ---------- ---------- ---------- ----------
+
+[INFLOWS]
+;;                                                 Param    Units    Scale    Baseline Baseline
+;;Node           Parameter        Time Series      Type     Factor   Factor   Value    Pattern
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
+N1               FLOW             TestInflow       FLOW     1.0      1.0              
+
+[CURVES]
+;;Name           Type       X-Value    Y-Value   
+;;-------------- ---------- ---------- ----------
+PmpCur1          Pump4      0          0         
+PmpCur1                     1          5         
+PmpCur1                     2          8         
+PmpCur1                     3          12        
+
+StoCur1          Storage    0          600000    
+StoCur1                     3          600000    
+
+STOCrv           Storage    0          10000     
+STOCrv                      10         10000     
+
+Tide             Tidal      0          53        
+Tide                        1          53.15     
+Tide                        2          53.30     
+Tide                        3          53.50     
+Tide                        4          53.65     
+Tide                        5          53.8      
+Tide                        6          54        
+Tide                        7          53.80     
+Tide                        8          53.65     
+Tide                        9          53.5      
+Tide                        10         53.30     
+Tide                        11         53.15     
+Tide                        12         53        
+Tide                        13         52.8      
+Tide                        14         52.65     
+Tide                        15         52.50     
+Tide                        16         52.30     
+Tide                        17         52.15     
+Tide                        18         52        
+Tide                        19         52.15     
+Tide                        20         52.30     
+Tide                        21         52.50     
+Tide                        22         52.65     
+Tide                        23         52.8      
+Tide                        24         53        
+
+[TIMESERIES]
+;;Name           Date       Time       Value     
+;;-------------- ---------- ---------- ----------
+TestInflow       1/1/2007   0:00       2.440     
+TestInflow       1/1/2007   1:00       2.684     
+TestInflow       1/1/2007   2:00       2.641     
+TestInflow       1/1/2007   3:00       3.035     
+TestInflow       1/1/2007   4:00       3.260     
+TestInflow       1/1/2007   5:00       3.260     
+TestInflow       1/1/2007   6:00       3.210     
+TestInflow       1/1/2007   7:00       3.441     
+TestInflow       1/1/2007   8:00       3.697     
+TestInflow       1/1/2007   9:00       4.390     
+TestInflow       1/1/2007   10:00      4.660     
+TestInflow       1/1/2007   11:00      4.563     
+TestInflow       1/1/2007   12:00      4.525     
+TestInflow       1/1/2007   13:00      4.720     
+TestInflow       1/1/2007   14:00      5.696     
+TestInflow       1/1/2007   15:00      6.507     
+TestInflow       1/1/2007   16:00      8.347     
+TestInflow       1/1/2007   17:00      7.955     
+TestInflow       1/1/2007   18:00      7.078     
+TestInflow       1/1/2007   19:00      6.861     
+TestInflow       1/1/2007   20:00      6.670     
+TestInflow       1/1/2007   21:00      6.437     
+TestInflow       1/1/2007   22:00      6.140     
+TestInflow       1/1/2007   23:00      5.938     
+TestInflow       1/2/2007   0:00       6.329     
+TestInflow       1/2/2007   1:00       5.844     
+TestInflow       1/2/2007   2:00       5.777     
+TestInflow       1/2/2007   3:00       6.004     
+TestInflow       1/2/2007   4:00       6.096     
+TestInflow       1/2/2007   5:00       5.889     
+TestInflow       1/2/2007   6:00       5.777     
+TestInflow       1/2/2007   7:00       5.621     
+TestInflow       1/2/2007   8:00       5.777     
+TestInflow       1/2/2007   9:00       6.119     
+TestInflow       1/2/2007   10:00      6.235     
+TestInflow       1/2/2007   11:00      5.511     
+TestInflow       1/2/2007   12:00      3.684     
+TestInflow       1/2/2007   13:00      5.577     
+TestInflow       1/2/2007   14:00      6.423     
+TestInflow       1/2/2007   15:00      6.423     
+TestInflow       1/2/2007   16:00      6.832     
+TestInflow       1/2/2007   17:00      8.219     
+TestInflow       1/2/2007   18:00      7.381     
+TestInflow       1/2/2007   19:00      6.906     
+TestInflow       1/2/2007   20:00      6.881     
+TestInflow       1/2/2007   21:00      6.930     
+TestInflow       1/2/2007   22:00      7.005     
+TestInflow       1/2/2007   23:00      6.711     
+TestInflow       1/3/2007   0:00       7.029     
+TestInflow       1/3/2007   1:00       6.585     
+TestInflow       1/3/2007   2:00       6.708     
+TestInflow       1/3/2007   3:00       6.757     
+TestInflow       1/3/2007   4:00       6.757     
+TestInflow       1/3/2007   5:00       6.683     
+TestInflow       1/3/2007   6:00       6.634     
+TestInflow       1/3/2007   7:00       6.610     
+TestInflow       1/3/2007   8:00       6.585     
+TestInflow       1/3/2007   9:00       6.465     
+TestInflow       1/3/2007   10:00      6.251     
+TestInflow       1/3/2007   11:00      6.203     
+TestInflow       1/3/2007   12:00      6.086     
+TestInflow       1/3/2007   13:00      5.924     
+TestInflow       1/3/2007   14:00      5.855     
+TestInflow       1/3/2007   15:00      5.696     
+TestInflow       1/3/2007   16:00      5.562     
+TestInflow       1/3/2007   17:00      5.540     
+TestInflow       1/3/2007   18:00      5.452     
+TestInflow       1/3/2007   19:00      5.341     
+TestInflow       1/3/2007   20:00      5.277     
+TestInflow       1/3/2007   21:00      5.169     
+TestInflow       1/3/2007   22:00      4.957     
+TestInflow       1/3/2007   23:00      4.894     
+TestInflow       1/4/2007   0:00       4.998     
+TestInflow       1/4/2007   1:00       4.790     
+TestInflow       1/4/2007   2:00       4.707     
+TestInflow       1/4/2007   3:00       4.790     
+TestInflow       1/4/2007   4:00       4.748     
+TestInflow       1/4/2007   5:00       4.707     
+TestInflow       1/4/2007   6:00       4.707     
+TestInflow       1/4/2007   7:00       4.707     
+TestInflow       1/4/2007   8:00       4.647     
+TestInflow       1/4/2007   9:00       4.647     
+TestInflow       1/4/2007   10:00      4.607     
+TestInflow       1/4/2007   11:00      4.707     
+TestInflow       1/4/2007   12:00      4.851     
+TestInflow       1/4/2007   13:00      5.061     
+TestInflow       1/4/2007   14:00      5.210     
+TestInflow       1/4/2007   15:00      5.168     
+TestInflow       1/4/2007   16:00      5.233     
+TestInflow       1/4/2007   17:00      5.673     
+TestInflow       1/4/2007   18:00      5.877     
+TestInflow       1/4/2007   19:00      5.695     
+TestInflow       1/4/2007   20:00      5.428     
+TestInflow       1/4/2007   21:00      5.406     
+TestInflow       1/4/2007   22:00      5.340     
+TestInflow       1/4/2007   23:00      5.210     
+TestInflow       1/5/2007   0:00       5.204     
+TestInflow       1/5/2007   1:00       4.847     
+TestInflow       1/5/2007   2:00       4.602     
+TestInflow       1/5/2007   3:00       4.582     
+TestInflow       1/5/2007   4:00       4.463     
+TestInflow       1/5/2007   5:00       4.306     
+TestInflow       1/5/2007   6:00       4.248     
+TestInflow       1/5/2007   7:00       4.170     
+TestInflow       1/5/2007   8:00       4.095     
+TestInflow       1/5/2007   9:00       4.019     
+TestInflow       1/5/2007   10:00      4.019     
+TestInflow       1/5/2007   11:00      4.019     
+TestInflow       1/5/2007   12:00      3.945     
+TestInflow       1/5/2007   13:00      3.890     
+TestInflow       1/5/2007   14:00      3.835     
+TestInflow       1/5/2007   15:00      3.798     
+TestInflow       1/5/2007   16:00      3.763     
+TestInflow       1/5/2007   17:00      3.763     
+TestInflow       1/5/2007   18:00      3.744     
+TestInflow       1/5/2007   19:00      3.744     
+TestInflow       1/5/2007   20:00      3.763     
+TestInflow       1/5/2007   21:00      3.744     
+TestInflow       1/5/2007   22:00      3.763     
+TestInflow       1/5/2007   23:00      3.890     
+TestInflow       1/6/2007   0:00       3.722     
+TestInflow       1/6/2007   1:00       3.584     
+TestInflow       1/6/2007   2:00       3.433     
+TestInflow       1/6/2007   3:00       3.534     
+TestInflow       1/6/2007   4:00       3.534     
+TestInflow       1/6/2007   5:00       3.601     
+TestInflow       1/6/2007   6:00       3.653     
+TestInflow       1/6/2007   7:00       3.722     
+TestInflow       1/6/2007   8:00       3.738     
+TestInflow       1/6/2007   9:00       3.755     
+TestInflow       1/6/2007   10:00      3.808     
+TestInflow       1/6/2007   11:00      3.842     
+TestInflow       1/6/2007   12:00      3.895     
+TestInflow       1/6/2007   13:00      3.842     
+TestInflow       1/6/2007   14:00      3.808     
+TestInflow       1/6/2007   15:00      3.860     
+TestInflow       1/6/2007   16:00      4.111     
+TestInflow       1/6/2007   17:00      4.444     
+TestInflow       1/6/2007   18:00      4.597     
+TestInflow       1/6/2007   19:00      4.444     
+TestInflow       1/6/2007   20:00      4.483     
+TestInflow       1/6/2007   21:00      4.597     
+TestInflow       1/6/2007   22:00      5.317     
+TestInflow       1/6/2007   23:00      5.676     
+TestInflow       1/7/2007   0:00       6.092     
+TestInflow       1/7/2007   1:00       5.934     
+TestInflow       1/7/2007   2:00       6.458     
+TestInflow       1/7/2007   3:00       7.125     
+TestInflow       1/7/2007   4:00       7.471     
+TestInflow       1/7/2007   5:00       7.497     
+TestInflow       1/7/2007   6:00       7.673     
+TestInflow       1/7/2007   7:00       7.673     
+TestInflow       1/7/2007   8:00       7.547     
+TestInflow       1/7/2007   9:00       7.224     
+TestInflow       1/7/2007   10:00      7.077     
+TestInflow       1/7/2007   11:00      6.716     
+TestInflow       1/7/2007   12:00      6.458     
+TestInflow       1/7/2007   13:00      6.182     
+TestInflow       1/7/2007   14:00      5.979     
+TestInflow       1/7/2007   15:00      5.757     
+TestInflow       1/7/2007   16:00      5.605     
+TestInflow       1/7/2007   17:00      5.497     
+TestInflow       1/7/2007   18:00      5.392     
+TestInflow       1/7/2007   19:00      5.306     
+TestInflow       1/7/2007   20:00      5.224     
+TestInflow       1/7/2007   21:00      5.120     
+TestInflow       1/7/2007   22:00      5.017     
+TestInflow       1/7/2007   23:00      4.935     
+TestInflow       1/8/2007   0:00       5.362     
+TestInflow       1/8/2007   1:00       5.063     
+TestInflow       1/8/2007   2:00       4.979     
+TestInflow       1/8/2007   3:00       5.084     
+TestInflow       1/8/2007   4:00       5.042     
+TestInflow       1/8/2007   5:00       4.958     
+TestInflow       1/8/2007   6:00       5.063     
+TestInflow       1/8/2007   7:00       5.190     
+TestInflow       1/8/2007   8:00       5.319     
+TestInflow       1/8/2007   9:00       5.340     
+TestInflow       1/8/2007   10:00      5.275     
+TestInflow       1/8/2007   11:00      5.559     
+TestInflow       1/8/2007   12:00      5.362     
+TestInflow       1/8/2007   13:00      5.275     
+TestInflow       1/8/2007   14:00      5.580     
+TestInflow       1/8/2007   15:00      5.647     
+TestInflow       1/8/2007   16:00      5.580     
+TestInflow       1/8/2007   17:00      5.580     
+TestInflow       1/8/2007   18:00      5.602     
+TestInflow       1/8/2007   19:00      5.580     
+TestInflow       1/8/2007   20:00      5.559     
+TestInflow       1/8/2007   21:00      5.536     
+TestInflow       1/8/2007   22:00      5.580     
+TestInflow       1/8/2007   23:00      5.559     
+TestInflow       1/9/2007   0:00       5.268     
+TestInflow       1/9/2007   1:00       5.023     
+TestInflow       1/9/2007   2:00       4.923     
+TestInflow       1/9/2007   3:00       5.063     
+TestInflow       1/9/2007   4:00       5.125     
+TestInflow       1/9/2007   5:00       5.145     
+TestInflow       1/9/2007   6:00       5.145     
+TestInflow       1/9/2007   7:00       5.185     
+TestInflow       1/9/2007   8:00       5.268     
+TestInflow       1/9/2007   9:00       5.268     
+TestInflow       1/9/2007   10:00      5.289     
+TestInflow       1/9/2007   11:00      5.247     
+TestInflow       1/9/2007   12:00      5.247     
+TestInflow       1/9/2007   13:00      5.227     
+TestInflow       1/9/2007   14:00      5.043     
+TestInflow       1/9/2007   15:00      4.943     
+TestInflow       1/9/2007   16:00      4.883     
+TestInflow       1/9/2007   17:00      4.804     
+TestInflow       1/9/2007   18:00      4.784     
+TestInflow       1/9/2007   19:00      4.706     
+TestInflow       1/9/2007   20:00      4.706     
+TestInflow       1/9/2007   21:00      4.706     
+TestInflow       1/9/2007   22:00      4.666     
+TestInflow       1/9/2007   23:00      4.647     
+TestInflow       1/10/2007  0:00       4.527     
+TestInflow       1/10/2007  1:00       4.342     
+TestInflow       1/10/2007  2:00       4.179     
+TestInflow       1/10/2007  3:00       4.198     
+TestInflow       1/10/2007  4:00       4.162     
+TestInflow       1/10/2007  5:00       4.108     
+TestInflow       1/10/2007  6:00       4.073     
+TestInflow       1/10/2007  7:00       4.038     
+TestInflow       1/10/2007  8:00       4.002     
+TestInflow       1/10/2007  9:00       3.916     
+TestInflow       1/10/2007  10:00      3.898     
+TestInflow       1/10/2007  11:00      3.898     
+TestInflow       1/10/2007  12:00      3.898     
+TestInflow       1/10/2007  13:00      3.829     
+TestInflow       1/10/2007  14:00      3.760     
+TestInflow       1/10/2007  15:00      3.760     
+TestInflow       1/10/2007  16:00      3.778     
+TestInflow       1/10/2007  17:00      3.898     
+TestInflow       1/10/2007  18:00      4.038     
+TestInflow       1/10/2007  19:00      4.380     
+TestInflow       1/10/2007  20:00      4.453     
+TestInflow       1/10/2007  21:00      4.288     
+TestInflow       1/10/2007  22:00      4.270     
+TestInflow       1/10/2007  23:00      4.584     
+TestInflow       1/11/2007  0:00       5.246     
+TestInflow       1/11/2007  1:00       5.227     
+TestInflow       1/11/2007  2:00       4.024     
+TestInflow       1/11/2007  3:00       2.665     
+TestInflow       1/11/2007  4:00       3.955     
+TestInflow       1/11/2007  5:00       4.376     
+TestInflow       1/11/2007  6:00       4.559     
+TestInflow       1/11/2007  7:00       4.540     
+TestInflow       1/11/2007  8:00       4.449     
+TestInflow       1/11/2007  9:00       4.322     
+TestInflow       1/11/2007  10:00      4.198     
+TestInflow       1/11/2007  11:00      4.093     
+TestInflow       1/11/2007  12:00      4.006     
+TestInflow       1/11/2007  13:00      3.937     
+TestInflow       1/11/2007  14:00      3.921     
+TestInflow       1/11/2007  15:00      3.921     
+TestInflow       1/11/2007  16:00      3.835     
+TestInflow       1/11/2007  17:00      3.802     
+TestInflow       1/11/2007  18:00      4.093     
+TestInflow       1/11/2007  19:00      4.466     
+TestInflow       1/11/2007  20:00      5.128     
+TestInflow       1/11/2007  21:00      5.305     
+TestInflow       1/11/2007  22:00      5.246     
+TestInflow       1/11/2007  23:00      5.426     
+TestInflow       1/12/2007  0:00       6.617     
+TestInflow       1/12/2007  1:00       6.836     
+TestInflow       1/12/2007  2:00       6.925     
+TestInflow       1/12/2007  3:00       7.446     
+TestInflow       1/12/2007  4:00       8.593     
+TestInflow       1/12/2007  5:00       9.199     
+TestInflow       1/12/2007  6:00       8.818     
+TestInflow       1/12/2007  7:00       8.033     
+TestInflow       1/12/2007  8:00       7.194     
+TestInflow       1/12/2007  9:00       6.296     
+TestInflow       1/12/2007  10:00      5.921     
+TestInflow       1/12/2007  11:00      5.637     
+TestInflow       1/12/2007  12:00      5.419     
+TestInflow       1/12/2007  13:00      6.727     
+TestInflow       1/12/2007  14:00      6.232     
+TestInflow       1/12/2007  15:00      5.518     
+TestInflow       1/12/2007  16:00      5.034     
+TestInflow       1/12/2007  17:00      4.883     
+TestInflow       1/12/2007  18:00      4.736     
+TestInflow       1/12/2007  19:00      4.610     
+TestInflow       1/12/2007  20:00      4.520     
+TestInflow       1/12/2007  21:00      4.520     
+TestInflow       1/12/2007  22:00      4.466     
+TestInflow       1/12/2007  23:00      4.413     
+TestInflow       1/13/2007  0:00       4.979     
+TestInflow       1/13/2007  1:00       4.746     
+TestInflow       1/13/2007  2:00       4.669     
+TestInflow       1/13/2007  3:00       4.669     
+TestInflow       1/13/2007  4:00       4.669     
+TestInflow       1/13/2007  5:00       4.651     
+TestInflow       1/13/2007  6:00       4.594     
+TestInflow       1/13/2007  7:00       4.556     
+TestInflow       1/13/2007  8:00       4.463     
+TestInflow       1/13/2007  9:00       4.463     
+TestInflow       1/13/2007  10:00      4.425     
+TestInflow       1/13/2007  11:00      4.388     
+TestInflow       1/13/2007  12:00      4.315     
+TestInflow       1/13/2007  13:00      4.296     
+TestInflow       1/13/2007  14:00      4.242     
+TestInflow       1/13/2007  15:00      4.223     
+TestInflow       1/13/2007  16:00      4.332     
+TestInflow       1/13/2007  17:00      4.188     
+TestInflow       1/13/2007  18:00      4.133     
+TestInflow       1/13/2007  19:00      4.133     
+TestInflow       1/13/2007  20:00      4.098     
+TestInflow       1/13/2007  21:00      4.188     
+TestInflow       1/13/2007  22:00      4.206     
+TestInflow       1/13/2007  23:00      4.152     
+TestInflow       1/14/2007  0:00       3.832     
+TestInflow       1/14/2007  1:00       3.717     
+TestInflow       1/14/2007  2:00       3.654     
+TestInflow       1/14/2007  3:00       3.702     
+TestInflow       1/14/2007  4:00       3.702     
+TestInflow       1/14/2007  5:00       3.654     
+TestInflow       1/14/2007  6:00       3.622     
+TestInflow       1/14/2007  7:00       3.590     
+TestInflow       1/14/2007  8:00       3.558     
+TestInflow       1/14/2007  9:00       3.543     
+TestInflow       1/14/2007  10:00      3.543     
+TestInflow       1/14/2007  11:00      3.496     
+TestInflow       1/14/2007  12:00      3.465     
+TestInflow       1/14/2007  13:00      3.433     
+TestInflow       1/14/2007  14:00      3.418     
+TestInflow       1/14/2007  15:00      3.388     
+TestInflow       1/14/2007  16:00      3.403     
+TestInflow       1/14/2007  17:00      3.341     
+TestInflow       1/14/2007  18:00      3.357     
+TestInflow       1/14/2007  19:00      3.341     
+TestInflow       1/14/2007  20:00      3.341     
+TestInflow       1/14/2007  21:00      3.326     
+TestInflow       1/14/2007  22:00      3.281     
+TestInflow       1/14/2007  23:00      3.265     
+TestInflow       1/15/2007  0:00       3.174     
+TestInflow       1/15/2007  1:00       3.130     
+TestInflow       1/15/2007  2:00       2.958     
+TestInflow       1/15/2007  3:00       3.016     
+TestInflow       1/15/2007  4:00       3.029     
+TestInflow       1/15/2007  5:00       3.016     
+TestInflow       1/15/2007  6:00       2.973     
+TestInflow       1/15/2007  7:00       2.958     
+TestInflow       1/15/2007  8:00       2.944     
+TestInflow       1/15/2007  9:00       2.930     
+TestInflow       1/15/2007  10:00      2.903     
+TestInflow       1/15/2007  11:00      2.903     
+TestInflow       1/15/2007  12:00      2.903     
+TestInflow       1/15/2007  13:00      2.874     
+TestInflow       1/15/2007  14:00      2.874     
+TestInflow       1/15/2007  15:00      2.874     
+TestInflow       1/15/2007  16:00      2.874     
+TestInflow       1/15/2007  17:00      2.874     
+TestInflow       1/15/2007  18:00      2.874     
+TestInflow       1/15/2007  19:00      2.874     
+TestInflow       1/15/2007  20:00      2.874     
+TestInflow       1/15/2007  21:00      2.833     
+TestInflow       1/15/2007  22:00      2.833     
+TestInflow       1/15/2007  23:00      2.861     
+TestInflow       1/16/2007  0:00       2.851     
+TestInflow       1/16/2007  1:00       2.851     
+TestInflow       1/16/2007  2:00       2.676     
+TestInflow       1/16/2007  3:00       2.770     
+TestInflow       1/16/2007  4:00       2.783     
+TestInflow       1/16/2007  5:00       2.783     
+TestInflow       1/16/2007  6:00       2.770     
+TestInflow       1/16/2007  7:00       2.770     
+TestInflow       1/16/2007  8:00       2.756     
+TestInflow       1/16/2007  9:00       2.756     
+TestInflow       1/16/2007  10:00      2.716     
+TestInflow       1/16/2007  11:00      2.584     
+TestInflow       1/16/2007  12:00      2.519     
+TestInflow       1/16/2007  13:00      2.506     
+TestInflow       1/16/2007  14:00      2.506     
+TestInflow       1/16/2007  15:00      2.494     
+TestInflow       1/16/2007  16:00      2.455     
+TestInflow       1/16/2007  17:00      2.455     
+TestInflow       1/16/2007  18:00      2.430     
+TestInflow       1/16/2007  19:00      2.417     
+TestInflow       1/16/2007  20:00      2.367     
+TestInflow       1/16/2007  21:00      2.367     
+TestInflow       1/16/2007  22:00      2.355     
+TestInflow       1/16/2007  23:00      2.367     
+TestInflow       1/17/2007  0:00       2.455     
+TestInflow       1/17/2007  1:00       2.467     
+TestInflow       1/17/2007  2:00       2.267     
+TestInflow       1/17/2007  3:00       2.341     
+TestInflow       1/17/2007  4:00       2.341     
+TestInflow       1/17/2007  5:00       2.341     
+TestInflow       1/17/2007  6:00       2.341     
+TestInflow       1/17/2007  7:00       2.341     
+TestInflow       1/17/2007  8:00       2.328     
+TestInflow       1/17/2007  9:00       2.328     
+TestInflow       1/17/2007  10:00      2.328     
+TestInflow       1/17/2007  11:00      2.292     
+TestInflow       1/17/2007  12:00      2.279     
+TestInflow       1/17/2007  13:00      2.231     
+TestInflow       1/17/2007  14:00      2.243     
+TestInflow       1/17/2007  15:00      2.279     
+TestInflow       1/17/2007  16:00      2.391     
+TestInflow       1/17/2007  17:00      2.519     
+TestInflow       1/17/2007  18:00      2.826     
+TestInflow       1/17/2007  19:00      3.122     
+TestInflow       1/17/2007  20:00      3.269     
+TestInflow       1/17/2007  21:00      3.269     
+TestInflow       1/17/2007  22:00      3.209     
+TestInflow       1/17/2007  23:00      3.224     
+TestInflow       1/18/2007  0:00       3.747     
+TestInflow       1/18/2007  1:00       4.212     
+TestInflow       1/18/2007  2:00       4.180     
+TestInflow       1/18/2007  3:00       4.147     
+TestInflow       1/18/2007  4:00       4.180     
+TestInflow       1/18/2007  5:00       4.550     
+TestInflow       1/18/2007  6:00       5.264     
+TestInflow       1/18/2007  7:00       6.172     
+TestInflow       1/18/2007  8:00       6.580     
+TestInflow       1/18/2007  9:00       6.809     
+TestInflow       1/18/2007  10:00      7.326     
+TestInflow       1/18/2007  11:00      8.068     
+TestInflow       1/18/2007  12:00      9.358     
+TestInflow       1/18/2007  13:00      10.615    
+TestInflow       1/18/2007  14:00      11.698    
+TestInflow       1/18/2007  15:00      12.836    
+TestInflow       1/18/2007  16:00      14.672    
+TestInflow       1/18/2007  17:00      15.944    
+TestInflow       1/18/2007  18:00      14.891    
+TestInflow       1/18/2007  19:00      13.875    
+TestInflow       1/18/2007  20:00      13.040    
+TestInflow       1/18/2007  21:00      12.460    
+TestInflow       1/18/2007  22:00      11.866    
+TestInflow       1/18/2007  23:00      11.285    
+TestInflow       1/19/2007  0:00       14.145    
+TestInflow       1/19/2007  1:00       12.487    
+TestInflow       1/19/2007  2:00       11.681    
+TestInflow       1/19/2007  3:00       11.243    
+TestInflow       1/19/2007  4:00       11.650    
+TestInflow       1/19/2007  5:00       11.969    
+TestInflow       1/19/2007  6:00       12.065    
+TestInflow       1/19/2007  7:00       12.389    
+TestInflow       1/19/2007  8:00       13.901    
+TestInflow       1/19/2007  9:00       15.648    
+TestInflow       1/19/2007  10:00      16.921    
+TestInflow       1/19/2007  11:00      18.325    
+TestInflow       1/19/2007  12:00      20.409    
+TestInflow       1/19/2007  13:00      21.771    
+TestInflow       1/19/2007  14:00      21.385    
+TestInflow       1/19/2007  15:00      20.116    
+TestInflow       1/19/2007  16:00      19.088    
+TestInflow       1/19/2007  17:00      18.285    
+TestInflow       1/19/2007  18:00      17.772    
+TestInflow       1/19/2007  19:00      17.228    
+TestInflow       1/19/2007  20:00      16.353    
+TestInflow       1/19/2007  21:00      14.995    
+TestInflow       1/19/2007  22:00      13.798    
+TestInflow       1/19/2007  23:00      12.884    
+TestInflow       1/20/2007  0:00       13.626    
+TestInflow       1/20/2007  1:00       12.239    
+TestInflow       1/20/2007  2:00       11.772    
+TestInflow       1/20/2007  3:00       11.640    
+TestInflow       1/20/2007  4:00       11.120    
+TestInflow       1/20/2007  5:00       10.833    
+TestInflow       1/20/2007  6:00       10.769    
+TestInflow       1/20/2007  7:00       10.424    
+TestInflow       1/20/2007  8:00       10.177    
+TestInflow       1/20/2007  9:00       10.055    
+TestInflow       1/20/2007  10:00      9.722     
+TestInflow       1/20/2007  11:00      9.513     
+TestInflow       1/20/2007  12:00      9.277     
+TestInflow       1/20/2007  13:00      9.189     
+TestInflow       1/20/2007  14:00      9.424     
+TestInflow       1/20/2007  15:00      9.454     
+TestInflow       1/20/2007  16:00      9.484     
+TestInflow       1/20/2007  17:00      9.277     
+TestInflow       1/20/2007  18:00      8.871     
+TestInflow       1/20/2007  19:00      9.189     
+TestInflow       1/20/2007  20:00      9.573     
+TestInflow       1/20/2007  21:00      9.513     
+TestInflow       1/20/2007  22:00      9.131     
+TestInflow       1/20/2007  23:00      9.015     
+TestInflow       1/21/2007  0:00       8.831     
+TestInflow       1/21/2007  1:00       8.720     
+TestInflow       1/21/2007  2:00       8.664     
+TestInflow       1/21/2007  3:00       8.413     
+TestInflow       1/21/2007  4:00       8.113     
+TestInflow       1/21/2007  5:00       7.871     
+TestInflow       1/21/2007  6:00       7.871     
+TestInflow       1/21/2007  7:00       7.659     
+TestInflow       1/21/2007  8:00       7.503     
+TestInflow       1/21/2007  9:00       7.451     
+TestInflow       1/21/2007  10:00      7.270     
+TestInflow       1/21/2007  11:00      7.195     
+TestInflow       1/21/2007  12:00      7.093     
+TestInflow       1/21/2007  13:00      7.018     
+TestInflow       1/21/2007  14:00      6.892     
+TestInflow       1/21/2007  15:00      6.744     
+TestInflow       1/21/2007  16:00      6.670     
+TestInflow       1/21/2007  17:00      6.645     
+TestInflow       1/21/2007  18:00      6.719     
+TestInflow       1/21/2007  19:00      6.621     
+TestInflow       1/21/2007  20:00      6.549     
+TestInflow       1/21/2007  21:00      6.475     
+TestInflow       1/21/2007  22:00      6.549     
+TestInflow       1/21/2007  23:00      6.744     
+TestInflow       1/22/2007  0:00       6.553     
+TestInflow       1/22/2007  1:00       6.553     
+TestInflow       1/22/2007  2:00       6.744     
+TestInflow       1/22/2007  3:00       6.867     
+TestInflow       1/22/2007  4:00       6.915     
+TestInflow       1/22/2007  5:00       6.915     
+TestInflow       1/22/2007  6:00       7.088     
+TestInflow       1/22/2007  7:00       6.989     
+TestInflow       1/22/2007  8:00       6.770     
+TestInflow       1/22/2007  9:00       6.576     
+TestInflow       1/22/2007  10:00      6.433     
+TestInflow       1/22/2007  11:00      6.315     
+TestInflow       1/22/2007  12:00      5.946     
+TestInflow       1/22/2007  13:00      5.178     
+TestInflow       1/22/2007  14:00      5.610     
+TestInflow       1/22/2007  15:00      5.811     
+TestInflow       1/22/2007  16:00      5.834     
+TestInflow       1/22/2007  17:00      5.721     
+TestInflow       1/22/2007  18:00      4.232     
+TestInflow       1/22/2007  19:00      3.699     
+TestInflow       1/22/2007  20:00      5.285     
+TestInflow       1/22/2007  21:00      5.811     
+TestInflow       1/22/2007  22:00      5.834     
+TestInflow       1/22/2007  23:00      5.744     
+TestInflow       1/23/2007  0:00       5.515     
+TestInflow       1/23/2007  1:00       5.451     
+TestInflow       1/23/2007  2:00       5.429     
+TestInflow       1/23/2007  3:00       5.323     
+TestInflow       1/23/2007  4:00       5.176     
+TestInflow       1/23/2007  5:00       5.094     
+TestInflow       1/23/2007  6:00       5.033     
+TestInflow       1/23/2007  7:00       4.950     
+TestInflow       1/23/2007  8:00       4.849     
+TestInflow       1/23/2007  9:00       4.790     
+TestInflow       1/23/2007  10:00      4.710     
+TestInflow       1/23/2007  11:00      4.690     
+TestInflow       1/23/2007  12:00      4.612     
+TestInflow       1/23/2007  13:00      4.553     
+TestInflow       1/23/2007  14:00      4.534     
+TestInflow       1/23/2007  15:00      4.514     
+TestInflow       1/23/2007  16:00      4.495     
+TestInflow       1/23/2007  17:00      4.437     
+TestInflow       1/23/2007  18:00      4.437     
+TestInflow       1/23/2007  19:00      4.418     
+TestInflow       1/23/2007  20:00      4.398     
+TestInflow       1/23/2007  21:00      4.418     
+TestInflow       1/23/2007  22:00      4.342     
+TestInflow       1/23/2007  23:00      4.360     
+TestInflow       1/24/2007  0:00       4.197     
+TestInflow       1/24/2007  1:00       4.142     
+TestInflow       1/24/2007  2:00       4.124     
+TestInflow       1/24/2007  3:00       4.106     
+TestInflow       1/24/2007  4:00       4.124     
+TestInflow       1/24/2007  5:00       4.069     
+TestInflow       1/24/2007  6:00       4.069     
+TestInflow       1/24/2007  7:00       3.978     
+TestInflow       1/24/2007  8:00       3.944     
+TestInflow       1/24/2007  9:00       3.890     
+TestInflow       1/24/2007  10:00      3.855     
+TestInflow       1/24/2007  11:00      3.837     
+TestInflow       1/24/2007  12:00      3.872     
+TestInflow       1/24/2007  13:00      3.855     
+TestInflow       1/24/2007  14:00      3.802     
+TestInflow       1/24/2007  15:00      3.767     
+TestInflow       1/24/2007  16:00      3.749     
+TestInflow       1/24/2007  17:00      3.697     
+TestInflow       1/24/2007  18:00      3.715     
+TestInflow       1/24/2007  19:00      3.697     
+TestInflow       1/24/2007  20:00      3.680     
+TestInflow       1/24/2007  21:00      3.629     
+TestInflow       1/24/2007  22:00      3.680     
+TestInflow       1/24/2007  23:00      3.680     
+TestInflow       1/25/2007  0:00       3.273     
+TestInflow       1/25/2007  1:00       3.227     
+TestInflow       1/25/2007  2:00       3.167     
+TestInflow       1/25/2007  3:00       3.136     
+TestInflow       1/25/2007  4:00       3.093     
+TestInflow       1/25/2007  5:00       3.077     
+TestInflow       1/25/2007  6:00       3.062     
+TestInflow       1/25/2007  7:00       3.019     
+TestInflow       1/25/2007  8:00       2.974     
+TestInflow       1/25/2007  9:00       2.931     
+TestInflow       1/25/2007  10:00      2.931     
+TestInflow       1/25/2007  11:00      2.902     
+TestInflow       1/25/2007  12:00      2.859     
+TestInflow       1/25/2007  13:00      2.830     
+TestInflow       1/25/2007  14:00      2.802     
+TestInflow       1/25/2007  15:00      2.774     
+TestInflow       1/25/2007  16:00      2.732     
+TestInflow       1/25/2007  17:00      2.718     
+TestInflow       1/25/2007  18:00      2.705     
+TestInflow       1/25/2007  19:00      2.830     
+TestInflow       1/25/2007  20:00      2.989     
+TestInflow       1/25/2007  21:00      2.974     
+TestInflow       1/25/2007  22:00      2.902     
+TestInflow       1/25/2007  23:00      2.845     
+TestInflow       1/26/2007  0:00       2.710     
+TestInflow       1/26/2007  1:00       2.682     
+TestInflow       1/26/2007  2:00       2.696     
+TestInflow       1/26/2007  3:00       2.642     
+TestInflow       1/26/2007  4:00       2.615     
+TestInflow       1/26/2007  5:00       2.574     
+TestInflow       1/26/2007  6:00       2.548     
+TestInflow       1/26/2007  7:00       2.522     
+TestInflow       1/26/2007  8:00       2.495     
+TestInflow       1/26/2007  9:00       2.417     
+TestInflow       1/26/2007  10:00      2.353     
+TestInflow       1/26/2007  11:00      2.366     
+TestInflow       1/26/2007  12:00      2.366     
+TestInflow       1/26/2007  13:00      2.328     
+TestInflow       1/26/2007  14:00      2.253     
+TestInflow       1/26/2007  15:00      2.203     
+TestInflow       1/26/2007  16:00      2.191     
+TestInflow       1/26/2007  17:00      2.191     
+TestInflow       1/26/2007  18:00      2.191     
+TestInflow       1/26/2007  19:00      2.191     
+TestInflow       1/26/2007  20:00      2.191     
+TestInflow       1/26/2007  21:00      2.191     
+TestInflow       1/26/2007  22:00      2.203     
+TestInflow       1/26/2007  23:00      2.215     
+TestInflow       1/27/2007  0:00       2.317     
+TestInflow       1/27/2007  1:00       2.317     
+TestInflow       1/27/2007  2:00       2.317     
+TestInflow       1/27/2007  3:00       2.317     
+TestInflow       1/27/2007  4:00       2.317     
+TestInflow       1/27/2007  5:00       2.381     
+TestInflow       1/27/2007  6:00       2.567     
+TestInflow       1/27/2007  7:00       2.648     
+TestInflow       1/27/2007  8:00       2.593     
+TestInflow       1/27/2007  9:00       2.513     
+TestInflow       1/27/2007  10:00      2.446     
+TestInflow       1/27/2007  11:00      2.433     
+TestInflow       1/27/2007  12:00      2.460     
+TestInflow       1/27/2007  13:00      2.620     
+TestInflow       1/27/2007  14:00      2.703     
+TestInflow       1/27/2007  15:00      2.689     
+TestInflow       1/27/2007  16:00      2.620     
+TestInflow       1/27/2007  17:00      2.500     
+TestInflow       1/27/2007  18:00      2.500     
+TestInflow       1/27/2007  19:00      2.433     
+TestInflow       1/27/2007  20:00      2.317     
+TestInflow       1/27/2007  21:00      2.253     
+TestInflow       1/27/2007  22:00      2.216     
+TestInflow       1/27/2007  23:00      2.204     
+TestInflow       1/28/2007  0:00       2.357     
+TestInflow       1/28/2007  1:00       2.383     
+TestInflow       1/28/2007  2:00       2.357     
+TestInflow       1/28/2007  3:00       2.383     
+TestInflow       1/28/2007  4:00       2.344     
+TestInflow       1/28/2007  5:00       2.265     
+TestInflow       1/28/2007  6:00       2.291     
+TestInflow       1/28/2007  7:00       2.330     
+TestInflow       1/28/2007  8:00       2.330     
+TestInflow       1/28/2007  9:00       2.317     
+TestInflow       1/28/2007  10:00      2.291     
+TestInflow       1/28/2007  11:00      2.278     
+TestInflow       1/28/2007  12:00      2.265     
+TestInflow       1/28/2007  13:00      2.252     
+TestInflow       1/28/2007  14:00      2.252     
+TestInflow       1/28/2007  15:00      2.252     
+TestInflow       1/28/2007  16:00      2.252     
+TestInflow       1/28/2007  17:00      2.226     
+TestInflow       1/28/2007  18:00      2.125     
+TestInflow       1/28/2007  19:00      2.099     
+TestInflow       1/28/2007  20:00      2.125     
+TestInflow       1/28/2007  21:00      2.000     
+TestInflow       1/28/2007  22:00      1.940     
+TestInflow       1/28/2007  23:00      1.976     
+TestInflow       1/29/2007  0:00       2.048     
+TestInflow       1/29/2007  1:00       2.085     
+TestInflow       1/29/2007  2:00       2.110     
+TestInflow       1/29/2007  3:00       2.135     
+TestInflow       1/29/2007  4:00       2.172     
+TestInflow       1/29/2007  5:00       2.261     
+TestInflow       1/29/2007  6:00       2.365     
+TestInflow       1/29/2007  7:00       2.339     
+TestInflow       1/29/2007  8:00       2.365     
+TestInflow       1/29/2007  9:00       2.392     
+TestInflow       1/29/2007  10:00      2.352     
+TestInflow       1/29/2007  11:00      2.326     
+TestInflow       1/29/2007  12:00      2.326     
+TestInflow       1/29/2007  13:00      2.235     
+TestInflow       1/29/2007  14:00      2.172     
+TestInflow       1/29/2007  15:00      2.160     
+TestInflow       1/29/2007  16:00      2.299     
+TestInflow       1/29/2007  17:00      2.273     
+TestInflow       1/29/2007  18:00      2.326     
+TestInflow       1/29/2007  19:00      2.352     
+TestInflow       1/29/2007  20:00      2.365     
+TestInflow       1/29/2007  21:00      2.365     
+TestInflow       1/29/2007  22:00      2.352     
+TestInflow       1/29/2007  23:00      2.339     
+TestInflow       1/30/2007  0:00       2.238     
+TestInflow       1/30/2007  1:00       2.175     
+TestInflow       1/30/2007  2:00       2.150     
+TestInflow       1/30/2007  3:00       2.150     
+TestInflow       1/30/2007  4:00       2.226     
+TestInflow       1/30/2007  5:00       2.175     
+TestInflow       1/30/2007  6:00       2.101     
+TestInflow       1/30/2007  7:00       2.089     
+TestInflow       1/30/2007  8:00       2.101     
+TestInflow       1/30/2007  9:00       2.113     
+TestInflow       1/30/2007  10:00      2.138     
+TestInflow       1/30/2007  11:00      2.162     
+TestInflow       1/30/2007  12:00      2.175     
+TestInflow       1/30/2007  13:00      2.175     
+TestInflow       1/30/2007  14:00      2.150     
+TestInflow       1/30/2007  15:00      2.138     
+TestInflow       1/30/2007  16:00      2.162     
+TestInflow       1/30/2007  17:00      2.101     
+TestInflow       1/30/2007  18:00      2.101     
+TestInflow       1/30/2007  19:00      2.138     
+TestInflow       1/30/2007  20:00      2.113     
+TestInflow       1/30/2007  21:00      2.150     
+TestInflow       1/30/2007  22:00      2.101     
+TestInflow       1/30/2007  23:00      2.040     
+
+[REPORT]
+INPUT      NO
+CONTROLS   NO
+SUBCATCHMENTS ALL
+NODES ALL
+LINKS ALL
+
+[TAGS]
+
+[MAP]
+DIMENSIONS 0.000 0.000 10000.000 10000.000
+Units      None
+
+[COORDINATES]
+;;Node           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+N1               3724.539           6498.545          
+N2               3724.539           5004.850          
+N3               5771.096           5014.549          
+
+[VERTICES]
+;;Link           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+
