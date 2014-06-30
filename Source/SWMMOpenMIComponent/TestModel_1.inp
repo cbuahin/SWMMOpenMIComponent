@@ -1,10 +1,17 @@
 [TITLE]
+;;Project Title/Notes
 Test-SWMM
 
 [OPTIONS]
+;;Option             Value
 FLOW_UNITS           CMS
 INFILTRATION         CURVE_NUMBER
 FLOW_ROUTING         DYNWAVE
+LINK_OFFSETS         DEPTH
+MIN_SLOPE            0
+ALLOW_PONDING        NO
+SKIP_STEADY_STATE    NO
+
 START_DATE           01/01/2007
 START_TIME           00:00:00
 REPORT_START_DATE    01/01/2007
@@ -18,42 +25,40 @@ REPORT_STEP          00:01:00
 WET_STEP             00:01:00
 DRY_STEP             00:01:00
 ROUTING_STEP         0:00:05 
-ALLOW_PONDING        NO
+
 INERTIAL_DAMPING     PARTIAL
+NORMAL_FLOW_LIMITED  BOTH
+FORCE_MAIN_EQUATION  H-W
 VARIABLE_STEP        1.00
 LENGTHENING_STEP     0
 MIN_SURFAREA         0
-NORMAL_FLOW_LIMITED  BOTH
-SKIP_STEADY_STATE    NO
-FORCE_MAIN_EQUATION  H-W
-LINK_OFFSETS         DEPTH
-MIN_SLOPE            0
+MAX_TRIALS           0
+HEAD_TOLERANCE       0
+SYS_FLOW_TOL         5
+LAT_FLOW_TOL         5
 
 [EVAPORATION]
-;;Type       Parameters
-;;---------- ----------
-CONSTANT     0.0
-DRY_ONLY     NO
+;;Evap Data      Parameters
+;;-------------- ----------------
+CONSTANT         0.0
+DRY_ONLY         NO
 
 [JUNCTIONS]
-;;               Invert     Max.       Init.      Surcharge  Ponded    
-;;Name           Elev.      Depth      Depth      Depth      Area      
+;;Junction       Invert     Dmax       Dinit      Dsurch     Aponded   
 ;;-------------- ---------- ---------- ---------- ---------- ----------
 N1               55         0          0          0          0         
 N2               53         0          0          0          0         
 N3               52.00      6          0          0          0         
 
 [CONDUITS]
-;;               Inlet            Outlet                      Manning    Inlet      Outlet     Init.      Max.      
-;;Name           Node             Node             Length     N          Offset     Offset     Flow       Flow      
+;;Conduit        From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
 ;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
 L1               N1               N2               400        0.018      0          0          0          0         
 
 [WEIRS]
-;;               Inlet            Outlet           Weir         Crest      Disch.     Flap End      End       
-;;Name           Node             Node             Type         Height     Coeff.     Gate Con.     Coeff.    
-;;-------------- ---------------- ---------------- ------------ ---------- ---------- ---- -------- ----------
-L2               N2               N3               TRANSVERSE   0          3.33       NO   0        0         
+;;Weir           From Node        To Node          Type         CrestHt    Qcoeff     Gated    EndCon   EndCoeff  
+;;-------------- ---------------- ---------------- ------------ ---------- ---------- -------- -------- ----------
+L2               N2               N3               TRANSVERSE   0          3.33       NO       0        0         
 
 [XSECTIONS]
 ;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels   
@@ -62,29 +67,28 @@ L1               RECT_OPEN    6                6          0          0          
 L2               RECT_OPEN    1                1          0          0         
 
 [LOSSES]
-;;Link           Inlet      Outlet     Average    Flap Gate 
-;;-------------- ---------- ---------- ---------- ----------
+;;Link           Kin        Kout       Kavg       Flap Gate  SeepRate  
+;;-------------- ---------- ---------- ---------- ---------- ----------
 
 [INFLOWS]
-;;                                                 Param    Units    Scale    Baseline Baseline
-;;Node           Parameter        Time Series      Type     Factor   Factor   Value    Pattern
+;;Node           Inflow           Time Series      Type     Funits   Fscale   Baseline Pattern
 ;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
 N1               FLOW             TestInflow       FLOW     1.0      1.0              
 
 [CURVES]
-;;Name           Type       X-Value    Y-Value   
+;;Curve          Type       X-Value    Y-Value   
 ;;-------------- ---------- ---------- ----------
 PmpCur1          Pump4      0          0         
 PmpCur1                     1          5         
 PmpCur1                     2          8         
 PmpCur1                     3          12        
-
+;
 StoCur1          Storage    0          600000    
 StoCur1                     3          600000    
-
+;
 STOCrv           Storage    0          10000     
 STOCrv                      10         10000     
-
+;
 Tide             Tidal      0          53        
 Tide                        1          53.15     
 Tide                        2          53.30     
@@ -112,7 +116,7 @@ Tide                        23         52.8
 Tide                        24         53        
 
 [TIMESERIES]
-;;Name           Date       Time       Value     
+;;Time Series    Date       Time       Value     
 ;;-------------- ---------- ---------- ----------
 TestInflow       1/1/2007   0:00       2.440     
 TestInflow       1/1/2007   1:00       2.684     
@@ -836,6 +840,7 @@ TestInflow       1/30/2007  22:00      2.101
 TestInflow       1/30/2007  23:00      2.040     
 
 [REPORT]
+;;Reporting Options
 INPUT      NO
 CONTROLS   NO
 SUBCATCHMENTS ALL
@@ -858,4 +863,7 @@ N3               5771.096           5014.549
 [VERTICES]
 ;;Link           X-Coord            Y-Coord           
 ;;-------------- ------------------ ------------------
+L2               4175.978           5502.793          
+L2               5083.799           5377.095          
+L2               5460.894           5446.927          
 

@@ -42,8 +42,8 @@ namespace SWMMOpenMIComponent
 
         delegate void SetObjectValue(IntPtr ptrToObject, string propertyName);
 
-        # endregion    
-    
+        # endregion
+
         # region Variables
 
         FileInfo library;
@@ -67,6 +67,7 @@ namespace SWMMOpenMIComponent
         GetObjectDelegate getNode;
         GetObjectByIdDelegate getNodeById;
         GetObjectDelegate getLink;
+        GetObjectByIdDelegate getLinkById;
         SetObjectValue setNodeObjectValue;
         SetObjectValue setLinkObjectValue;
 
@@ -75,12 +76,12 @@ namespace SWMMOpenMIComponent
         public GetObjectTypeCountDelegate GetObjectTypeCount;
 
         //Variables that can be exchanged
-        public static Dictionary<ObjectType, KeyValuePair<string, KeyValuePair<string,IValueDefinition>>[]> SWMMVariableTypes;
+        public static Dictionary<ObjectType, KeyValuePair<string, SWMMVariableDefinition>[]> SWMMExposedVariables;
 
 
         //Marshalld structs
-        Dictionary<string,TNode> nodes;
-        Dictionary<string,TLink> links;
+        Dictionary<string, TNode> nodes;
+        Dictionary<string, TLink> links;
 
 
         # endregion
@@ -88,102 +89,166 @@ namespace SWMMOpenMIComponent
         #region Constructor
         static SWMM()
         {
-             IUnit lengthU = new Unit("Length (ft)", 1.0, 0.0)
-             {
-                 Dimension = new Dimension(PredefinedDimensions.Length),
-             };
-
-             IUnit areaU = new Unit("Area (ft^2)", 1.0, 0.0)
-             {
-                 Dimension = new Dimension(PredefinedDimensions.Area) 
-             };
-
-             IUnit flowU = new Unit("Flow (ft^3/s)", 1.0, 0.0)
-             {
-                 Dimension = new Dimension(PredefinedDimensions.VolumePerTime)
-             };
-
-             IUnit coeffU = new Unit("Coefficient", 1.0, 0.0)
-             {
-                 Dimension = new Dimension()
-             };
-
-             IValueDefinition elevationV = new Quantity("Elevation")
-              {
-                   Unit = lengthU,
-                   MissingDataValue = -9999,
-                   Caption = "Elevation (ft)",
-                   Description = "",
-                   ValueType = typeof(double)
-              };
-
-             IValueDefinition depthV = new Quantity("Depth")
-             {
-                 Unit = lengthU,
-                 MissingDataValue = -9999,
-                 Caption = "Depth (ft)",
-                 Description = "",
-                 ValueType = typeof(double)
-             };
-
-             IValueDefinition heightV = new Quantity("Height")
-             {
-                 Unit = lengthU,
-                 MissingDataValue = -9999,
-                 Caption = "Height (ft)",
-                 Description = "",
-                 ValueType = typeof(double)
-             };
-
-             IValueDefinition areaV = new Quantity("Area")
-             {
-                 Unit = areaU,
-                 MissingDataValue = -9999,
-                 Caption = "Area (ft^2)",
-                 Description = "",
-                 ValueType = typeof(double)
-             };
-
-             IValueDefinition flowV = new Quantity("Flow")
-             {
-                 Unit = flowU,
-                 MissingDataValue = -9999,
-                 Caption = "Flow (ft^3/s)",
-                 Description = "",
-                 ValueType = typeof(double)
-             };
-
-             IValueDefinition coeffV = new Quantity("Coefficients")
-             {
-                 Unit = flowU,
-                 MissingDataValue = -9999,
-                 Caption = "Coefficients",
-                 Description = "",
-                 ValueType = typeof(double)
-             };
-
-             SWMMVariableTypes = new Dictionary<ObjectType, KeyValuePair<string, KeyValuePair<string, IValueDefinition>>[]>();
-             SWMMVariableTypes.Add(ObjectType.NODE, new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>[] 
+            IUnit lengthU = new Unit("Length (ft)", 1.0, 0.0, "")
             {
-               new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>( "invertElev" , new KeyValuePair<string,IValueDefinition>("Invert elevation (ft)",elevationV)),
-               new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>( "crownElev" , new KeyValuePair<string,IValueDefinition>("Top of highest connecting conduit (ft)",elevationV)),
-               new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>( "initDepth" , new KeyValuePair<string,IValueDefinition>("Initial storage level (ft)",depthV)),
-               new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>( "surDepth" , new KeyValuePair<string,IValueDefinition>("Added depth under surcharge (ft)",depthV)),
-               new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>( "newDepth" , new KeyValuePair<string,IValueDefinition>("Water depth (ft)",depthV)),
-               new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>( "inflow" , new KeyValuePair<string,IValueDefinition>("Total inflow (cfs)",flowV)),
-               new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>( "outflow" , new KeyValuePair<string,IValueDefinition>("Total outflow (cfs)",flowV)),
-               new KeyValuePair<string, KeyValuePair<string, IValueDefinition>>( "newLatFlow" , new KeyValuePair<string,IValueDefinition>("Lateral inflow (cfs)",flowV)),
+                Dimension = new Dimension(PredefinedDimensions.Length),
+            };
+
+            IUnit areaU = new Unit("Area (ft^2)", 1.0, 0.0, "")
+            {
+                Dimension = new Dimension(PredefinedDimensions.Area)
+            };
+
+            IUnit flowU = new Unit("Flow (ft^3/s)", 1.0, 0.0, "")
+            {
+                Dimension = new Dimension(PredefinedDimensions.VolumePerTime)
+            };
+
+            IUnit coeffU = new Unit("Coefficient", 1.0, 0.0, "")
+            {
+                Dimension = new Dimension()
+            };
+
+            IUnit infilU = new Unit("Infiltration/Exfiltration", 1.0, 0.0, "")
+            {
+                Dimension = new Dimension( PredefinedDimensions.LengthPerTime)
+            };
+
+
+            IValueDefinition elevationV = new Quantity("Elevation")
+             {
+                 Unit = lengthU,
+                 MissingDataValue = -9999,
+                 Caption = "Elevation (ft)",
+                 Description = "",
+                 ValueType = typeof(double)
+             };
+
+            IValueDefinition depthV = new Quantity("Depth")
+            {
+                Unit = lengthU,
+                MissingDataValue = -9999,
+                Caption = "Depth (ft)",
+                Description = "",
+                ValueType = typeof(double)
+            };
+
+            IValueDefinition heightV = new Quantity("Height")
+            {
+                Unit = lengthU,
+                MissingDataValue = -9999,
+                Caption = "Height (ft)",
+                Description = "",
+                ValueType = typeof(double)
+            };
+
+            IValueDefinition areaV = new Quantity("Area")
+            {
+                Unit = areaU,
+                MissingDataValue = -9999,
+                Caption = "Area (ft^2)",
+                Description = "",
+                ValueType = typeof(double)
+            };
+
+            IValueDefinition flowV = new Quantity("Flow")
+            {
+                Unit = flowU,
+                MissingDataValue = -9999,
+                Caption = "Flow (ft^3/s)",
+                Description = "",
+                ValueType = typeof(double)
+            };
+
+            IValueDefinition coeffV = new Quantity("Coefficients")
+            {
+                Unit = flowU,
+                MissingDataValue = -9999,
+                Caption = "Coefficients",
+                Description = "",
+                ValueType = typeof(double)
+            };
+
+            IValueDefinition infilV = new Quantity("Infiltration")
+            {
+                Unit = infilU,
+                MissingDataValue = -9999,
+                Caption = "Infiltration",
+                Description = "",
+                ValueType = typeof(double)
+            };
+
+
+            SWMMExposedVariables = new Dictionary<ObjectType, KeyValuePair<string, SWMMVariableDefinition>[]>();
+
+            SWMMExposedVariables.Add(ObjectType.NODE, new KeyValuePair<string, SWMMVariableDefinition>[]
+            {
+                new KeyValuePair<string,SWMMVariableDefinition>("invertElev" , 
+                    new SWMMVariableDefinition(){Description = "Invert elevation (ft)",Name = "invertElev", ObjectType = ObjectType.NODE , ValueDefinition = elevationV ,  VariableTimeType = VariableTimeType.Constant}),
+               
+                    new KeyValuePair<string,SWMMVariableDefinition>("crownElev" , 
+                    new SWMMVariableDefinition(){Description = "Top of highest connecting conduit (ft)",Name = "crownElev", ObjectType = ObjectType.NODE , ValueDefinition = elevationV,  VariableTimeType = VariableTimeType.Constant }),
+                
+                    new KeyValuePair<string,SWMMVariableDefinition>("initDepth" , 
+                    new SWMMVariableDefinition(){Description = "Initial storage level (ft))",Name = "initDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.Constant}),
+              
+                    new KeyValuePair<string,SWMMVariableDefinition>("surDepth" , 
+                    new SWMMVariableDefinition(){Description = "Added depth under surcharge (ft)",Name = "surDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.Constant}),
+        
+                    new KeyValuePair<string,SWMMVariableDefinition>("newDepth" , 
+                    new SWMMVariableDefinition(){Description = "Water depth (ft)",Name = "newDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.TimeVarying}),
+                    
+                    new KeyValuePair<string,SWMMVariableDefinition>("inflow" , 
+                    new SWMMVariableDefinition(){Description = "Total inflow (cfs)",Name = "inflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
+               
+                    new KeyValuePair<string,SWMMVariableDefinition>("outflow" , 
+                    new SWMMVariableDefinition(){Description = "Total outflow (cfs)",Name = "outflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
+               
+                    new KeyValuePair<string,SWMMVariableDefinition>("outflow" , 
+                    new SWMMVariableDefinition(){Description = "Total outflow (cfs)",Name = "outflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
+               
+                    new KeyValuePair<string,SWMMVariableDefinition>("newLatFlow" , 
+                    new SWMMVariableDefinition(){Description = "Lateral inflow (cfs)",Name = "newLatFlow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
+               
+            });
+
+            SWMMExposedVariables.Add(ObjectType.LINK, new KeyValuePair<string, SWMMVariableDefinition>[]
+            {
+                new KeyValuePair<string,SWMMVariableDefinition>("offset1" , 
+                    new SWMMVariableDefinition(){Description = "Height above start node (ft)",Name = "offset1", ObjectType = ObjectType.LINK , ValueDefinition = heightV ,  VariableTimeType = VariableTimeType.Constant}),
+              
+                    new KeyValuePair<string,SWMMVariableDefinition>("offset2" , 
+                    new SWMMVariableDefinition(){Description = "Height above end node (ft)",Name = "offset2", ObjectType = ObjectType.LINK , ValueDefinition = heightV ,  VariableTimeType = VariableTimeType.Constant}),
+            
+                    new KeyValuePair<string,SWMMVariableDefinition>("q0" , 
+                    new SWMMVariableDefinition(){Description = "Initial Flow (cfs)",Name = "q0", ObjectType = ObjectType.LINK , ValueDefinition = flowV ,  VariableTimeType = VariableTimeType.Constant}),
+            
+                    new KeyValuePair<string,SWMMVariableDefinition>("cLossInlet" , 
+                    new SWMMVariableDefinition(){Description = "Inlet Loss Coefficient",Name = "cLossInlet", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
+                  
+                    new KeyValuePair<string,SWMMVariableDefinition>("cLossOutlet" , 
+                    new SWMMVariableDefinition(){Description = "Outlet Loss Coefficient",Name = "cLossOutlet", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
+                  
+                    new KeyValuePair<string,SWMMVariableDefinition>("cLossAvg" , 
+                    new SWMMVariableDefinition(){Description = "Average Loss Coefficient",Name = "cLossAvg", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
+                  
+                    new KeyValuePair<string,SWMMVariableDefinition>("seepRate" , 
+                    new SWMMVariableDefinition(){Description = "Seepage rate (ft/sec)",Name = "seepRate", ObjectType = ObjectType.LINK , ValueDefinition = infilV ,  VariableTimeType = VariableTimeType.Constant}),
+                  
+                    new KeyValuePair<string,SWMMVariableDefinition>("newFlow" , 
+                    new SWMMVariableDefinition(){Description = "Flow rate (cfs)",Name = "newFlow", ObjectType = ObjectType.LINK , ValueDefinition = flowV ,  VariableTimeType = VariableTimeType.TimeVarying}),
+                 
             });
         }
 
-        public SWMM(FileInfo library, string inputFile,string outputFile, string reportFile = "")
+        public SWMM(FileInfo library, string inputFile, string outputFile, string reportFile = "")
         {
             //dictionary
             this.library = library;
             hModule = WinLibraryLoader.LoadLibrary(library.FullName);
             CheckIfLibraryError();
 
-            if(hModule == IntPtr.Zero)
+            if (hModule == IntPtr.Zero)
             {
                 throw new FileLoadException("Unable to load library located at " + library.FullName, library.FullName);
             }
@@ -203,13 +268,13 @@ namespace SWMMOpenMIComponent
         {
             get
             {
-               return startDateTime; 
+                return startDateTime;
             }
         }
 
         public DateTime EndDateTime
         {
-            get 
+            get
             {
                 return endDateTime;
             }
@@ -217,13 +282,13 @@ namespace SWMMOpenMIComponent
 
         public DateTime CurrentDateTime
         {
-            get 
+            get
             {
-                return currentDateTime; 
+                return currentDateTime;
             }
         }
 
-        public Dictionary<string,TNode> Nodes
+        public Dictionary<string, TNode> Nodes
         {
             get { return nodes; }
         }
@@ -241,13 +306,13 @@ namespace SWMMOpenMIComponent
         {
             open = WinLibraryLoader.LoadFunction<OpenDelegate>(ref hModule, "swmm_open");
             CheckIfLibraryError();
-           
+
             startModel = WinLibraryLoader.LoadFunction<StartModelDelegate>(ref hModule, "swmm_start");
             CheckIfLibraryError();
-            
+
             performTimeStep = WinLibraryLoader.LoadFunction<PerformTimeStepDelegate>(ref hModule, "swmm_step");
             CheckIfLibraryError();
-           
+
             endRun = WinLibraryLoader.LoadFunction<EndRunDelegate>(ref hModule, "swmm_end");
             CheckIfLibraryError();
 
@@ -275,6 +340,9 @@ namespace SWMMOpenMIComponent
             getLink = WinLibraryLoader.LoadFunction<GetObjectDelegate>(ref hModule, "getLink");
             CheckIfLibraryError();
 
+            getLinkById = WinLibraryLoader.LoadFunction<GetObjectByIdDelegate>(ref hModule, "getLinkById");
+            CheckIfLibraryError();
+
             setNodeObjectValue = WinLibraryLoader.LoadFunction<SetObjectValue>(ref hModule, "setNode");
             CheckIfLibraryError();
 
@@ -291,32 +359,31 @@ namespace SWMMOpenMIComponent
 
         public void Initialize()
         {
-           int error = open(inputFile, reportFile, outPutFile);
-           SetError(error);
+            int error = open(inputFile, reportFile, outPutFile);
+            SetError(error);
 
-           int year, month, day, hour, minute, second;
-           year = month = day = hour = minute = second = 0;
+            int year, month, day, hour, minute, second;
+            year = month = day = hour = minute = second = 0;
 
 
-           endDateTimeD = getDateTime("end");
-           decodeDateTime(endDateTimeD, ref year, ref month, ref day, ref hour, ref minute, ref second);
-           endDateTime = new DateTime(year, month, day, hour, minute, second);
+            endDateTimeD = getDateTime("end");
+            decodeDateTime(endDateTimeD, ref year, ref month, ref day, ref hour, ref minute, ref second);
+            endDateTime = new DateTime(year, month, day, hour, minute, second);
 
-           startDateTimeD = getDateTime("begin");
-           decodeDateTime(startDateTimeD, ref year, ref month, ref day, ref hour, ref minute, ref second);
-           startDateTime = new DateTime(year, month, day, hour, minute, second);
+            startDateTimeD = getDateTime("begin");
+            decodeDateTime(startDateTimeD, ref year, ref month, ref day, ref hour, ref minute, ref second);
+            startDateTime = new DateTime(year, month, day, hour, minute, second);
 
-           currentDateTime = startDateTime;
+            currentDateTime = startDateTime;
 
 
             //Initialize Objects
-           InitializeNodes();
-           InitializeLinks();
-           InitializeCatchments();
+            InitializeNodes();
+            InitializeLinks();
+            InitializeCatchments();
 
 
         }
-
 
         void InitializeNodes()
         {
@@ -324,7 +391,7 @@ namespace SWMMOpenMIComponent
 
             int nodeCount = GetObjectTypeCount(ObjectType.NODE);
 
-            for(int i = 0 ; i < nodeCount ; i++)
+            for (int i = 0; i < nodeCount; i++)
             {
                 TNode node = GetNode(i);
                 nodes.Add(node.ID, node);
@@ -338,7 +405,7 @@ namespace SWMMOpenMIComponent
 
             int linkCount = GetObjectTypeCount(ObjectType.LINK);
 
-            for(int i = 0 ; i < linkCount ; i++)
+            for (int i = 0; i < linkCount; i++)
             {
                 TLink link = GetLink(i);
                 links.Add(link.ID, link);
@@ -405,11 +472,11 @@ namespace SWMMOpenMIComponent
 
                 if (hModule != IntPtr.Zero && !WinLibraryLoader.FreeLibrary(hModule))
                 {
-                     Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error()); 
+                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
                 }
             }
 
-            if(File.Exists(library.FullName))
+            if (File.Exists(library.FullName))
             {
                 File.Delete(library.FullName);
             }
@@ -420,7 +487,7 @@ namespace SWMMOpenMIComponent
 
         private void SetError(int errorCode)
         {
-            if(errorCode != 0)
+            if (errorCode != 0)
             {
                 string message = "";
                 getErrorMessage(ref message, errorCode);
@@ -432,12 +499,12 @@ namespace SWMMOpenMIComponent
         {
             int error = Marshal.GetLastWin32Error();
 
-            if(error != 0)
+            if (error != 0)
             {
                 //throw new Win32Exception(error);
             }
         }
-        
+
         public TNode GetNode(int index)
         {
             IntPtr nodePtr = getNode(index);
@@ -459,9 +526,16 @@ namespace SWMMOpenMIComponent
             return link;
         }
 
-        public void UpdateValue(ObjectType type , string name, string property, double value)
+        public TLink GetLinkById(string id)
         {
-            switch(type)
+            IntPtr linkPtr = getLinkById(id);
+            TLink link = (TLink)Marshal.PtrToStructure(linkPtr, typeof(TLink));
+            return link;
+        }
+
+        public void UpdateValue(ObjectType type, string name, string property, double value)
+        {
+            switch (type)
             {
                 case ObjectType.NODE:
                     {
@@ -486,7 +560,7 @@ namespace SWMMOpenMIComponent
             }
         }
 
-        public double GetValue(ObjectType type , string name, string property)
+        public double GetValue(ObjectType type, string name, string property)
         {
             switch (type)
             {
@@ -494,19 +568,61 @@ namespace SWMMOpenMIComponent
                     {
                         FieldInfo field = typeof(TNode).GetField(property);
                         TNode node = nodes[name];
-                        node = GetNodeById(node.ID);
+                        nodes[name] = GetNodeById(node.ID);
                         return (double)field.GetValue(nodes[name]);
                     }
                 case ObjectType.LINK:
                     {
                         FieldInfo field = typeof(TLink).GetField(property);
+                        TLink link = links[name];
+                        links[name] = GetLinkById(name);
                         return (double)field.GetValue(links[name]);
                     }
             }
 
             return 0.0;
         }
-       
+
         # endregion
+    }
+
+    public class SWMMVariableDefinition
+    {
+        public string Name
+        {
+            get;
+            set;
+        }
+
+        public string Description
+        {
+            get;
+            set;
+        }
+
+        public IValueDefinition ValueDefinition
+        {
+            get;
+            set;
+        }
+
+        public ObjectType ObjectType
+        {
+            get;
+            set;
+        }
+
+        public VariableTimeType VariableTimeType
+        {
+            get;
+            set;
+        }
+
+
+    }
+    public enum VariableTimeType
+    {
+        TimeVarying,
+        Constant,
     }
 }

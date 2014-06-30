@@ -1,7 +1,9 @@
 ﻿using Oatc.OpenMI.Sdk.Backbone;
+using Oatc.OpenMI.Sdk.Backbone.Generic;
 using OpenMI.Standard2;
 using OpenMI.Standard2.TimeSpace;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -367,12 +369,28 @@ namespace SWMMOpenMIComponent
 
         public void InitializeValuesAndElementSet()
         {
-            elementSet.Elements = new Element[objects.Count];
+            Element[] els = new Element[objects.Count];
 
-            for(int i = 0 ; i < objects.Count ; i++)
+            for (int i = 0; i < objects.Count; i++)
             {
-                elementSet.Elements[i] = new Element(objects[i].ObjectId);
+                SWMMObjectIdentifier id = objects[i];
+
+                els[i] = new Element(id.ObjectId)
+                    {
+                        Caption = id.ObjectId,
+                        Description = id.ObjectId
+                    };
             }
+
+            elementSet.Elements = els;
+
+            IList<IList> valueSet = new ListIList<double>();
+
+            double[] v = new double[objects.Count];
+
+            valueSet.Add(v.ToList());
+
+            values.Values2D = valueSet;
         }
 
         #endregion

@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
-<LinkableComponent  xmlns ="http://www.openmi.org" Type="SWMMOpenMIComponent.SWMMOpenMIComponent" Assembly="..\..\..\..\..\..\..\..\SWMMOpenMIComponent\Source\SWMMOpenMIComponent\bin\Debug\SWMMOpenMIComponent.dll">
+<LinkableComponent  xmlns ="http://www.openmi.org" Type="SWMMOpenMIComponent.SWMMOpenMIComponent" Assembly="SWMMOpenMIComponent.dll">
   <Arguments>
-    <Argument Key="ModelID" ReadOnly="true" Value="TestModel_1" />
-	<Argument Key="Caption" ReadOnly="true" Value="TestModel_1" />
+    <Argument Key="ModelID" ReadOnly="true" Value="TestModel_2" />
+	<Argument Key="Caption" ReadOnly="true" Value="TestModel_2" />
 	<Argument Key="Description" ReadOnly="true" Value="SWMM Model Component Caption" />
-	<Argument Key="SWMMLibrary" ReadOnly="true" Value="..\..\..\..\..\..\..\SWMMOpenMIComponent\Source\SWMMOpenMIComponent\bin\Debug\SWMMQOpenMI.dll"  IsOptional = "false" />
-    <Argument Key="ProjectFile" ReadOnly="true" Value="..\..\..\..\..\..\..\SWMMOpenMIComponent\Source\SWMMOpenMIComponent\bin\Debug\TestModel_2.inp"  IsOptional = "false"/>
-    <Argument Key="ReportFile" ReadOnly="true" Value="..\..\..\..\..\..\..\SWMMOpenMIComponent\Source\SWMMOpenMIComponent\bin\Debug\TestModel_2.rpt" />
-    <Argument Key="OutputFile" ReadOnly="true" Value="..\..\..\..\..\..\..\SWMMOpenMIComponent\Source\SWMMOpenMIComponent\bin\Debug\TestModel_2.out" />
+	<Argument Key="SWMMLibrary" ReadOnly="true" Value="SWMMQOpenMI.dll"  IsOptional = "false" />
+    <Argument Key="ProjectFile" ReadOnly="true" Value="TestModel_2.inp"  IsOptional = "false"/>
+    <Argument Key="ReportFile" ReadOnly="true" Value="TestModel_2.rpt" />
+    <Argument Key="OutputFile" ReadOnly="true" Value="TestModel_2.out" />
   </Arguments>
 </LinkableComponent>
 

@@ -1,10 +1,17 @@
 [TITLE]
+;;Project Title/Notes
 Test-SWMM
 
 [OPTIONS]
+;;Option             Value
 FLOW_UNITS           CMS
 INFILTRATION         CURVE_NUMBER
 FLOW_ROUTING         DYNWAVE
+LINK_OFFSETS         DEPTH
+MIN_SLOPE            0
+ALLOW_PONDING        NO
+SKIP_STEADY_STATE    NO
+
 START_DATE           01/01/2007
 START_TIME           00:00:00
 REPORT_START_DATE    01/01/2007
@@ -18,38 +25,36 @@ REPORT_STEP          00:01:00
 WET_STEP             00:01:00
 DRY_STEP             00:01:00
 ROUTING_STEP         0:00:05 
-ALLOW_PONDING        NO
+
 INERTIAL_DAMPING     PARTIAL
+NORMAL_FLOW_LIMITED  BOTH
+FORCE_MAIN_EQUATION  H-W
 VARIABLE_STEP        1.00
 LENGTHENING_STEP     0
 MIN_SURFAREA         0
-NORMAL_FLOW_LIMITED  BOTH
-SKIP_STEADY_STATE    NO
-FORCE_MAIN_EQUATION  H-W
-LINK_OFFSETS         DEPTH
-MIN_SLOPE            0
+MAX_TRIALS           0
+HEAD_TOLERANCE       0
+SYS_FLOW_TOL         5
+LAT_FLOW_TOL         5
 
 [EVAPORATION]
-;;Type       Parameters
-;;---------- ----------
-CONSTANT     0.0
-DRY_ONLY     NO
+;;Evap Data      Parameters
+;;-------------- ----------------
+CONSTANT         0.0
+DRY_ONLY         NO
 
 [JUNCTIONS]
-;;               Invert     Max.       Init.      Surcharge  Ponded    
-;;Name           Elev.      Depth      Depth      Depth      Area      
+;;Junction       Invert     Dmax       Dinit      Dsurch     Aponded   
 ;;-------------- ---------- ---------- ---------- ---------- ----------
 N3               52.00      6          0          0          0         
 
 [OUTFALLS]
-;;               Invert     Outfall    Stage/Table      Tide
-;;Name           Elev.      Type       Time Series      Gate
-;;-------------- ---------- ---------- ---------------- ----
+;;Outfall        Invert     Type       Stage Data       Gated   
+;;-------------- ---------- ---------- ---------------- --------
 EPAEPSEM         53         TIDAL      Tide             NO
 
 [CONDUITS]
-;;               Inlet            Outlet                      Manning    Inlet      Outlet     Init.      Max.      
-;;Name           Node             Node             Length     N          Offset     Offset     Flow       Flow      
+;;Conduit        From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
 ;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
 L3               N3               EPAEPSEM         400        0.018      0          0          0          0         
 
@@ -59,23 +64,23 @@ L3               N3               EPAEPSEM         400        0.018      0      
 L3               RECT_OPEN    6                6          0          0          1                    
 
 [LOSSES]
-;;Link           Inlet      Outlet     Average    Flap Gate 
-;;-------------- ---------- ---------- ---------- ----------
+;;Link           Kin        Kout       Kavg       Flap Gate  SeepRate  
+;;-------------- ---------- ---------- ---------- ---------- ----------
 
 [CURVES]
-;;Name           Type       X-Value    Y-Value   
+;;Curve          Type       X-Value    Y-Value   
 ;;-------------- ---------- ---------- ----------
 PmpCur1          Pump4      0          0         
 PmpCur1                     1          5         
 PmpCur1                     2          8         
 PmpCur1                     3          12        
-
+;
 StoCur1          Storage    0          600000    
 StoCur1                     3          600000    
-
+;
 STOCrv           Storage    0          10000     
 STOCrv                      10         10000     
-
+;
 Tide             Tidal      0          53        
 Tide                        1          53.15     
 Tide                        2          53.30     
@@ -103,7 +108,7 @@ Tide                        23         52.8
 Tide                        24         53        
 
 [TIMESERIES]
-;;Name           Date       Time       Value     
+;;Time Series    Date       Time       Value     
 ;;-------------- ---------- ---------- ----------
 TestInflow       1/1/2007   0:00       2.440     
 TestInflow       1/1/2007   1:00       2.684     
@@ -827,6 +832,7 @@ TestInflow       1/30/2007  22:00      2.101
 TestInflow       1/30/2007  23:00      2.040     
 
 [REPORT]
+;;Reporting Options
 INPUT      NO
 CONTROLS   NO
 SUBCATCHMENTS ALL
@@ -848,4 +854,7 @@ EPAEPSEM         5771.096           3598.448
 [VERTICES]
 ;;Link           X-Coord            Y-Coord           
 ;;-------------- ------------------ ------------------
+L3               5771.096           4306.499          
+L3               5771.096           3952.473          
+L3               5771.096           3775.461          
 

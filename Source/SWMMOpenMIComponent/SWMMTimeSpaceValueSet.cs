@@ -1,4 +1,5 @@
-﻿using OpenMI.Standard2.TimeSpace;
+﻿using Oatc.OpenMI.Sdk.Backbone.Generic;
+using OpenMI.Standard2.TimeSpace;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,19 +11,28 @@ namespace SWMMOpenMIComponent
 {
     public class SWMMTimeSpaceValueSet<T> : ITimeSpaceValueSet
     {
-        IList<IList<T>> values;
+        ListIList<T> values;
+
+        public SWMMTimeSpaceValueSet()
+        {
+            values = new ListIList<T>();
+        }
 
         public IList<IList> Values2D
         {
             get
             {
-                return (IList<IList>)values;
+                return values;
             }
             set
             {
-                if (value is IList<IList<T>>)
+                if (value is ListIList<T>)
                 {
-                    values = (IList<IList<T>>)value;
+                    values = (ListIList<T>)value;
+                }
+                else
+                {
+                    throw new ArgumentException("Argument must be type: " + typeof(ListIList<T>).Name);
                 }
             }
         }
