@@ -34,6 +34,7 @@ using System.IO;
 using Oatc.OpenMI.Sdk.Spatial;
 using System.Threading;
 using Oatc.OpenMI.Sdk.Buffer;
+using SWMMOpenMIComponent;
 
 namespace SWMMOpenMIComponent
 {
@@ -53,7 +54,10 @@ namespace SWMMOpenMIComponent
         SWMM model;
         bool hasBeenInitialized = false;
         bool hasBeenPrepared = false;
-      
+        List<IBaseInput> consumers;
+        IBaseOutput[] requiredOutputs;
+        IBaseInput[] requiredInputs;
+        SWMM.CallbackFunction routingCallback;
 
         # endregion
 
@@ -217,7 +221,7 @@ namespace SWMMOpenMIComponent
 
             //Initialize
             Status = LinkableComponentStatus.Initializing;
-
+       
             //initialize arguments
             InitializeArguments();
             InitializeSWMMLibrary();
@@ -225,6 +229,8 @@ namespace SWMMOpenMIComponent
             InitializeInputExchangeItems();
             InitializeOutputExchangeItems();
             InitializeSpace();
+            
+            hasBeenInitialized = true;
 
             Status = LinkableComponentStatus.Initialized;
         }
@@ -250,11 +256,28 @@ namespace SWMMOpenMIComponent
 
             Status = LinkableComponentStatus.Preparing;
 
+ 
+            RetrieveAllConsumers();
+            RetrieveRequiredOutputs();
+            RetrieveRequiredInputs();
+
+            foreach (IBaseOutput output in requiredOutputs)
+            {
+                foreach (IBaseAdaptedOutput adaptedOutput in output.AdaptedOutputs)
+                {
+                    adaptedOutput.Initialize();
+                }
+            }
+
+
             // Prepare the engine
             model.StartModel();
+            routingCallback = UpdateRequiredInputExchangeItems;
+            model.SetRoutingCallback(routingCallback);
+
+
 
             hasBeenPrepared = true;
-
             Status = LinkableComponentStatus.Updated;
         }
 
@@ -267,38 +290,47 @@ namespace SWMMOpenMIComponent
 
             Status = LinkableComponentStatus.Updating;
 
-            UpdateRequiredInputExchangeItems();
-
-
             if (Status != LinkableComponentStatus.Done)
             {
-                model.PerformTimeStep();
-            }
+                DateTime earliestTimeDesired = GetEarliestTimeRequiredByOutput();
 
-            ITime time = new Time(model.CurrentDateTime) { DurationInDays = 0 };
-
-            lock (timeExtent.Times)
-            {
-                if (timeExtent.Times.Count == 0)
+                if (earliestTimeDesired > model.CurrentDateTime && earliestTimeDesired < model.EndDateTime)
                 {
-                    timeExtent.Times.Add(time);
-                }
-                else if (timeExtent.Count == 1)
-                {
-                    timeExtent.Times[0] = time;
+                    while (model.CurrentDateTime <= earliestTimeDesired)
+                    {
+                        model.PerformTimeStep();
+                    }
                 }
                 else
                 {
-                    timeExtent.Times.Clear();
-                    timeExtent.Times.Add(time);
+                    model.PerformTimeStep();
                 }
+
+                ITime time = new Time(model.CurrentDateTime) { DurationInDays = 0 };
+
+                lock (timeExtent.Times)
+                {
+                    if (timeExtent.Times.Count == 0)
+                    {
+                        timeExtent.Times.Add(time);
+                    }
+                    else if (timeExtent.Count == 1)
+                    {
+                        timeExtent.Times[0] = time;
+                    }
+                    else
+                    {
+                        timeExtent.Times.Clear();
+                        timeExtent.Times.Add(time);
+                    }
+                }
+
+                UpdateRequiredOutputExchangeItems();
             }
 
 
-            UpdateRequiredOutputExchangeItems();
-
             Status = model.CurrentDateTime >= timeExtent.TimeHorizon.End().ToDateTime() ?
-                OutputItemsStillRequireData() ? LinkableComponentStatus.Finishing : LinkableComponentStatus.Done
+                (OutputItemsStillRequireData() ? LinkableComponentStatus.Done : LinkableComponentStatus.Finishing)
                 : LinkableComponentStatus.Updated;
         }
 
@@ -308,6 +340,11 @@ namespace SWMMOpenMIComponent
 
             model.EndRun();
             model.CloseModel();
+            model.Dispose();
+
+            hasBeenInitialized = false;
+            hasBeenPrepared = false;
+
 
             Status = LinkableComponentStatus.Finished;
         }
@@ -496,29 +533,31 @@ namespace SWMMOpenMIComponent
             {
                 Dictionary<string, List<Coordinate>> value = coordinates[input.ObjectType];
 
-                if (value.Count > 0)
-                {
+            
                     switch (input.ObjectType)
                     {
                         case ObjectType.NODE:
-                            for (int i = 0; i < input.SWMMObjects.Count; i++)
-                            {
-                                if (i == 0)
-                                {
-                                    input.ElementSet.ElementType = ElementType.Point;
-                                }
 
-                                SWMMObjectIdentifier id = input.SWMMObjects[i];
-
-                                if (value.ContainsKey(id.ObjectId))
+                          
+                                for (int i = 0; i < input.SWMMObjects.Count; i++)
                                 {
-                                    input.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
+                                    if (i == 0)
+                                    {
+                                        input.ElementSet.ElementType = ElementType.Point;
+                                    }
+
+                                    SWMMObjectIdentifier id = input.SWMMObjects[i];
+
+                                    if (value.ContainsKey(id.ObjectId))
+                                    {
+                                        input.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
+                                    }
                                 }
-                            }
 
                             break;
 
                         case ObjectType.LINK:
+
                             for (int i = 0; i < input.SWMMObjects.Count; i++)
                             {
                                 if (i == 0)
@@ -569,10 +608,7 @@ namespace SWMMOpenMIComponent
                             }
 
                             break;
-
-
                     }
-                }
             }
 
             foreach (SWMMOutputExchangeItem output in outputs)
@@ -967,57 +1003,135 @@ namespace SWMMOpenMIComponent
         void UpdateRequiredInputExchangeItems()
         {
             //parallel
-            foreach (SWMMInputExchangeItem inputItem in inputs)
+            foreach (SWMMInputExchangeItem inputItem in requiredInputs)
             {
                 int lastIndex = inputItem.TimeSet.Times.Count - 1;
                 ITime time = timeExtent[lastIndex];
                 inputItem.TimeSet.Times[lastIndex] = new Time(time);
 
-                if (inputItem.Provider != null)
-                {
-                    // get and store input
-                    inputItem.Values = (ITimeSpaceValueSet)inputItem.Provider.GetValues(inputItem);
-                    inputItem.UpdateModel(ref model);
-                }
+                // get and store input
+                inputItem.Values = (ITimeSpaceValueSet)inputItem.Provider.GetValues(inputItem);
+                inputItem.UpdateModel(ref model);
+
             }
         }
 
         void UpdateRequiredOutputExchangeItems()
         {
-            foreach (SWMMOutputExchangeItem output in outputs)
+            ITime current =  new Time(timeExtent.Times[timeExtent.Times.Count - 1]);
+
+            for (int i = 0; i < requiredOutputs.Length; i++)
             {
-                if (output.Consumers.Count > 0 || output.AdaptedOutputs.Count > 0)
+                SWMMOutputExchangeItem output = (SWMMOutputExchangeItem)requiredOutputs[i];
+
+                int lastIndex = output.TimeSet.Times.Count - 1;
+
+                output.TimeSet.Times[lastIndex] = current;
+
+                output.RetrieveFromModel(ref model);
+
+                for (int j = 0; j < output.AdaptedOutputs.Count; j++)
                 {
-                    int lastIndex = output.TimeSet.Times.Count -1;
-                
-                    output.TimeSet.Times[lastIndex] = new Time(timeExtent.Times[timeExtent.Times.Count-1]);
+                    ITimeSpaceAdaptedOutput adaptedOutput = (ITimeSpaceAdaptedOutput)output.AdaptedOutputs[j];
 
-                    output.RetrieveFromModel(ref model);
+                    // Only update adaptedOutputs that are actually active
 
-                    foreach (ITimeSpaceAdaptedOutput adaptedOutput in output.AdaptedOutputs)
-                    {
-                        // Only update adaptedOutputs that are actually active
-                        if (adaptedOutput.Consumers.Count > 0 || adaptedOutput.AdaptedOutputs.Count > 0)
-                        {
-                            lastIndex = adaptedOutput.TimeSet.Times.Count - 1;
-                            adaptedOutput.TimeSet.Times[lastIndex] = new Time(timeExtent.Times[timeExtent.Times.Count - 1]);
-                            adaptedOutput.Refresh();
-                        }
-                    }
+                    lastIndex = adaptedOutput.TimeSet.Times.Count - 1;
+                    adaptedOutput.TimeSet.Times[lastIndex] = current;
+                    adaptedOutput.Refresh();
                 }
             }
         }
 
         bool OutputItemsStillRequireData()
         {
-            bool item = true;
+            if (consumers != null)
+            {
+                foreach (IBaseInput consumer in consumers)
+                {
+                    if (consumer.Component.Status != LinkableComponentStatus.Done &&
+                       consumer.Component.Status != LinkableComponentStatus.Finished &&
+                       consumer.Component.Status != LinkableComponentStatus.Finishing
+                       )
+                    {
+                        return true;
+                    }
 
-            return item;
+                }
+            }
+
+           return false;
+        }
+
+        DateTime GetEarliestTimeRequiredByOutput()
+        {
+            
+            DateTime dateTimeTest = DateTime.MaxValue;
+
+            foreach(ITimeSpaceInput input in consumers)
+            {
+                IList<ITime> times = input.TimeSet.Times;
+
+                DateTime time = times[times.Count - 1].End().ToDateTime();
+
+                if (time < dateTimeTest)
+                    dateTimeTest = time;
+            }
+
+            return dateTimeTest;
+
         }
 
         #endregion
 
-       
+        void RetrieveAllConsumers()
+        {
+            consumers = new List<IBaseInput>();
+
+            foreach(IBaseOutput output in outputs)
+            {
+                if(output.Consumers.Count > 0)
+                {
+                    consumers.AddRange(output.Consumers);
+                }
+
+                if(output.AdaptedOutputs.Count > 0)
+                {
+                    foreach(IBaseAdaptedOutput adaptedOutput in output.AdaptedOutputs)
+                    {
+                        GetAdaptedOutputsConsumers(adaptedOutput,ref consumers);
+                    }
+                }
+            }
+        }
+
+        void RetrieveRequiredOutputs()
+        {
+
+            this.requiredOutputs = (from n in outputs
+                                    where n.Consumers.Count > 0 || n.AdaptedOutputs.Count > 0
+                                    select n).ToArray();
+        }
+
+        void RetrieveRequiredInputs()
+        {
+            requiredInputs = (from n in inputs
+                             where n.Provider != null
+                                  select n).ToArray();
+        }
+
+        void GetAdaptedOutputsConsumers(IBaseAdaptedOutput adaptedOutput , ref List<IBaseInput> consumers)
+        {
+            if(adaptedOutput.Consumers.Count > 0)
+            {
+                consumers.AddRange(adaptedOutput.Consumers);
+            }
+
+            foreach (IBaseAdaptedOutput adaptedOutputT in adaptedOutput.AdaptedOutputs)
+            {
+                GetAdaptedOutputsConsumers(adaptedOutputT, ref consumers);
+            }
+        }
 
         #endregion
 

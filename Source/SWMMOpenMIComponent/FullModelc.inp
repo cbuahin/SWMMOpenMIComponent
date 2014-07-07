@@ -45,6 +45,7 @@ DRY_ONLY         NO
 [JUNCTIONS]
 ;;Junction       Invert     Dmax       Dinit      Dsurch     Aponded   
 ;;-------------- ---------- ---------- ---------- ---------- ----------
+node1            100        0          0          0          0         
 node2            80         3          0          0          0         
 
 [OUTFALLS]
@@ -55,16 +56,23 @@ node3            70         FREE                        NO
 [CONDUITS]
 ;;Conduit        From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
 ;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
+link1            node1            node2            400        0.01       0          0          0          0         
 link2            node2            node3            600        0.01       0          0          0          0         
 
 [XSECTIONS]
 ;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels   
 ;;-------------- ------------ ---------------- ---------- ---------- ---------- ----------
+link1            CIRCULAR     3                0          0          0          1                    
 link2            CIRCULAR     3                0          0          0          1                    
 
 [LOSSES]
 ;;Link           Kin        Kout       Kavg       Flap Gate  SeepRate  
 ;;-------------- ---------- ---------- ---------- ---------- ----------
+
+[INFLOWS]
+;;Node           Inflow           Time Series      Type     Funits   Fscale   Baseline Pattern
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
+node1            FLOW             resr             FLOW     1.0      0        10      
 
 [TIMESERIES]
 ;;Time Series    Date       Time       Value     
@@ -101,6 +109,7 @@ Units      None
 [COORDINATES]
 ;;Node           X-Coord            Y-Coord           
 ;;-------------- ------------------ ------------------
+node1            -1244.726          5474.684          
 node2            2360.335           4804.469          
 node3            6354.749           3924.581          
 

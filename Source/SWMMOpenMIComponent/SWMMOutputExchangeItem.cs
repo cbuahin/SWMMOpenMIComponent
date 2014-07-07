@@ -180,6 +180,8 @@ namespace SWMMOpenMIComponent
 
         public void AddConsumer(IBaseInput consumer)
         {
+            
+            if(!Consumers.Contains(consumer))
             Consumers.Add(consumer);
         }
 
@@ -190,6 +192,15 @@ namespace SWMMOpenMIComponent
 
         public void AddAdaptedOutput(IBaseAdaptedOutput adaptedOutput)
         {
+            for (int i = 0; i < AdaptedOutputs.Count; i++)
+            {
+                if(adaptedOutput.Id ==  AdaptedOutputs[i].Id)
+                {
+                    return;
+                }
+            }
+            
+            if(!AdaptedOutputs.Contains(adaptedOutput))
             AdaptedOutputs.Add(adaptedOutput);
         }
 
@@ -255,11 +266,11 @@ namespace SWMMOpenMIComponent
 
             }
 
-            if (!OutputAndInputTimeSetsFit(ref timeSpaceQuery))
-            {
-                throw new Exception("Could not update engine \"" + Component.Id + "\" to required time for output item \"" + Id +
-                                    "\" (requiring input item \"" + querySpecifier.Id + "\"). Use a Time Extrapolator.");
-            }
+            //if (!OutputAndInputTimeSetsFit(ref timeSpaceQuery))
+            //{
+            //    throw new Exception("Could not update engine \"" + Component.Id + "\" to required time for output item \"" + Id +
+            //                        "\" (requiring input item \"" + querySpecifier.Id + "\"). Use a Time Extrapolator.");
+            //}
 
             return values;
         }

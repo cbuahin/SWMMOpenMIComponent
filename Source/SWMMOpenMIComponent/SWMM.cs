@@ -3,6 +3,7 @@ using OpenMI.Standard2;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -18,15 +19,14 @@ namespace SWMMOpenMIComponent
 
         # region SWMMDelegates
 
+
         delegate int OpenDelegate(string inputFile, string reportFile, string outFile);
 
         delegate int StartModelDelegate(int saveResults);
 
         delegate int PerformTimeStepDelegate(ref double elapsedTime);
 
-        delegate int EndRunDelegate();
-
-        delegate int CloseModelDelegate();
+        delegate int IntRetureDelegate();
 
         delegate string GetErrorMessageDelegate(ref string message, int errorCode);
 
@@ -41,6 +41,8 @@ namespace SWMMOpenMIComponent
         delegate IntPtr GetObjectByIdDelegate(string id);
 
         delegate void SetObjectValue(IntPtr ptrToObject, string propertyName);
+
+        delegate void SetCallBackFunction(IntPtr callback);
 
         # endregion
 
@@ -59,8 +61,9 @@ namespace SWMMOpenMIComponent
         OpenDelegate open;
         StartModelDelegate startModel;
         PerformTimeStepDelegate performTimeStep;
-        EndRunDelegate endRun;
-        CloseModelDelegate closeModel;
+        IntRetureDelegate endRun;
+        IntRetureDelegate closeModel;
+        IntRetureDelegate reportModelResults;
         GetErrorMessageDelegate getErrorMessage;
         DecodeDateTimeDelegate decodeDateTime;
         GetDateTimeDelegate getDateTime;
@@ -70,8 +73,8 @@ namespace SWMMOpenMIComponent
         GetObjectByIdDelegate getLinkById;
         SetObjectValue setNodeObjectValue;
         SetObjectValue setLinkObjectValue;
-
-
+        SetCallBackFunction setRunoffCallBackDelegate, setRoutingCallBackDelegate;
+      
         //Direct delegate calls
         public GetObjectTypeCountDelegate GetObjectTypeCount;
 
@@ -83,6 +86,8 @@ namespace SWMMOpenMIComponent
         Dictionary<string, TNode> nodes;
         Dictionary<string, TLink> links;
 
+
+        public delegate void CallbackFunction();
 
         # endregion
 
@@ -204,9 +209,6 @@ namespace SWMMOpenMIComponent
                     new KeyValuePair<string,SWMMVariableDefinition>("outflow" , 
                     new SWMMVariableDefinition(){Description = "Total outflow (cfs)",Name = "outflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
                
-                    new KeyValuePair<string,SWMMVariableDefinition>("outflow" , 
-                    new SWMMVariableDefinition(){Description = "Total outflow (cfs)",Name = "outflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
-               
                     new KeyValuePair<string,SWMMVariableDefinition>("newLatFlow" , 
                     new SWMMVariableDefinition(){Description = "Lateral inflow (cfs)",Name = "newLatFlow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
                
@@ -247,7 +249,9 @@ namespace SWMMOpenMIComponent
             this.library = library;
             hModule = WinLibraryLoader.LoadLibrary(library.FullName);
             CheckIfLibraryError();
-
+           
+            
+       
             if (hModule == IntPtr.Zero)
             {
                 throw new FileLoadException("Unable to load library located at " + library.FullName, library.FullName);
@@ -258,6 +262,8 @@ namespace SWMMOpenMIComponent
             this.reportFile = reportFile;
 
             AssignFunctionsToDelegates();
+
+       
         }
 
         #endregion
@@ -313,10 +319,13 @@ namespace SWMMOpenMIComponent
             performTimeStep = WinLibraryLoader.LoadFunction<PerformTimeStepDelegate>(ref hModule, "swmm_step");
             CheckIfLibraryError();
 
-            endRun = WinLibraryLoader.LoadFunction<EndRunDelegate>(ref hModule, "swmm_end");
+            endRun = WinLibraryLoader.LoadFunction<IntRetureDelegate>(ref hModule, "swmm_end");
             CheckIfLibraryError();
 
-            closeModel = WinLibraryLoader.LoadFunction<CloseModelDelegate>(ref hModule, "swmm_close");
+            reportModelResults = WinLibraryLoader.LoadFunction<IntRetureDelegate>(ref hModule, "swmm_report");
+            CheckIfLibraryError();
+
+            closeModel = WinLibraryLoader.LoadFunction<IntRetureDelegate>(ref hModule, "swmm_close");
             CheckIfLibraryError();
 
             getErrorMessage = WinLibraryLoader.LoadFunction<GetErrorMessageDelegate>(ref hModule, "getErrorMsg");
@@ -349,16 +358,27 @@ namespace SWMMOpenMIComponent
             setLinkObjectValue = WinLibraryLoader.LoadFunction<SetObjectValue>(ref hModule, "setLink");
             CheckIfLibraryError();
 
+
+            setRunoffCallBackDelegate = WinLibraryLoader.LoadFunction<SetCallBackFunction>(ref hModule, "swmm_set_openmi_runoff_callback");
+            CheckIfLibraryError();
+
+            setRoutingCallBackDelegate = WinLibraryLoader.LoadFunction<SetCallBackFunction>(ref hModule, "swmm_set_openmi_routing_callback");
+            CheckIfLibraryError();
+
         }
 
         public void StartModel()
         {
-            int error = startModel(1);
+            bool op = true;
+            int error = startModel(Convert.ToInt32(op));
             SetError(error);
+            
         }
 
         public void Initialize()
         {
+
+
             int error = open(inputFile, reportFile, outPutFile);
             SetError(error);
 
@@ -419,6 +439,12 @@ namespace SWMMOpenMIComponent
 
         public bool PerformTimeStep()
         {
+            //if(writer == null)
+            //{
+            //    FileInfo f = new FileInfo(inputFile);
+            //    writer = new StreamWriter(f.FullName.Replace(f.Extension, ".log"));
+            //}
+
             double timeElapsed = -10000;
             int error = performTimeStep(ref timeElapsed);
             SetError(error);
@@ -444,12 +470,22 @@ namespace SWMMOpenMIComponent
         {
             int error = endRun();
             SetError(error);
+
+            error =  reportModelResults();
+            SetError(error);
+
+           
+ 
         }
 
         public void CloseModel()
         {
             int error = closeModel();
             SetError(error);
+            //if(writer != null)
+            //{
+            //    writer.Close();
+            //}
         }
 
         public void Dispose()
@@ -533,6 +569,9 @@ namespace SWMMOpenMIComponent
             return link;
         }
 
+
+        double maxflow = double.MinValue;
+
         public void UpdateValue(ObjectType type, string name, string property, double value)
         {
             switch (type)
@@ -540,19 +579,42 @@ namespace SWMMOpenMIComponent
                 case ObjectType.NODE:
                     {
                         FieldInfo field = typeof(TNode).GetField(property);
-                        field.SetValue(nodes[name], value);
+                        TNode node = nodes[name];
+                        field.SetValueForValueType<TNode>(ref node, value);
 
-                        IntPtr nodePtr = IntPtr.Zero;
-                        Marshal.StructureToPtr(nodes[name], nodePtr, false);
+                        if (property == "inflow")
+                        {
+                            if(value > maxflow)
+                            {
+                                maxflow = value;
+                            }
+
+                            if(maxflow > 50)
+                            {
+                                value.ToString();
+                            }
+                        }
+
+                        IntPtr nodePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TNode)));
+                        Marshal.StructureToPtr(node, nodePtr, false);
                         setNodeObjectValue(nodePtr, property);
+
+                        node = GetNodeById(node.ID);
+
+                       if((double)field.GetValue(node) != value)
+                       {
+                           value.ToString();
+                       }
+
+                        nodes[name] = node;
+
                     }
                     break;
                 case ObjectType.LINK:
                     {
                         FieldInfo field = typeof(TLink).GetField(property);
                         field.SetValue(links[name], value);
-
-                        IntPtr nodePtr = IntPtr.Zero;
+                        IntPtr nodePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TLink))); ;
                         Marshal.StructureToPtr(links[name], nodePtr, false);
                         setLinkObjectValue(nodePtr, property);
                     }
@@ -562,6 +624,8 @@ namespace SWMMOpenMIComponent
 
         public double GetValue(ObjectType type, string name, string property)
         {
+
+            double value = 0;
             switch (type)
             {
                 case ObjectType.NODE:
@@ -569,18 +633,34 @@ namespace SWMMOpenMIComponent
                         FieldInfo field = typeof(TNode).GetField(property);
                         TNode node = nodes[name];
                         nodes[name] = GetNodeById(node.ID);
-                        return (double)field.GetValue(nodes[name]);
+                        value = (double)field.GetValue(nodes[name]);
                     }
+
+                    break;
                 case ObjectType.LINK:
                     {
                         FieldInfo field = typeof(TLink).GetField(property);
                         TLink link = links[name];
                         links[name] = GetLinkById(name);
-                        return (double)field.GetValue(links[name]);
+                        value = (double)field.GetValue(nodes[name]);
                     }
+                    break;
             }
+            return value ;
+        }
 
-            return 0.0;
+        public void SetRunOffCallback(CallbackFunction callback)
+        {
+            IntPtr callbackptr = Marshal.GetFunctionPointerForDelegate(callback);
+            setRunoffCallBackDelegate(callbackptr);
+            GC.KeepAlive(callback);
+        }
+
+        public void SetRoutingCallback(CallbackFunction  callback)
+        {
+            IntPtr callbackptr = Marshal.GetFunctionPointerForDelegate(callback);
+            setRoutingCallBackDelegate(callbackptr);
+            GC.KeepAlive(callback);
         }
 
         # endregion
@@ -620,6 +700,7 @@ namespace SWMMOpenMIComponent
 
 
     }
+ 
     public enum VariableTimeType
     {
         TimeVarying,

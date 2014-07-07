@@ -66,6 +66,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="FullModel.inp" />
     <None Include="Model_1.omi">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

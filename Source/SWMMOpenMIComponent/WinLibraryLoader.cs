@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-
+ [CLSCompliant(true)]
 static class WinLibraryLoader
 {
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -22,6 +23,11 @@ static class WinLibraryLoader
         IntPtr address = GetProcAddress(hModule, functionName);
         System.Delegate functionPointer = Marshal.GetDelegateForFunctionPointer(address, typeof(T));
         return functionPointer as T;
+    }
+
+    public static void SetValueForValueType<T>(this FieldInfo field, ref T item, object value) where T : struct
+    {
+        field.SetValueDirect(__makeref(item), value);
     }
 }
 
