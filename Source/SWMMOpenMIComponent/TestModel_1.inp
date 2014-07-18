@@ -4,7 +4,7 @@
 [OPTIONS]
 ;;Option             Value
 FLOW_UNITS           CFS
-INFILTRATION         HORTON
+INFILTRATION         CURVE_NUMBER
 FLOW_ROUTING         DYNWAVE
 LINK_OFFSETS         DEPTH
 MIN_SLOPE            0
@@ -42,6 +42,26 @@ LAT_FLOW_TOL         5
 CONSTANT         0.0
 DRY_ONLY         NO
 
+[RAINGAGES]
+;;Gage           Format    Interval SCF      Source    
+;;-------------- --------- ------ ------ ----------
+TempRain         VOLUME    24:00    1.0      TIMESERIES RainGauge       
+
+[SUBCATCHMENTS]
+;;Subcatchment   Rain Gage        Outlet           Area     %Imperv  Width    %Slope   CurbLen  Snow Pack       
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- -------- ----------------
+TestSubCatch1    TempRain         node1            10       25       1000     0.5      0                        
+
+[SUBAREAS]
+;;Subcatchment   N-Imperv   N-Perv     S-Imperv   S-Perv     PctZero    RouteTo    PctRouted 
+;;-------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+TestSubCatch1    0.01       0.1        0.05       0.05       25         OUTLET    
+
+[INFILTRATION]
+;;Subcatchment   CurveNum   HydCon     DryTime   
+;;-------------- ---------- ---------- ----------
+TestSubCatch1    80         0.5        4         
+
 [JUNCTIONS]
 ;;Junction       Invert     Dmax       Dinit      Dsurch     Aponded   
 ;;-------------- ---------- ---------- ---------- ---------- ----------
@@ -50,12 +70,12 @@ node1            100        0          0          0          0
 [OUTFALLS]
 ;;Outfall        Invert     Type       Stage Data       Gated   
 ;;-------------- ---------- ---------- ---------------- --------
-node2            80         NORMAL                      NO
+onode2           85         FIXED      0                NO
 
 [CONDUITS]
 ;;Conduit        From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
 ;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
-link1            node1            node2            400        0.01       0          0          0          0         
+link1            node1            onode2           400        0.01       0          0          0          0         
 
 [XSECTIONS]
 ;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels   
@@ -69,7 +89,7 @@ link1            CIRCULAR     3                0          0          0          
 [INFLOWS]
 ;;Node           Inflow           Time Series      Type     Funits   Fscale   Baseline Pattern
 ;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
-node1            FLOW             resr             FLOW     1.0      1        0       
+node1            FLOW             resr             FLOW     1.0      0        10      
 
 [TIMESERIES]
 ;;Time Series    Date       Time       Value     
@@ -88,6 +108,12 @@ resr             7/2/2014   17:00      40
 resr             7/2/2014   18:00      30        
 resr             7/2/2014   19:00      20        
 resr             7/3/2014   22:00      10        
+;
+RainGauge        7/2/2014   0:0        2         
+RainGauge        7/3/2014   0:0        8         
+RainGauge        7/4/2014   0:0        15        
+RainGauge        7/5/2014   0:0        8         
+RainGauge        7/6/2014   0:0        2         
 
 [REPORT]
 ;;Reporting Options
@@ -107,9 +133,31 @@ Units      None
 ;;Node           X-Coord            Y-Coord           
 ;;-------------- ------------------ ------------------
 node1            -1244.726          5474.684          
-node2            2374.302           4790.503          
+onode2           1656.442           5132.924          
 
 [VERTICES]
 ;;Link           X-Coord            Y-Coord           
 ;;-------------- ------------------ ------------------
+
+[Polygons]
+;;Subcatchment   X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+TestSubCatch1    -4621.677          7719.836          
+TestSubCatch1    -5214.724          7075.665          
+TestSubCatch1    -5347.648          6339.468          
+TestSubCatch1    -5245.399          5705.521          
+TestSubCatch1    -4856.851          5368.098          
+TestSubCatch1    -3558.282          5071.575          
+TestSubCatch1    -2055.215          5265.849          
+TestSubCatch1    -869.121           5633.947          
+TestSubCatch1    286.299            6523.517          
+TestSubCatch1    276.074            7208.589          
+TestSubCatch1    -408.998           8404.908          
+TestSubCatch1    -1932.515          8721.881          
+TestSubCatch1    -3721.881          8650.307          
+
+[SYMBOLS]
+;;Gage           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+TempRain         -2883.436          6942.740          
 

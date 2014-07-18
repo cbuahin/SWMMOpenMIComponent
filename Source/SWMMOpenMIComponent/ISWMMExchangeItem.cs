@@ -65,11 +65,11 @@ namespace SWMMOpenMIComponent
 
     interface ISWMMInputExchangeItem : ISWMMExchangeItem
     {
-        void UpdateModel(ref SWMM model);
+        void UpdateModel(SWMM model);
     }
 
     interface ISWMMOutputExchangeItem : ISWMMExchangeItem
     {
-        void RetrieveFromModel(ref SWMM model);
+        void RetrieveFromModel(SWMM model);
     }
 }

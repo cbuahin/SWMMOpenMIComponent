@@ -44,6 +44,9 @@ namespace SWMMOpenMIComponent
 
         delegate void SetCallBackFunction(IntPtr callback);
 
+        public delegate void SetExchangeableOpenMIObjectsDelegate(ObjectType objectType, int[] indexes, int count);
+
+
         # endregion
 
         # region Variables
@@ -67,13 +70,20 @@ namespace SWMMOpenMIComponent
         GetErrorMessageDelegate getErrorMessage;
         DecodeDateTimeDelegate decodeDateTime;
         GetDateTimeDelegate getDateTime;
+
         GetObjectDelegate getNode;
         GetObjectByIdDelegate getNodeById;
+        
         GetObjectDelegate getLink;
         GetObjectByIdDelegate getLinkById;
+
+        GetObjectDelegate getSubCatchment;
+        GetObjectByIdDelegate getSubCatchmentById;
+
         SetObjectValue setNodeObjectValue;
         SetObjectValue setLinkObjectValue;
-        SetCallBackFunction setRunoffCallBackDelegate, setRoutingCallBackDelegate;
+        SetObjectValue setSubCatchmentObjectValue;
+        SetCallBackFunction setSWMMCallBackDelegate;
       
         //Direct delegate calls
         public GetObjectTypeCountDelegate GetObjectTypeCount;
@@ -85,13 +95,16 @@ namespace SWMMOpenMIComponent
         //Marshalld structs
         Dictionary<string, TNode> nodes;
         Dictionary<string, TLink> links;
+        Dictionary<string, TSubcatch> subCatchments;
 
+        public delegate bool CallbackFunction(ObjectType objectType , string field, string id, out double value);
 
-        public delegate void CallbackFunction();
+        public SetExchangeableOpenMIObjectsDelegate SetExchangeableOpenMIObjects;
 
         # endregion
 
         #region Constructor
+      
         static SWMM()
         {
             IUnit lengthU = new Unit("Length (ft)", 1.0, 0.0, "")
@@ -189,57 +202,65 @@ namespace SWMMOpenMIComponent
             SWMMExposedVariables.Add(ObjectType.NODE, new KeyValuePair<string, SWMMVariableDefinition>[]
             {
                 new KeyValuePair<string,SWMMVariableDefinition>("invertElev" , 
-                    new SWMMVariableDefinition(){Description = "Invert elevation (ft)",Name = "invertElev", ObjectType = ObjectType.NODE , ValueDefinition = elevationV ,  VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){ IsInput = true, IsOutput = true, Description = "Invert elevation (ft)",Name = "invertElev", ObjectType = ObjectType.NODE , ValueDefinition = elevationV ,  VariableTimeType = VariableTimeType.Constant}),
                
                     new KeyValuePair<string,SWMMVariableDefinition>("crownElev" , 
-                    new SWMMVariableDefinition(){Description = "Top of highest connecting conduit (ft)",Name = "crownElev", ObjectType = ObjectType.NODE , ValueDefinition = elevationV,  VariableTimeType = VariableTimeType.Constant }),
+                    new SWMMVariableDefinition(){IsInput = true, IsOutput = true, Description = "Top of highest connecting conduit (ft)",Name = "crownElev", ObjectType = ObjectType.NODE , ValueDefinition = elevationV,  VariableTimeType = VariableTimeType.Constant }),
                 
                     new KeyValuePair<string,SWMMVariableDefinition>("initDepth" , 
-                    new SWMMVariableDefinition(){Description = "Initial storage level (ft))",Name = "initDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){IsInput = true, Description = "Initial storage level (ft))",Name = "initDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.Constant}),
               
                     new KeyValuePair<string,SWMMVariableDefinition>("surDepth" , 
-                    new SWMMVariableDefinition(){Description = "Added depth under surcharge (ft)",Name = "surDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){IsOutput = true, Description = "Added depth under surcharge (ft)",Name = "surDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.Constant}),
         
                     new KeyValuePair<string,SWMMVariableDefinition>("newDepth" , 
-                    new SWMMVariableDefinition(){Description = "Water depth (ft)",Name = "newDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.TimeVarying}),
+                    new SWMMVariableDefinition(){IsInput = true, IsOutput = true, Description = "Water depth (ft)",Name = "newDepth", ObjectType = ObjectType.NODE , ValueDefinition = depthV , VariableTimeType = VariableTimeType.TimeVarying}),
                     
-                    new KeyValuePair<string,SWMMVariableDefinition>("inflow" , 
-                    new SWMMVariableDefinition(){Description = "Total inflow (cfs)",Name = "inflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
-               
                     new KeyValuePair<string,SWMMVariableDefinition>("outflow" , 
-                    new SWMMVariableDefinition(){Description = "Total outflow (cfs)",Name = "outflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
+                    new SWMMVariableDefinition(){IsOutput = true, Description = "Total outflow (cfs)",Name = "outflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
                
+                    new KeyValuePair<string,SWMMVariableDefinition>("inflow" , 
+                    new SWMMVariableDefinition(){IsOutput = true, Description = "Total Inflow (cfs)",Name = "inflow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
+
                     new KeyValuePair<string,SWMMVariableDefinition>("newLatFlow" , 
-                    new SWMMVariableDefinition(){Description = "Lateral inflow (cfs)",Name = "newLatFlow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
+                    new SWMMVariableDefinition(){IsInput = true, IsOutput = true, IsMultiInput = true, Description = "Lateral inflow (cfs)",Name = "newLatFlow", ObjectType = ObjectType.NODE , ValueDefinition = flowV , VariableTimeType = VariableTimeType.TimeVarying}),
                
             });
 
             SWMMExposedVariables.Add(ObjectType.LINK, new KeyValuePair<string, SWMMVariableDefinition>[]
             {
-                new KeyValuePair<string,SWMMVariableDefinition>("offset1" , 
-                    new SWMMVariableDefinition(){Description = "Height above start node (ft)",Name = "offset1", ObjectType = ObjectType.LINK , ValueDefinition = heightV ,  VariableTimeType = VariableTimeType.Constant}),
+                    new KeyValuePair<string,SWMMVariableDefinition>("offset1" , 
+                    new SWMMVariableDefinition(){IsInput = true, IsOutput = true, Description = "Height above start node (ft)",Name = "offset1", ObjectType = ObjectType.LINK , ValueDefinition = heightV ,  VariableTimeType = VariableTimeType.Constant}),
               
                     new KeyValuePair<string,SWMMVariableDefinition>("offset2" , 
-                    new SWMMVariableDefinition(){Description = "Height above end node (ft)",Name = "offset2", ObjectType = ObjectType.LINK , ValueDefinition = heightV ,  VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){IsInput = true, IsOutput = true, Description = "Height above end node (ft)",Name = "offset2", ObjectType = ObjectType.LINK , ValueDefinition = heightV ,  VariableTimeType = VariableTimeType.Constant}),
             
                     new KeyValuePair<string,SWMMVariableDefinition>("q0" , 
-                    new SWMMVariableDefinition(){Description = "Initial Flow (cfs)",Name = "q0", ObjectType = ObjectType.LINK , ValueDefinition = flowV ,  VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){IsInput = true, IsMultiInput = true, Description = "Initial Flow (cfs)",Name = "q0", ObjectType = ObjectType.LINK , ValueDefinition = flowV ,  VariableTimeType = VariableTimeType.Constant}),
             
                     new KeyValuePair<string,SWMMVariableDefinition>("cLossInlet" , 
-                    new SWMMVariableDefinition(){Description = "Inlet Loss Coefficient",Name = "cLossInlet", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){IsInput = true,Description = "Inlet Loss Coefficient",Name = "cLossInlet", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
                   
                     new KeyValuePair<string,SWMMVariableDefinition>("cLossOutlet" , 
-                    new SWMMVariableDefinition(){Description = "Outlet Loss Coefficient",Name = "cLossOutlet", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){IsInput = true, Description = "Outlet Loss Coefficient",Name = "cLossOutlet", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
                   
                     new KeyValuePair<string,SWMMVariableDefinition>("cLossAvg" , 
-                    new SWMMVariableDefinition(){Description = "Average Loss Coefficient",Name = "cLossAvg", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){IsInput = true, Description = "Average Loss Coefficient",Name = "cLossAvg", ObjectType = ObjectType.LINK , ValueDefinition = coeffV ,  VariableTimeType = VariableTimeType.Constant}),
                   
                     new KeyValuePair<string,SWMMVariableDefinition>("seepRate" , 
-                    new SWMMVariableDefinition(){Description = "Seepage rate (ft/sec)",Name = "seepRate", ObjectType = ObjectType.LINK , ValueDefinition = infilV ,  VariableTimeType = VariableTimeType.Constant}),
+                    new SWMMVariableDefinition(){IsInput = true, IsOutput = true, Description = "Seepage rate (ft/sec)",Name = "seepRate", ObjectType = ObjectType.LINK , ValueDefinition = infilV ,  VariableTimeType = VariableTimeType.Constant}),
                   
                     new KeyValuePair<string,SWMMVariableDefinition>("newFlow" , 
-                    new SWMMVariableDefinition(){Description = "Flow rate (cfs)",Name = "newFlow", ObjectType = ObjectType.LINK , ValueDefinition = flowV ,  VariableTimeType = VariableTimeType.TimeVarying}),
+                    new SWMMVariableDefinition(){IsInput = true, IsOutput = true, IsMultiInput = true, Description = "Flow rate (cfs)",Name = "newFlow", ObjectType = ObjectType.LINK , ValueDefinition = flowV ,  VariableTimeType = VariableTimeType.TimeVarying}),
                  
+            });
+
+
+            SWMMExposedVariables.Add(ObjectType.SUBCATCH, new KeyValuePair<string, SWMMVariableDefinition>[]
+            {
+                new KeyValuePair<string,SWMMVariableDefinition>("newRunoff" , 
+                new SWMMVariableDefinition(){IsOutput = true, Description = "Runoff (cfs)", Name = "newRunoff", ObjectType = ObjectType.SUBCATCH , ValueDefinition = flowV ,  VariableTimeType = VariableTimeType.TimeVarying}),
+              
             });
         }
 
@@ -304,6 +325,12 @@ namespace SWMMOpenMIComponent
             get { return links; }
         }
 
+        public Dictionary<string, TSubcatch> SubCatchments
+        {
+            get { return subCatchments; }
+          
+        }
+
         #endregion
 
         # region Functions
@@ -343,28 +370,37 @@ namespace SWMMOpenMIComponent
             getNode = WinLibraryLoader.LoadFunction<GetObjectDelegate>(ref hModule, "getNode");
             CheckIfLibraryError();
 
+            setNodeObjectValue = WinLibraryLoader.LoadFunction<SetObjectValue>(ref hModule, "setNode");
+            CheckIfLibraryError();
+
             getNodeById = WinLibraryLoader.LoadFunction<GetObjectByIdDelegate>(ref hModule, "getNodeById");
             CheckIfLibraryError();
+
 
             getLink = WinLibraryLoader.LoadFunction<GetObjectDelegate>(ref hModule, "getLink");
             CheckIfLibraryError();
 
+            setLinkObjectValue = WinLibraryLoader.LoadFunction<SetObjectValue>(ref hModule, "setLink");
+            CheckIfLibraryError();
+            
             getLinkById = WinLibraryLoader.LoadFunction<GetObjectByIdDelegate>(ref hModule, "getLinkById");
             CheckIfLibraryError();
 
-            setNodeObjectValue = WinLibraryLoader.LoadFunction<SetObjectValue>(ref hModule, "setNode");
+
+            getSubCatchment = WinLibraryLoader.LoadFunction<GetObjectDelegate>(ref hModule, "getSubcatch");
             CheckIfLibraryError();
 
-            setLinkObjectValue = WinLibraryLoader.LoadFunction<SetObjectValue>(ref hModule, "setLink");
+            setSubCatchmentObjectValue = WinLibraryLoader.LoadFunction<SetObjectValue>(ref hModule, "setSubcatch");
             CheckIfLibraryError();
 
-
-            setRunoffCallBackDelegate = WinLibraryLoader.LoadFunction<SetCallBackFunction>(ref hModule, "swmm_set_openmi_runoff_callback");
+            getSubCatchmentById = WinLibraryLoader.LoadFunction<GetObjectByIdDelegate>(ref hModule, "getSubcatchById");
             CheckIfLibraryError();
 
-            setRoutingCallBackDelegate = WinLibraryLoader.LoadFunction<SetCallBackFunction>(ref hModule, "swmm_set_openmi_routing_callback");
+            setSWMMCallBackDelegate = WinLibraryLoader.LoadFunction<SetCallBackFunction>(ref hModule, "swmm_set_openmi_callback");
             CheckIfLibraryError();
 
+            SetExchangeableOpenMIObjects = WinLibraryLoader.LoadFunction<SetExchangeableOpenMIObjectsDelegate>(ref hModule, "setUsedOpenMIObjects");
+            CheckIfLibraryError();
         }
 
         public void StartModel()
@@ -434,17 +470,19 @@ namespace SWMMOpenMIComponent
 
         void InitializeCatchments()
         {
+            subCatchments = new Dictionary<string, TSubcatch>();
 
+            int subCatchCount = GetObjectTypeCount(ObjectType.SUBCATCH);
+
+            for (int i = 0; i < subCatchCount; i++)
+            {
+                TSubcatch catchment = GetSubCatchment(i);
+                subCatchments.Add(catchment.ID, catchment);
+            }
         }
 
         public bool PerformTimeStep()
         {
-            //if(writer == null)
-            //{
-            //    FileInfo f = new FileInfo(inputFile);
-            //    writer = new StreamWriter(f.FullName.Replace(f.Extension, ".log"));
-            //}
-
             double timeElapsed = -10000;
             int error = performTimeStep(ref timeElapsed);
             SetError(error);
@@ -569,6 +607,19 @@ namespace SWMMOpenMIComponent
             return link;
         }
 
+        public TSubcatch GetSubCatchment(int index)
+        {
+            IntPtr subCatchPtr  = getSubCatchment(index);
+            TSubcatch subCatch = (TSubcatch)Marshal.PtrToStructure(subCatchPtr, typeof(TSubcatch));
+            return subCatch;
+        }
+
+        public TSubcatch GetSubCatchmentById(string id)
+        {
+            IntPtr subCatchPtr = getSubCatchmentById(id);
+            TSubcatch subCatch = (TSubcatch)Marshal.PtrToStructure(subCatchPtr, typeof(TSubcatch));
+            return subCatch; ;
+        }
 
         double maxflow = double.MinValue;
 
@@ -581,42 +632,37 @@ namespace SWMMOpenMIComponent
                         FieldInfo field = typeof(TNode).GetField(property);
                         TNode node = nodes[name];
                         field.SetValueForValueType<TNode>(ref node, value);
-
-                        if (property == "inflow")
-                        {
-                            if(value > maxflow)
-                            {
-                                maxflow = value;
-                            }
-
-                            if(maxflow > 50)
-                            {
-                                value.ToString();
-                            }
-                        }
-
                         IntPtr nodePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TNode)));
                         Marshal.StructureToPtr(node, nodePtr, false);
                         setNodeObjectValue(nodePtr, property);
-
-                        node = GetNodeById(node.ID);
-
-                       if((double)field.GetValue(node) != value)
-                       {
-                           value.ToString();
-                       }
-
                         nodes[name] = node;
 
                     }
                     break;
                 case ObjectType.LINK:
                     {
+
                         FieldInfo field = typeof(TLink).GetField(property);
-                        field.SetValue(links[name], value);
-                        IntPtr nodePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TLink))); ;
-                        Marshal.StructureToPtr(links[name], nodePtr, false);
-                        setLinkObjectValue(nodePtr, property);
+                        TLink link = links[name];
+                        field.SetValueForValueType<TLink>(ref link, value);
+                        IntPtr linkPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TLink)));
+                        Marshal.StructureToPtr(link, linkPtr, false);
+                        setLinkObjectValue(linkPtr, property);
+                        links[name] = link;
+
+                    }
+                    break;
+                case ObjectType.SUBCATCH:
+                    {
+
+                        FieldInfo field = typeof(TSubcatch).GetField(property);
+                        TSubcatch subCatch = subCatchments[name];
+                        field.SetValueForValueType<TSubcatch>(ref subCatch, value);
+                        IntPtr subCatchPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TSubcatch)));
+                        Marshal.StructureToPtr(subCatch, subCatchPtr, false);
+                        setSubCatchmentObjectValue(subCatchPtr, property);
+                        subCatchments[name] = subCatch;
+
                     }
                     break;
             }
@@ -631,8 +677,7 @@ namespace SWMMOpenMIComponent
                 case ObjectType.NODE:
                     {
                         FieldInfo field = typeof(TNode).GetField(property);
-                        TNode node = nodes[name];
-                        nodes[name] = GetNodeById(node.ID);
+                        nodes[name] = GetNodeById(name);
                         value = (double)field.GetValue(nodes[name]);
                     }
 
@@ -640,26 +685,25 @@ namespace SWMMOpenMIComponent
                 case ObjectType.LINK:
                     {
                         FieldInfo field = typeof(TLink).GetField(property);
-                        TLink link = links[name];
                         links[name] = GetLinkById(name);
-                        value = (double)field.GetValue(nodes[name]);
+                        value = (double)field.GetValue(links[name]);
+                    }
+                    break;
+                case ObjectType.SUBCATCH:
+                    {
+                        FieldInfo field = typeof(TSubcatch).GetField(property);
+                        subCatchments[name] = GetSubCatchmentById(name);
+                        value = (double)field.GetValue(subCatchments[name]);
                     }
                     break;
             }
             return value ;
         }
 
-        public void SetRunOffCallback(CallbackFunction callback)
+        public void SetCallbackFunction(CallbackFunction callback)
         {
             IntPtr callbackptr = Marshal.GetFunctionPointerForDelegate(callback);
-            setRunoffCallBackDelegate(callbackptr);
-            GC.KeepAlive(callback);
-        }
-
-        public void SetRoutingCallback(CallbackFunction  callback)
-        {
-            IntPtr callbackptr = Marshal.GetFunctionPointerForDelegate(callback);
-            setRoutingCallBackDelegate(callbackptr);
+            setSWMMCallBackDelegate(callbackptr);
             GC.KeepAlive(callback);
         }
 
@@ -668,6 +712,11 @@ namespace SWMMOpenMIComponent
 
     public class SWMMVariableDefinition
     {
+        public SWMMVariableDefinition()
+        {
+            IsOutput = IsInput = IsMultiInput = false;
+        }
+
         public string Name
         {
             get;
@@ -698,7 +747,23 @@ namespace SWMMOpenMIComponent
             set;
         }
 
+        public bool IsOutput
+        {
+            get;
+            set;
+        }
 
+        public bool IsInput
+        {
+            get;
+            set;
+        }
+
+        public bool IsMultiInput
+        {
+            get;
+            set;
+        }
     }
  
     public enum VariableTimeType

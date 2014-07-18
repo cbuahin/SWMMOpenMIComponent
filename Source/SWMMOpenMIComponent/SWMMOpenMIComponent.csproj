@@ -48,6 +48,7 @@
     <Compile Include="ISWMMExchangeItem.cs" />
     <Compile Include="SWMM.cs" />
     <Compile Include="SWMMInputExchangeItem.cs" />
+    <Compile Include="SWMMMultiInputExchangeItem.cs" />
     <Compile Include="SWMMObjects.cs" />
     <Compile Include="SWMMOpenMIComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -86,7 +87,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="SWMMQOpenMI.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

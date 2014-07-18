@@ -5,13 +5,14 @@ using OpenMI.Standard2.TimeSpace;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace SWMMOpenMIComponent
 {
-    class SWMMOutputExchangeItem : Identifiable, ISWMMOutputExchangeItem, ITimeSpaceOutput
+    public class SWMMOutputExchangeItem : Identifiable, ISWMMOutputExchangeItem, ITimeSpaceOutput
     {
         # region variables
 
@@ -69,6 +70,7 @@ namespace SWMMOpenMIComponent
             set;
         }
 
+        
         public ITimeSpaceValueSet Values
         {
             get
@@ -88,6 +90,7 @@ namespace SWMMOpenMIComponent
             }
         }
 
+        
         public ITimeSet TimeSet
         {
             get
@@ -100,6 +103,7 @@ namespace SWMMOpenMIComponent
             }
         }
 
+        
         public ISpatialDefinition SpatialDefinition
         {
             get
@@ -120,6 +124,7 @@ namespace SWMMOpenMIComponent
             }
         }
 
+        
         public ElementSet ElementSet
         {
             get
@@ -132,30 +137,35 @@ namespace SWMMOpenMIComponent
             }
         }
 
+        
         public IValueDefinition ValueDefinition
         {
             get;
             set;
         }
 
+        
         public IBaseLinkableComponent Component
         {
             get;
             set;
         }
 
+        
         public IList<IBaseAdaptedOutput> AdaptedOutputs
         {
             get;
             set;
         }
 
+        
         public IList<IBaseInput> Consumers
         {
             get;
             set;
         }
-
+        
+        
         IBaseValueSet IBaseOutput.Values
         {
             get
@@ -169,7 +179,7 @@ namespace SWMMOpenMIComponent
 
         #region functions
 
-        public void RetrieveFromModel(ref SWMM model)
+        public void RetrieveFromModel(SWMM model)
         {
             for (int i = 0; i < SWMMObjects.Count; i++)
             {
@@ -221,50 +231,51 @@ namespace SWMMOpenMIComponent
             if (timeSpaceQuery == null)
                 throw new ArgumentException("querySpecifier must be an ITimeSpaceExchangeItem - add an adaptor");
 
-            if (!OutputAndInputTimeSetsFit(ref timeSpaceQuery))
+            //if (!OutputAndInputTimeSetsFit(ref timeSpaceQuery))
+            //{
+            // Time set of query must be defined and have at least 1 time
+            if (timeSpaceQuery.TimeSet == null ||
+                timeSpaceQuery.TimeSet.Times == null ||
+                timeSpaceQuery.TimeSet.Times.Count == 0)
             {
-                // Time set of query must be defined and have at least 1 time
-                if (timeSpaceQuery.TimeSet == null ||
-                    timeSpaceQuery.TimeSet.Times == null ||
-                    timeSpaceQuery.TimeSet.Times.Count == 0)
-                {
-                    throw new Exception("Given the TimeSet of output item \"" + Id +
-                                        "\", it can not produce one set of values for \"" + querySpecifier.Id + "\"");
-                }
+                throw new Exception("Given the TimeSet of output item \"" + Id +
+                                    "\", it can not produce one set of values for \"" + querySpecifier.Id + "\"");
+            }
 
-                // Output time set must be defined
-                if (TimeSet == null || TimeSet.Times == null)
-                {
-                    throw new Exception("Invalid time specifier in output item \"" + Id +
-                                        "\" for in updating according to a time specification" + querySpecifier.Id);
-
-                }
-
-                // Compute until this time is available
-                double queryTimeMjd = timeSpaceQuery.TimeSet.Times[0].End().StampAsModifiedJulianDay;
-
-                // The current available time from the output item
-                double availableTimeMjd = Double.NegativeInfinity;
-
-                if (TimeSet.Times.Count > 0)
-                    availableTimeMjd = TimeSet.Times[TimeSet.Times.Count - 1].End().StampAsModifiedJulianDay;
-
-                // Update component until querytime is available
-                // If component is "busy" (LinkableComponentStatus.Updating), the
-                // component will not be updated.
-                IBaseLinkableComponent component = Component;
-                while ((component.Status == LinkableComponentStatus.Valid ||
-                        component.Status == LinkableComponentStatus.Updated) &&
-                       availableTimeMjd + Time.EpsilonForTimeCompare < queryTimeMjd)
-                {
-                    component.Update();
-                    availableTimeMjd = TimeSet.Times[TimeSet.Times.Count - 1].End().StampAsModifiedJulianDay;
-                }
-
-                // Return true if component was updated up until queryTimeMjd
-                //return (availableTimeMjd + Time.EpsilonForTimeCompare >= queryTimeMjd);
+            // Output time set must be defined
+            if (TimeSet == null || TimeSet.Times == null)
+            {
+                throw new Exception("Invalid time specifier in output item \"" + Id +
+                                    "\" for in updating according to a time specification" + querySpecifier.Id);
 
             }
+
+            // Compute until this time is available
+            //ITime time =timeSpaceQuery.TimeSet.Times[0];
+            double queryTimeMjd = timeSpaceQuery.TimeSet.Times[0].End().StampAsModifiedJulianDay;
+
+            // The current available time from the output item
+            double availableTimeMjd = Double.NegativeInfinity;
+
+            if (TimeSet.Times.Count > 0)
+                availableTimeMjd = TimeSet.Times[TimeSet.Times.Count - 1].End().StampAsModifiedJulianDay;
+
+            // Update component until querytime is available
+            // If component is "busy" (LinkableComponentStatus.Updating), the
+            // component will not be updated.
+            IBaseLinkableComponent component = Component;
+            while ((component.Status == LinkableComponentStatus.Valid ||
+                    component.Status == LinkableComponentStatus.Updated) &&
+                   availableTimeMjd + Time.EpsilonForTimeCompare < queryTimeMjd)
+            {
+                component.Update();
+                availableTimeMjd = TimeSet.Times[TimeSet.Times.Count - 1].End().StampAsModifiedJulianDay;
+            }
+
+            // Return true if component was updated up until queryTimeMjd
+            //return (availableTimeMjd + Time.EpsilonForTimeCompare >= queryTimeMjd);
+
+            //}
 
             //if (!OutputAndInputTimeSetsFit(ref timeSpaceQuery))
             //{

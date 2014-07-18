@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Oatc.OpenMI.Sdk.Backbone.Generic;
 using Oatc.OpenMI.Sdk.Backbone;
 using System.Collections;
+using System.ComponentModel;
 
 namespace SWMMOpenMIComponent
 {
@@ -15,10 +16,10 @@ namespace SWMMOpenMIComponent
     {
         # region variables
 
-        SWMMTimeSpaceValueSet<double> values;
-        ITimeSet timeSet;
-        ElementSet elementSet;
-        List<SWMMObjectIdentifier> objects;
+        protected SWMMTimeSpaceValueSet<double> values;
+        protected ITimeSet timeSet;
+        protected ElementSet elementSet;
+        protected List<SWMMObjectIdentifier> objects;
 
         # endregion
 
@@ -71,7 +72,7 @@ namespace SWMMOpenMIComponent
             get;
             set;
         }
-
+       
         public IBaseLinkableComponent Component
         {
             get;
@@ -170,7 +171,7 @@ namespace SWMMOpenMIComponent
 
         #region functions
 
-        public void UpdateModel(ref SWMM model)
+        public void UpdateModel(SWMM model)
         {
             if (timeSet.Times.Count > 0)
             {
@@ -182,6 +183,18 @@ namespace SWMMOpenMIComponent
                     SWMMObjectIdentifier id = SWMMObjects[i];
                     model.UpdateValue(ObjectType, id.ObjectId, PropertyName, valuesForElements[i]);
                 }
+            }
+        }
+
+        public void UpdateCache(Dictionary<string, double> cache)
+        {
+            int latestTimeIndex = timeSet.Times.Count - 1;
+            IList<double> valuesForElements = (IList<double>)values.GetElementValuesForTime(latestTimeIndex);
+
+            for (int i = 0; i < SWMMObjects.Count; i++)
+            {
+                SWMMObjectIdentifier id = SWMMObjects[i];
+                cache[id.ObjectId] = valuesForElements[i];
             }
         }
 
@@ -209,6 +222,14 @@ namespace SWMMOpenMIComponent
             valueSet.Add(v.ToList());
 
             values.Values2D = valueSet;
+        }
+
+        public virtual void Update(ITime time)
+        {
+            int lastIndex = timeSet.Times.Count - 1;
+            timeSet.Times[lastIndex] = new Time(time);
+            // get and store input
+            Values = (ITimeSpaceValueSet)Provider.GetValues(this);
         }
 
         #endregion
