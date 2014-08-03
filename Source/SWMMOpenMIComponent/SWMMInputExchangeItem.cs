@@ -194,7 +194,8 @@ namespace SWMMOpenMIComponent
             for (int i = 0; i < SWMMObjects.Count; i++)
             {
                 SWMMObjectIdentifier id = SWMMObjects[i];
-                cache[id.ObjectId] = valuesForElements[i];
+                double value = valuesForElements[i];
+                cache[id.ObjectId] = value;
             }
         }
 
@@ -228,7 +229,6 @@ namespace SWMMOpenMIComponent
         {
             int lastIndex = timeSet.Times.Count - 1;
             timeSet.Times[lastIndex] = new Time(time);
-            // get and store input
             Values = (ITimeSpaceValueSet)Provider.GetValues(this);
         }
 

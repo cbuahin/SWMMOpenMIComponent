@@ -274,10 +274,6 @@ namespace SWMMOpenMIComponent
                 }
             }
 
-
-
-
-
             List<ObjectType> objectTypes = Enum.GetValues(typeof(ObjectType)).Cast<ObjectType>().ToList();
             cachedInputValues = new Dictionary<ObjectType, Dictionary<string, Dictionary<string, double>>>();
             
@@ -295,7 +291,6 @@ namespace SWMMOpenMIComponent
                     model.SetExchangeableOpenMIObjects(obtype, indexes, indexes.Length);
                 }
             }
-
 
             foreach (ISWMMInputExchangeItem input in requiredInputs)
             {
@@ -323,8 +318,6 @@ namespace SWMMOpenMIComponent
             routingCallback = RetrieveSpecificRequiredInputExchangeItem;
             model.SetCallbackFunction(routingCallback);
 
-            
-
             hasBeenPrepared = true;
             Status = LinkableComponentStatus.Updated;
         }
@@ -340,15 +333,21 @@ namespace SWMMOpenMIComponent
 
             if (status != LinkableComponentStatus.Done)
             {
+
                 UpdateRequiredInputExchangeItems();
 
                 DateTime earliestTimeDesired = GetEarliestTimeRequiredByOutput();
-
-                while (model.CurrentDateTime < earliestTimeDesired)
+                if (model.CurrentDateTime < earliestTimeDesired)
+                {
+                    while (model.CurrentDateTime < earliestTimeDesired)
+                    {
+                        model.PerformTimeStep();
+                    }
+                }
+                else
                 {
                     model.PerformTimeStep();
                 }
-
 
                 (timeExtent.Times[0] as Time).StampAsModifiedJulianDay = model.CurrentDateTime.ToModifiedJulianDay();
 
@@ -1314,16 +1313,16 @@ namespace SWMMOpenMIComponent
             return false;
         }
 
-        void UpdateRequiredOutputExchangeItems(params IBaseOutput[] requiredOutputs)
+        void UpdateRequiredOutputExchangeItems(IBaseOutput[] required = null)
         {
-            if (requiredOutputs == null)
-                requiredOutputs = this.requiredOutputs;
+            if (required == null)
+                required = this.requiredOutputs;
 
             ITime current =  new Time(timeExtent.Times[timeExtent.Times.Count - 1]);
 
-            for (int i = 0; i < requiredOutputs.Length; i++)
+            for (int i = 0; i < required.Length; i++)
             {
-                SWMMOutputExchangeItem output = (SWMMOutputExchangeItem)requiredOutputs[i];
+                SWMMOutputExchangeItem output = (SWMMOutputExchangeItem)required[i];
 
                 int lastIndex = output.TimeSet.Times.Count - 1;
 

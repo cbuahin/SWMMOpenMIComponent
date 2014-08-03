@@ -483,7 +483,7 @@ namespace SWMMOpenMIComponent
 
         public bool PerformTimeStep()
         {
-            double timeElapsed = -10000;
+            double timeElapsed = currentDateTime.ToOADate();
             int error = performTimeStep(ref timeElapsed);
             SetError(error);
 
@@ -636,7 +636,6 @@ namespace SWMMOpenMIComponent
                         Marshal.StructureToPtr(node, nodePtr, false);
                         setNodeObjectValue(nodePtr, property);
                         nodes[name] = node;
-
                     }
                     break;
                 case ObjectType.LINK:
