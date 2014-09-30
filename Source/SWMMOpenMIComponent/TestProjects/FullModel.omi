@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<LinkableComponent  xmlns ="http://www.openmi.org" Type="SWMMOpenMIComponent.SWMMOpenMIComponent" Assembly="..\SWMMOpenMIComponent.dll">
+  <Arguments>
+    <Argument Key="ModelID" ReadOnly="true" Value="FullModel" />
+	<Argument Key="Caption" ReadOnly="true" Value="FullModel" />
+	<Argument Key="Description" ReadOnly="true" Value="SWMM Model Component Caption" />
+	<Argument Key="SWMMLibrary" ReadOnly="true" Value="..\SWMMQOpenMI.dll"  IsOptional = "false" />
+    <Argument Key="ProjectFile" ReadOnly="true" Value="FullModel.inp"  IsOptional = "false"/>
+    <Argument Key="ReportFile" ReadOnly="true" Value="FullModel.rpt" />
+    <Argument Key="OutputFile" ReadOnly="true" Value="FullModel.out" />
+  </Arguments>
+</LinkableComponent>
+

@@ -36,32 +36,36 @@ using System.Threading;
 using Oatc.OpenMI.Sdk.Buffer;
 using SWMMOpenMIComponent;
 using System.ComponentModel;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace SWMMOpenMIComponent
 {
-    public class SWMMOpenMIComponent : Identifiable, ITimeSpaceComponent , IDisposable
+    public class SWMMOpenMIComponent : Identifiable, ITimeSpaceComponent, IDisposable
     {
         # region variables
 
         LinkableComponentStatus status = LinkableComponentStatus.Created;
+
         List<IBaseInput> inputs;
         List<IBaseOutput> outputs;
+
         List<IAdaptedOutputFactory> adaptedOutputFactories;
+
         List<string> validationErrorMessages = null;
         Dictionary<string, IArgument> arguments;
         String[] requiredArguments;
+
         TimeSet timeExtent;
         FileInfo SWMMLibrary, projectFile, reportFile, outputFile;
+
         SWMM model;
-        bool hasBeenInitialized = false;
-        bool hasBeenPrepared = false;
+        bool hasBeenInitialized = false, hasBeenPrepared = false, disposed = false;
+
+        //caching objects
         List<IBaseInput> consumers;
         IBaseOutput[] requiredOutputs;
         IBaseInput[] requiredInputs;
-        Dictionary<ObjectType, Dictionary<string, Dictionary<string, double>>> cachedInputValues;
-
-        SWMM.CallbackFunction routingCallback;
-        bool disposed = false;
 
         # endregion
 
@@ -102,21 +106,23 @@ namespace SWMMOpenMIComponent
             arguments.Add("OutputFile", new ArgumentFileInfo("OutputFile") { Caption = "SWMM Output File", Description = "SWMM output file usually with .out extension", IsOptional = false, IsReadOnly = true });
 
             adaptedOutputFactories = new List<IAdaptedOutputFactory>();
-            
-            adaptedOutputFactories.Add(new TimeBufferFactory("Time Interpolation and Extrapolation Adapter") 
+
+            adaptedOutputFactories.Add(new SWMMInterpolationAdaptedOutputFactory());
+
+            adaptedOutputFactories.Add(new TimeBufferFactory("Time Interpolation and Extrapolation Adapter")
             {
                 Caption = "Time Interpolation and Extrapolation Adapter",
                 Description = "Time Interpolation and Extrapolation Adapter"
-                
+
             });
-            
-            adaptedOutputFactories.Add(new SpatialAdaptedOutputFactory("Spatial Adaptor Factory") 
+
+            adaptedOutputFactories.Add(new SpatialAdaptedOutputFactory("Spatial Adaptor Factory")
             {
                 Caption = "Time Interpolation and Extrapolation Adapter",
                 Description = "Time Interpolation and Extrapolation Adapter"
             });
 
-           
+
         }
 
         #endregion
@@ -158,13 +164,16 @@ namespace SWMMOpenMIComponent
 
             set
             {
-                LinkableComponentStatus oldStatus = status;
-                status = value;
-
-                if (StatusChanged != null)
+                if (status != value)
                 {
-                    LinkableComponentStatusChangeEventArgs args = new LinkableComponentStatusChangeEventArgs { LinkableComponent = this, OldStatus = oldStatus, NewStatus = value };
-                    StatusChanged(this, args);
+                    LinkableComponentStatus oldStatus = status;
+                    status = value;
+
+                    if (StatusChanged != null)
+                    {
+                        LinkableComponentStatusChangeEventArgs args = new LinkableComponentStatusChangeEventArgs { LinkableComponent = this, OldStatus = oldStatus, NewStatus = value };
+                        StatusChanged(this, args);
+                    }
                 }
             }
         }
@@ -208,7 +217,8 @@ namespace SWMMOpenMIComponent
         #endregion
 
         #region swmm
-        internal SWMM Model
+
+        public SWMM Model
         {
             get { return model; }
         }
@@ -226,7 +236,7 @@ namespace SWMMOpenMIComponent
 
             //Initialize
             Status = LinkableComponentStatus.Initializing;
-       
+
             //initialize arguments
             InitializeArguments();
             InitializeSWMMLibrary();
@@ -234,7 +244,7 @@ namespace SWMMOpenMIComponent
             InitializeInputExchangeItems();
             InitializeOutputExchangeItems();
             InitializeSpace();
-            
+
             hasBeenInitialized = true;
 
             Status = LinkableComponentStatus.Initialized;
@@ -253,7 +263,6 @@ namespace SWMMOpenMIComponent
 
         public void Prepare()
         {
-
             if (!hasBeenInitialized)
             {
                 throw new Exception("Prepare method in the LinkableEngine cannot be invoked before the Initialize method has been invoked");
@@ -261,62 +270,25 @@ namespace SWMMOpenMIComponent
 
             Status = LinkableComponentStatus.Preparing;
 
- 
             RetrieveAllConsumers();
             RetrieveRequiredOutputs();
             RetrieveRequiredInputs();
 
-            foreach (IBaseOutput output in requiredOutputs)
+            for (int i = 0; i < requiredOutputs.Length; i++)
             {
-                foreach (IBaseAdaptedOutput adaptedOutput in output.AdaptedOutputs)
+                IBaseOutput output = requiredOutputs[i];
+
+                for (int j = 0; j < output.AdaptedOutputs.Count; j++)
                 {
+                    IBaseAdaptedOutput adaptedOutput = output.AdaptedOutputs[j];
                     adaptedOutput.Initialize();
-                }
-            }
-
-            List<ObjectType> objectTypes = Enum.GetValues(typeof(ObjectType)).Cast<ObjectType>().ToList();
-            cachedInputValues = new Dictionary<ObjectType, Dictionary<string, Dictionary<string, double>>>();
-            
-            foreach(ObjectType obtype in objectTypes)
-            {
-                cachedInputValues.Add(obtype, new Dictionary<string, Dictionary<string, double>>());
-
-                int[] indexes = (from n in requiredInputs
-                                 from m in ((ISWMMInputExchangeItem)n).SWMMObjects
-                                 where (n as ISWMMInputExchangeItem).ObjectType == obtype
-                                 select m.ObjectIndex).ToArray<int>();
-
-                if(indexes != null && indexes.Length > 0)
-                {
-                    model.SetExchangeableOpenMIObjects(obtype, indexes, indexes.Length);
-                }
-            }
-
-            foreach (ISWMMInputExchangeItem input in requiredInputs)
-            {
-                Dictionary<string, Dictionary<string, double>> items = cachedInputValues[input.ObjectType];
-                Dictionary<string, double> item;
-
-                if (items.ContainsKey(input.PropertyName))
-                {
-                    item = items[input.PropertyName];
-                }
-                else
-                {
-                    item = new Dictionary<string, double>();
-                    items.Add(input.PropertyName, item);
-                }
-
-                foreach (SWMMObjectIdentifier ids in input.SWMMObjects)
-                {
-                    item.Add(ids.ObjectId, 0);
                 }
             }
 
             // Prepare the engine
             model.StartModel();
-            routingCallback = RetrieveSpecificRequiredInputExchangeItem;
-            model.SetCallbackFunction(routingCallback);
+
+            UpdateRequiredOutputExchangeItems();
 
             hasBeenPrepared = true;
             Status = LinkableComponentStatus.Updated;
@@ -329,17 +301,17 @@ namespace SWMMOpenMIComponent
                 return;
             }
 
-            Status = LinkableComponentStatus.Updating;
-
             if (status != LinkableComponentStatus.Done)
             {
+                Status = LinkableComponentStatus.Updating;
 
                 UpdateRequiredInputExchangeItems();
 
-                DateTime earliestTimeDesired = GetEarliestTimeRequiredByOutput();
-                if (model.CurrentDateTime < earliestTimeDesired)
+                DateTime earliestTimeRequired = GetEarliestTimeRequiredConsumers(requiredOutput);
+
+                if (model.CurrentDateTime < earliestTimeRequired)
                 {
-                    while (model.CurrentDateTime < earliestTimeDesired)
+                    while (model.CurrentDateTime < earliestTimeRequired)
                     {
                         model.PerformTimeStep();
                     }
@@ -349,15 +321,14 @@ namespace SWMMOpenMIComponent
                     model.PerformTimeStep();
                 }
 
-                (timeExtent.Times[0] as Time).StampAsModifiedJulianDay = model.CurrentDateTime.ToModifiedJulianDay();
-
-                UpdateRequiredOutputExchangeItems();
+                Time time  =timeExtent.Times[0] as Time;
+                time.StampAsModifiedJulianDay = model.CurrentDateTime.ToModifiedJulianDay();
+                UpdateRequiredOutputExchangeItems(requiredOutput);
             }
 
-           
             Status = model.CurrentDateTime >= model.EndDateTime ?
-                (OutputItemsStillRequireData() ? LinkableComponentStatus.Done : LinkableComponentStatus.Finishing)
-                : LinkableComponentStatus.Updated;
+                           (OutputItemsStillRequireData() ? LinkableComponentStatus.Done : LinkableComponentStatus.Finishing)
+                           : LinkableComponentStatus.Updated;
         }
 
         public void Finish()
@@ -366,11 +337,9 @@ namespace SWMMOpenMIComponent
 
             model.EndRun();
             model.CloseModel();
-            model.Dispose();
-
+         
             hasBeenInitialized = false;
             hasBeenPrepared = false;
-
 
             Status = LinkableComponentStatus.Finished;
         }
@@ -384,19 +353,19 @@ namespace SWMMOpenMIComponent
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-     
-        protected void Dispose(bool disposing)
-        {
-            if (disposed)
-            {
-                return;
-            }
 
-            if (disposing)
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
             {
+                if (disposing)
+                {
+
+                }
+
                 model.Dispose();
+                disposed = true;
             }
-            disposed = true;
         }
 
         #endregion
@@ -584,102 +553,102 @@ namespace SWMMOpenMIComponent
             {
                 Dictionary<string, List<Coordinate>> value = coordinates[input.ObjectType];
 
-            
-                    switch (input.ObjectType)
-                    {
-                        case ObjectType.NODE:
 
-                          
-                                for (int i = 0; i < input.SWMMObjects.Count; i++)
-                                {
-                                    if (i == 0)
-                                    {
-                                        input.ElementSet.ElementType = ElementType.Point;
-                                    }
+                switch (input.ObjectType)
+                {
+                    case ObjectType.NODE:
 
-                                    SWMMObjectIdentifier id = input.SWMMObjects[i];
 
-                                    if (value.ContainsKey(id.ObjectId))
-                                    {
-                                        input.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
-                                    }
-                                }
-
-                            break;
-
-                        case ObjectType.LINK:
-
-                            for (int i = 0; i < input.SWMMObjects.Count; i++)
+                        for (int i = 0; i < input.SWMMObjects.Count; i++)
+                        {
+                            if (i == 0)
                             {
-                                if (i == 0)
-                                {
-                                    input.ElementSet.ElementType = ElementType.PolyLine;
-                                }
-
-                                SWMMObjectIdentifier id = input.SWMMObjects[i];
-
-                                int n1 = model.Links[id.ObjectId].node1;
-                                int n2 = model.Links[id.ObjectId].node2;
-
-                                TNode node1 = model.GetNode(n1);
-                                TNode node2 = model.GetNode(n2);
-
-                                Coordinate c1 = coordinates[ObjectType.NODE][node1.ID][0];
-                                Coordinate c2 = coordinates[ObjectType.NODE][node2.ID][0];
-
-                                if (value.ContainsKey(id.ObjectId))
-                                {
-                                    List<Coordinate> vertices = value[id.ObjectId];
-                                    Coordinate[] verts = new Coordinate[vertices.Count + 2];
-
-                                    int last = verts.Length - 1;
-
-                                    for (int v = 0; v < verts.Length; v++)
-                                    {
-                                        if(v == 0)
-                                        {
-                                            verts[0] = c1; 
-                                        }
-                                        else if(v == last)
-                                        {
-                                            verts[last] = c2;   
-                                        }
-                                        else
-                                        {
-                                            verts[v] = vertices[v - 1];
-                                        }
-                                    }
-
-                                    input.ElementSet.Elements[i].Vertices = verts;
-                                }
-                                else
-                                {
-                                    input.ElementSet.Elements[i].Vertices = new Coordinate[] {c1,c2 };
-                                }
+                                input.ElementSet.ElementType = ElementType.Point;
                             }
 
-                            break;
+                            SWMMObject id = input.SWMMObjects[i];
 
-                        case ObjectType.SUBCATCH:
-
-
-                            for (int i = 0; i < input.SWMMObjects.Count; i++)
+                            if (value.ContainsKey(id.ObjectId))
                             {
-                                if (i == 0)
-                                {
-                                    input.ElementSet.ElementType = ElementType.Polygon;
-                                }
+                                input.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
+                            }
+                        }
 
-                                SWMMObjectIdentifier id = input.SWMMObjects[i];
+                        break;
 
-                                if (value.ContainsKey(id.ObjectId))
-                                {
-                                    input.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
-                                }
+                    case ObjectType.LINK:
+
+                        for (int i = 0; i < input.SWMMObjects.Count; i++)
+                        {
+                            if (i == 0)
+                            {
+                                input.ElementSet.ElementType = ElementType.PolyLine;
                             }
 
-                            break;
-                    }
+                            SWMMObject id = input.SWMMObjects[i];
+
+                            int n1 = model.Links[id.ObjectId].NativeLink.node1;
+                            int n2 = model.Links[id.ObjectId].NativeLink.node2;
+
+                            TNode node1 = model.GetNode(n1);
+                            TNode node2 = model.GetNode(n2);
+
+                            Coordinate c1 = coordinates[ObjectType.NODE][Marshal.PtrToStringAnsi(node1.ID)][0];
+                            Coordinate c2 = coordinates[ObjectType.NODE][Marshal.PtrToStringAnsi(node2.ID)][0];
+
+                            if (value.ContainsKey(id.ObjectId))
+                            {
+                                List<Coordinate> vertices = value[id.ObjectId];
+                                Coordinate[] verts = new Coordinate[vertices.Count + 2];
+
+                                int last = verts.Length - 1;
+
+                                for (int v = 0; v < verts.Length; v++)
+                                {
+                                    if (v == 0)
+                                    {
+                                        verts[0] = c1;
+                                    }
+                                    else if (v == last)
+                                    {
+                                        verts[last] = c2;
+                                    }
+                                    else
+                                    {
+                                        verts[v] = vertices[v - 1];
+                                    }
+                                }
+
+                                input.ElementSet.Elements[i].Vertices = verts;
+                            }
+                            else
+                            {
+                                input.ElementSet.Elements[i].Vertices = new Coordinate[] { c1, c2 };
+                            }
+                        }
+
+                        break;
+
+                    case ObjectType.SUBCATCH:
+
+
+                        for (int i = 0; i < input.SWMMObjects.Count; i++)
+                        {
+                            if (i == 0)
+                            {
+                                input.ElementSet.ElementType = ElementType.Polygon;
+                            }
+
+                            SWMMObject id = input.SWMMObjects[i];
+
+                            if (value.ContainsKey(id.ObjectId))
+                            {
+                                input.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
+                            }
+                        }
+
+                        break;
+                }
             }
 
 
@@ -691,104 +660,104 @@ namespace SWMMOpenMIComponent
             {
                 Dictionary<string, List<Coordinate>> value = coordinates[output.ObjectType];
 
-                    switch (output.ObjectType)
-                    {
-                        case ObjectType.NODE:
-                            if (value.Count > 0)
-                            {
-                                for (int i = 0; i < output.SWMMObjects.Count; i++)
-                                {
-                                    if (i == 0)
-                                    {
-                                        output.ElementSet.ElementType = ElementType.Point;
-                                        output.ElementSet.HasZ = false;
-                                    }
-
-                                    SWMMObjectIdentifier id = output.SWMMObjects[i];
-
-                                    if (value.ContainsKey(id.ObjectId))
-                                    {
-                                        output.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
-                                    }
-                                }
-                            }
-                            break;
-
-                        case ObjectType.LINK:
+                switch (output.ObjectType)
+                {
+                    case ObjectType.NODE:
+                        if (value.Count > 0)
+                        {
                             for (int i = 0; i < output.SWMMObjects.Count; i++)
                             {
                                 if (i == 0)
                                 {
-                                    output.ElementSet.ElementType = ElementType.PolyLine;
+                                    output.ElementSet.ElementType = ElementType.Point;
                                     output.ElementSet.HasZ = false;
                                 }
 
-                                SWMMObjectIdentifier id = output.SWMMObjects[i];
-
-                                int n1 = model.Links[id.ObjectId].node1;
-                                int n2 = model.Links[id.ObjectId].node2;
-
-                                TNode node1 = model.GetNode(n1);
-                                TNode node2 = model.GetNode(n2);
-
-                                Coordinate c1 = coordinates[ObjectType.NODE][node1.ID][0];
-                                Coordinate c2 = coordinates[ObjectType.NODE][node2.ID][0];
+                                SWMMObject id = output.SWMMObjects[i];
 
                                 if (value.ContainsKey(id.ObjectId))
                                 {
-                                    List<Coordinate> vertices = value[id.ObjectId];
-                                    Coordinate[] verts = new Coordinate[vertices.Count + 2];
-
-                                    int last = verts.Length - 1;
-
-                                    for (int v = 0; v < verts.Length; v++)
-                                    {
-                                        if (v == 0)
-                                        {
-                                            verts[0] = c1;
-                                        }
-                                        else if (v == last)
-                                        {
-                                            verts[last] = c2;
-                                        }
-                                        else
-                                        {
-                                            verts[v] = vertices[v - 1];
-                                        }
-                                    }
-
-                                    output.ElementSet.Elements[i].Vertices = verts;
-                                }
-                                else
-                                {
-                                    output.ElementSet.Elements[i].Vertices = new Coordinate[] { c1, c2 };
+                                    output.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
                                 }
                             }
+                        }
+                        break;
 
-                            break;
-                        case ObjectType.SUBCATCH:
-
-                            if (value.Count > 0)
+                    case ObjectType.LINK:
+                        for (int i = 0; i < output.SWMMObjects.Count; i++)
+                        {
+                            if (i == 0)
                             {
-                                for (int i = 0; i < output.SWMMObjects.Count; i++)
-                                {
-                                    if (i == 0)
-                                    {
-                                        output.ElementSet.ElementType = ElementType.Polygon;
-                                        output.ElementSet.HasZ = false;
-                                    }
-
-                                    SWMMObjectIdentifier id = output.SWMMObjects[i];
-
-                                    if (value.ContainsKey(id.ObjectId))
-                                    {
-                                        output.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
-                                    }
-                                }
+                                output.ElementSet.ElementType = ElementType.PolyLine;
+                                output.ElementSet.HasZ = false;
                             }
 
-                            break;
-                    }
+                            SWMMObject id = output.SWMMObjects[i];
+
+                            int n1 = model.Links[id.ObjectId].NativeLink.node1;
+                            int n2 = model.Links[id.ObjectId].NativeLink.node2;
+
+                            TNode node1 = model.GetNode(n1);
+                            TNode node2 = model.GetNode(n2);
+
+                            Coordinate c1 = coordinates[ObjectType.NODE][Marshal.PtrToStringAnsi(node1.ID)][0];
+                            Coordinate c2 = coordinates[ObjectType.NODE][Marshal.PtrToStringAnsi(node2.ID)][0];
+
+                            if (value.ContainsKey(id.ObjectId))
+                            {
+                                List<Coordinate> vertices = value[id.ObjectId];
+                                Coordinate[] verts = new Coordinate[vertices.Count + 2];
+
+                                int last = verts.Length - 1;
+
+                                for (int v = 0; v < verts.Length; v++)
+                                {
+                                    if (v == 0)
+                                    {
+                                        verts[0] = c1;
+                                    }
+                                    else if (v == last)
+                                    {
+                                        verts[last] = c2;
+                                    }
+                                    else
+                                    {
+                                        verts[v] = vertices[v - 1];
+                                    }
+                                }
+
+                                output.ElementSet.Elements[i].Vertices = verts;
+                            }
+                            else
+                            {
+                                output.ElementSet.Elements[i].Vertices = new Coordinate[] { c1, c2 };
+                            }
+                        }
+
+                        break;
+                    case ObjectType.SUBCATCH:
+
+                        if (value.Count > 0)
+                        {
+                            for (int i = 0; i < output.SWMMObjects.Count; i++)
+                            {
+                                if (i == 0)
+                                {
+                                    output.ElementSet.ElementType = ElementType.Polygon;
+                                    output.ElementSet.HasZ = false;
+                                }
+
+                                SWMMObject id = output.SWMMObjects[i];
+
+                                if (value.ContainsKey(id.ObjectId))
+                                {
+                                    output.ElementSet.Elements[i].Vertices = value[id.ObjectId].ToArray();
+                                }
+                            }
+                        }
+
+                        break;
+                }
             }
 
             # endregion
@@ -804,108 +773,99 @@ namespace SWMMOpenMIComponent
 
         void InitializeInputNodes()
         {
-            //Update input item requestedTime and 
-            Dictionary<string, TNode> nodes = model.Nodes;
+
+            Dictionary<string, Node> nodes = model.Nodes;
             List<string> keys = nodes.Keys.ToList<string>();
-            List<SWMMObjectIdentifier> identifiers = new List<SWMMObjectIdentifier>();
+            List<PropertyInfo> properties = SWMMObject.GetAvailableProperties(typeof(Node));
 
-            for (int i = 0; i < keys.Count; i++)
+            for (int j = 0; j < properties.Count; j++)
             {
-                TNode node = nodes[keys[i]];
-                SWMMObjectIdentifier identifier = new SWMMObjectIdentifier()
-                {
-                    ObjectId = node.ID,
-                    ObjectIndex = i,
-                    ObjectType = ObjectType.NODE,
-                };
+                PropertyInfo property = properties[j];
+                SWMMVariableDefinitionAttribute attribute = property.GetCustomAttribute<SWMMVariableDefinitionAttribute>();
+                IValueDefinition valueDefinition = Node.GetValueDefinition(attribute.ValueDefinition);
 
-                identifiers.Add(identifier);
-            }
-
-            KeyValuePair<string, SWMMVariableDefinition>[] parameters = SWMM.SWMMExposedVariables[ObjectType.NODE];
-
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                KeyValuePair<string, SWMMVariableDefinition> parameter = parameters[i];
-
-                if (parameter.Value.IsInput)
+                if (attribute.IsInput)
                 {
                     SWMMInputExchangeItem allInput = null;
 
-                    if (parameter.Value.IsMultiInput)
+                    if (attribute.IsMultiInput)
                     {
                         allInput = new SWMMMultiInputExchangeItem()
                         {
-                            Id = parameter.Value.Description + " |  All Nodes",
-                            Caption = parameter.Value.Description + " |  All Nodes",
-                            PropertyName = parameter.Key,
+                            Id = attribute.Description + " |  All Nodes",
+                            Caption = attribute.Description + " |  All Nodes",
                             ObjectType = ObjectType.NODE,
-                            SWMMObjects = identifiers,
-                            Description = parameter.Value.Description + " for all nodes",
+                            Property = property,
+                            SWMMObjects = nodes.Values.ToList<SWMMObject>(),
+                            Description = attribute.Description + " for all nodes",
                             CacheValues = false,
-                            ValueDefinition = parameter.Value.ValueDefinition,
+                            ValueDefinition = valueDefinition,
                             TimeSet = new TimeSet(timeExtent),
-                            Component = this
+                            Component = this,
+                            Model = model,
                         };
                     }
                     else
                     {
                         allInput = new SWMMInputExchangeItem()
                         {
-                            Id = parameter.Value.Description + " |  All Nodes",
-                            Caption = parameter.Value.Description + " |  All Nodes",
-                            PropertyName = parameter.Key,
+                            Id = attribute.Description + " |  All Nodes",
+                            Caption = attribute.Description + " |  All Nodes",
                             ObjectType = ObjectType.NODE,
-                            SWMMObjects = identifiers,
-                            Description = parameter.Value.Description + " for all nodes",
+                            Property = property,
+                            SWMMObjects = nodes.Values.ToList<SWMMObject>(),
+                            Description = attribute.Description + " for all nodes",
                             CacheValues = false,
-                            ValueDefinition = parameter.Value.ValueDefinition,
+                            ValueDefinition = valueDefinition,
                             TimeSet = new TimeSet(timeExtent),
-                            Component = this
+                            Component = this,
+                            Model = model,
                         };
                     }
 
                     allInput.ElementSet.ElementType = ElementType.IdBased;
                     inputs.Add(allInput);
 
-                    for (int j = 0; j < identifiers.Count; j++)
+                    for (int i = 0; i < keys.Count; i++)
                     {
-
-                        SWMMObjectIdentifier id = identifiers[j];
-                        List<SWMMObjectIdentifier> ids = new List<SWMMObjectIdentifier>(new SWMMObjectIdentifier[] { id });
+                        Node node = nodes[keys[i]];
+                        List<SWMMObject> tempNodes = new List<SWMMObject>(new SWMMObject[] { node });
 
                         SWMMInputExchangeItem input = null;
-                        if (parameter.Value.IsMultiInput)
+
+
+                        if (attribute.IsMultiInput)
                         {
                             input = new SWMMMultiInputExchangeItem()
                             {
-                                Id = parameter.Value.Description + " | Node = " + id.ObjectId,
-                                Caption = parameter.Value.Description + " | Node = " + id.ObjectId,
-                                PropertyName = parameter.Key,
+                                Id = attribute.Description + " | Node = " + node.ObjectId,
+                                Caption = attribute.Description + " | Node = " + node.ObjectId,
                                 ObjectType = ObjectType.NODE,
-                                SWMMObjects = ids,
-                                Description = parameter.Value.Description + " for node " + id.ObjectId,
+                                Property = property,
+                                SWMMObjects = tempNodes,
+                                Description = attribute.Description + " for node " + node.ObjectId,
                                 CacheValues = false,
-                                ValueDefinition = parameter.Value.ValueDefinition,
+                                ValueDefinition = valueDefinition,
                                 TimeSet = new TimeSet(timeExtent),
                                 Component = this,
+                                Model = model,
                             };
                         }
                         else
                         {
                             input = new SWMMInputExchangeItem()
                             {
-                                Id = parameter.Value.Description + " | Node = " + id.ObjectId,
-                                Caption = parameter.Value.Description + " | Node = " + id.ObjectId,
-                                PropertyName = parameter.Key,
+                                Id = attribute.Description + " | Node = " + node.ObjectId,
+                                Caption = attribute.Description + " | Node = " + node.ObjectId,
                                 ObjectType = ObjectType.NODE,
-                                SWMMObjects = ids,
-                                Description = parameter.Value.Description + " for node " + id.ObjectId,
+                                Property = property,
+                                SWMMObjects = tempNodes,
+                                Description = attribute.Description + " for node " + node.ObjectId,
                                 CacheValues = false,
-                                ValueDefinition = parameter.Value.ValueDefinition,
+                                ValueDefinition = valueDefinition,
                                 TimeSet = new TimeSet(timeExtent),
                                 Component = this,
+                                Model = model,
                             };
                         }
 
@@ -920,65 +880,54 @@ namespace SWMMOpenMIComponent
 
         void InitializeInputLinks()
         {
-            //Update input item requestedTime and 
-            Dictionary<string, TLink> links = model.Links;
+            
+            Dictionary<string, Link> links = model.Links;
             List<string> keys = links.Keys.ToList<string>();
-            List<SWMMObjectIdentifier> identifiers = new List<SWMMObjectIdentifier>();
+            List<PropertyInfo> properties = SWMMObject.GetAvailableProperties(typeof(Link));
 
-            for (int i = 0; i < keys.Count; i++)
+
+            for (int i = 0; i < properties.Count; i++)
             {
-                TLink link = links[keys[i]];
-                SWMMObjectIdentifier identifier = new SWMMObjectIdentifier()
-                {
-                    ObjectId = link.ID,
-                    ObjectIndex = i,
-                    ObjectType = ObjectType.LINK,
-                };
-
-                identifiers.Add(identifier);
-            }
-
-            KeyValuePair<string, SWMMVariableDefinition>[] parameters = SWMM.SWMMExposedVariables[ObjectType.LINK];
-
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                KeyValuePair<string, SWMMVariableDefinition> parameter = parameters[i];
-
-                if (parameter.Value.IsInput)
+                PropertyInfo property = properties[i];
+                SWMMVariableDefinitionAttribute attribute = property.GetCustomAttribute<SWMMVariableDefinitionAttribute>();
+                IValueDefinition valueDefinition = Link.GetValueDefinition(attribute.ValueDefinition);
+                 
+                if (attribute.IsInput)
                 {
                     SWMMInputExchangeItem allInput = null;
 
-                    if (parameter.Value.IsMultiInput)
+                    if (attribute.IsMultiInput)
                     {
                         allInput = new SWMMMultiInputExchangeItem()
                         {
-                            Id = parameter.Value.Description + " |  All Links",
-                            Caption = parameter.Value.Description + " |  All Links",
-                            PropertyName = parameter.Key,
+                            Id = attribute.Description + " |  All Links",
+                            Caption = attribute.Description + " |  All Links",
+                            Property = property,
                             ObjectType = ObjectType.LINK,
-                            SWMMObjects = identifiers,
-                            Description = parameter.Value.Description + " for all Links",
+                            SWMMObjects = links.Values.ToList<SWMMObject>(),
+                            Description = attribute.Description + " for all Links",
                             CacheValues = false,
-                            ValueDefinition = parameter.Value.ValueDefinition,
+                            ValueDefinition = valueDefinition,
                             TimeSet = new TimeSet(timeExtent),
-                            Component = this
+                            Component = this,
+                            Model = model,
                         };
                     }
                     else
                     {
                         allInput = new SWMMInputExchangeItem()
                         {
-                            Id = parameter.Value.Description + " |  All Links",
-                            Caption = parameter.Value.Description + " |  All Links",
-                            PropertyName = parameter.Key,
+                            Id = attribute.Description + " |  All Links",
+                            Caption = attribute.Description + " |  All Links",
+                            Property = property,
                             ObjectType = ObjectType.LINK,
-                            SWMMObjects = identifiers,
-                            Description = parameter.Value.Description + " for all Links",
+                            SWMMObjects = links.Values.ToList<SWMMObject>(),
+                            Description = attribute.Description + " for all Links",
                             CacheValues = false,
-                            ValueDefinition = parameter.Value.ValueDefinition,
+                            ValueDefinition = valueDefinition,
                             TimeSet = new TimeSet(timeExtent),
-                            Component = this
+                            Component = this,
+                            Model = model,
                         };
                     }
 
@@ -986,44 +935,46 @@ namespace SWMMOpenMIComponent
                     allInput.ElementSet.HasZ = false;
                     inputs.Add(allInput);
 
-                    for (int j = 0; j < identifiers.Count; j++)
+                    for (int j = 0; j < keys.Count; j++)
                     {
 
-                        SWMMObjectIdentifier id = identifiers[j];
-                        List<SWMMObjectIdentifier> ids = new List<SWMMObjectIdentifier>(new SWMMObjectIdentifier[] { id });
+                        Link link = links[keys[j]];
+                        List<SWMMObject> tempLinks = new List<SWMMObject>(new SWMMObject[] { link });
 
                         SWMMInputExchangeItem input = null;
 
-                        if (parameter.Value.IsMultiInput)
+                        if (attribute.IsMultiInput)
                         {
                             input = new SWMMMultiInputExchangeItem()
                             {
-                                Id = parameter.Value.Description + " | Link = " + id.ObjectId,
-                                Caption = parameter.Value.Description + " | Link = " + id.ObjectId,
-                                PropertyName = parameter.Key,
+                                Id = attribute.Description + " | Link = " + link.ObjectId,
+                                Caption = attribute.Description + " | Link = " + link.ObjectId,
+                                Property = property,
                                 ObjectType = ObjectType.LINK,
-                                SWMMObjects = ids,
-                                Description = parameter.Value.Description + " for Link " + id.ObjectId,
+                                SWMMObjects = tempLinks,
+                                Description = attribute.Description + " for Link " + link.ObjectId,
                                 CacheValues = false,
-                                ValueDefinition = parameter.Value.ValueDefinition,
+                                ValueDefinition = valueDefinition,
                                 TimeSet = new TimeSet(timeExtent),
                                 Component = this,
+                                Model = model,
                             };
                         }
                         else
                         {
                             input = new SWMMInputExchangeItem()
                             {
-                                Id = parameter.Value.Description + " | Link = " + id.ObjectId,
-                                Caption = parameter.Value.Description + " | Link = " + id.ObjectId,
-                                PropertyName = parameter.Key,
+                                Id = attribute.Description + " | Link = " + link.ObjectId,
+                                Caption = attribute.Description + " | Link = " + link.ObjectId,
+                                Property = property,
                                 ObjectType = ObjectType.LINK,
-                                SWMMObjects = ids,
-                                Description = parameter.Value.Description + " for Link " + id.ObjectId,
+                                SWMMObjects = tempLinks,
+                                Description = attribute.Description + " for Link " + link.ObjectId,
                                 CacheValues = false,
-                                ValueDefinition = parameter.Value.ValueDefinition,
+                                ValueDefinition = valueDefinition,
                                 TimeSet = new TimeSet(timeExtent),
                                 Component = this,
+                                Model = model,
                             };
                         }
 
@@ -1035,7 +986,7 @@ namespace SWMMOpenMIComponent
                 }
             }
         }
-       
+
         void InitializeInputSubcatchments()
         {
 
@@ -1051,45 +1002,31 @@ namespace SWMMOpenMIComponent
 
         void InitializeOutputNodes()
         {
-            //Update input item requestedTime and 
-            Dictionary<string, TNode> nodes = model.Nodes;
+            Dictionary<string, Node> nodes = model.Nodes;
             List<string> keys = nodes.Keys.ToList<string>();
-            List<SWMMObjectIdentifier> identifiers = new List<SWMMObjectIdentifier>();
+            List<PropertyInfo> properties = SWMMObject.GetAvailableProperties(typeof(Node));
 
-            for (int i = 0; i < keys.Count; i++)
+            for (int j = 0; j < properties.Count; j++)
             {
-                TNode node = nodes[keys[i]];
-                SWMMObjectIdentifier identifier = new SWMMObjectIdentifier()
-                {
-                    ObjectId = node.ID,
-                    ObjectIndex = i,
-                    ObjectType = ObjectType.NODE,
-                };
+                PropertyInfo property = properties[j];
+                SWMMVariableDefinitionAttribute attribute = property.GetCustomAttribute<SWMMVariableDefinitionAttribute>();
+                IValueDefinition valueDefinition = Node.GetValueDefinition(attribute.ValueDefinition);
 
-                identifiers.Add(identifier);
-            }
-
-            KeyValuePair<string, SWMMVariableDefinition>[] parameters = SWMM.SWMMExposedVariables[ObjectType.NODE];
-
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                KeyValuePair<string, SWMMVariableDefinition> parameter = parameters[i];
-
-                if (parameter.Value.IsOutput)
+                if (attribute.IsOutput)
                 {
                     SWMMOutputExchangeItem all = new SWMMOutputExchangeItem()
                     {
-                        Id = parameter.Value.Description + " |  All Nodes",
-                        Caption = parameter.Value.Description + " |  All Nodes",
-                        PropertyName = parameter.Key,
+                        Id = attribute.Description + " |  All Nodes",
+                        Caption = attribute.Description + " |  All Nodes",
                         ObjectType = ObjectType.NODE,
-                        SWMMObjects = identifiers,
-                        Description = parameter.Value.Description + " for all nodes",
+                        Property = property,
+                        SWMMObjects = nodes.Values.ToList<SWMMObject>(),
+                        Description = attribute.Description + " for all nodes",
                         CacheValues = false,
-                        ValueDefinition = parameter.Value.ValueDefinition,
+                        ValueDefinition = valueDefinition,
                         TimeSet = new TimeSet(timeExtent),
-                        Component = this
+                        Component = this ,
+                        Model = model,
                     };
 
                     all.ElementSet.ElementType = ElementType.IdBased;
@@ -1097,24 +1034,24 @@ namespace SWMMOpenMIComponent
 
                     outputs.Add(all);
 
-                    for (int j = 0; j < identifiers.Count; j++)
+                    for (int i = 0; i < keys.Count; i++)
                     {
-
-                        SWMMObjectIdentifier id = identifiers[j];
-                        List<SWMMObjectIdentifier> ids = new List<SWMMObjectIdentifier>(new SWMMObjectIdentifier[] { id });
+                        Node node = nodes[keys[i]];
+                        List<SWMMObject> tempNodes = new List<SWMMObject>(new SWMMObject[] { node });
 
                         SWMMOutputExchangeItem output = new SWMMOutputExchangeItem()
                         {
-                            Id = parameter.Value.Description + " | Node = " + id.ObjectId,
-                            Caption = parameter.Value.Description + " | Node = " + id.ObjectId,
-                            PropertyName = parameter.Key,
+                            Id = attribute.Description + " | Node = " + node.ObjectId,
+                            Caption = attribute.Description + " | Node = " + node.ObjectId,
                             ObjectType = ObjectType.NODE,
-                            SWMMObjects = ids,
-                            Description = parameter.Value.Description + " for node " + id.ObjectId,
+                            Property = property,
+                            SWMMObjects = tempNodes,
+                            Description = attribute.Description + " for node " + node.ObjectId,
                             CacheValues = false,
-                            ValueDefinition = parameter.Value.ValueDefinition,
+                            ValueDefinition = valueDefinition,
                             TimeSet = new TimeSet(timeExtent),
                             Component = this,
+                            Model = model,
                         };
                         output.ElementSet.ElementType = ElementType.IdBased;
                         output.ElementSet.HasZ = false;
@@ -1126,69 +1063,56 @@ namespace SWMMOpenMIComponent
 
         void InitializeOutputLinks()
         {
-            //Update input item requestedTime and 
-            Dictionary<string, TLink> links = model.Links;
+            Dictionary<string, Link> links = model.Links;
             List<string> keys = links.Keys.ToList<string>();
-            List<SWMMObjectIdentifier> identifiers = new List<SWMMObjectIdentifier>();
+            List<PropertyInfo> properties = SWMMObject.GetAvailableProperties(typeof(Link));
 
-            for (int i = 0; i < keys.Count; i++)
+
+            for (int j = 0; j < properties.Count; j++)
             {
-                TLink link = links[keys[i]];
-                SWMMObjectIdentifier identifier = new SWMMObjectIdentifier()
-                {
-                    ObjectId = link.ID,
-                    ObjectIndex = i,
-                    ObjectType = ObjectType.LINK,
-                };
+                PropertyInfo property = properties[j];
+                SWMMVariableDefinitionAttribute attribute = property.GetCustomAttribute<SWMMVariableDefinitionAttribute>();
+                IValueDefinition valueDefinition = Link.GetValueDefinition(attribute.ValueDefinition);
 
-                identifiers.Add(identifier);
-            }
-
-            KeyValuePair<string, SWMMVariableDefinition>[] parameters = SWMM.SWMMExposedVariables[ObjectType.LINK];
-
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                KeyValuePair<string, SWMMVariableDefinition> parameter = parameters[i];
-
-                if (parameter.Value.IsOutput)
+                if (attribute.IsOutput)
                 {
                     SWMMOutputExchangeItem all = new SWMMOutputExchangeItem()
                     {
-                        Id = parameter.Value.Description + " |  All Links",
-                        Caption = parameter.Value.Description + " |  All Links",
-                        PropertyName = parameter.Key,
+                        Id = attribute.Description + " |  All Links",
+                        Caption = attribute.Description + " |  All Links",
+                        Property = property,
                         ObjectType = ObjectType.LINK,
-                        SWMMObjects = identifiers,
-                        Description = parameter.Value.Description + " for all Links",
+                        SWMMObjects = links.Values.ToList<SWMMObject>(),
+                        Description = attribute.Description + " for all Links",
                         CacheValues = false,
-                        ValueDefinition = parameter.Value.ValueDefinition,
+                        ValueDefinition = valueDefinition,
                         TimeSet = new TimeSet(timeExtent),
-                        Component = this
+                        Component = this,
+                            Model = model,
                     };
 
                     all.ElementSet.ElementType = ElementType.IdBased;
                     all.ElementSet.HasZ = false;
                     outputs.Add(all);
 
-                    for (int j = 0; j < identifiers.Count; j++)
+                    for (int i = 0; i < keys.Count; i++)
                     {
-
-                        SWMMObjectIdentifier id = identifiers[j];
-                        List<SWMMObjectIdentifier> ids = new List<SWMMObjectIdentifier>(new SWMMObjectIdentifier[] { id });
+                        Link link = links[keys[i]];
+                        List<SWMMObject> tempLink = new List<SWMMObject>(new SWMMObject[] { link });
 
                         SWMMOutputExchangeItem output = new SWMMOutputExchangeItem()
                         {
-                            Id = parameter.Value.Description + " | Link = " + id.ObjectId,
-                            Caption = parameter.Value.Description + " | Link = " + id.ObjectId,
-                            PropertyName = parameter.Key,
+                            Id = attribute.Description + " | Link = " + link.ObjectId,
+                            Caption = attribute.Description + " | Link = " + link.ObjectId,
+                            Property = property,
                             ObjectType = ObjectType.LINK,
-                            SWMMObjects = ids,
-                            Description = parameter.Value.Description + " for Link " + id.ObjectId,
+                            SWMMObjects = tempLink,
+                            Description = attribute.Description + " for Link " + link.ObjectId,
                             CacheValues = false,
-                            ValueDefinition = parameter.Value.ValueDefinition,
+                            ValueDefinition = valueDefinition,
                             TimeSet = new TimeSet(timeExtent),
                             Component = this,
+                            Model = model,
                         };
                         output.ElementSet.ElementType = ElementType.IdBased;
                         output.ElementSet.HasZ = false;
@@ -1200,69 +1124,56 @@ namespace SWMMOpenMIComponent
 
         void InitializeOutputSubcatchments()
         {
-            //Update input item requestedTime and 
-            Dictionary<string, TSubcatch> catchments = model.SubCatchments;
+            Dictionary<string, SubCatchment> catchments = model.SubCatchments;
             List<string> keys = catchments.Keys.ToList<string>();
-            List<SWMMObjectIdentifier> identifiers = new List<SWMMObjectIdentifier>();
+            List<PropertyInfo> properties = SWMMObject.GetAvailableProperties(typeof(SubCatchment));
 
-            for (int i = 0; i < keys.Count; i++)
+            for (int i = 0; i < properties.Count; i++)
             {
-                TSubcatch subC = catchments[keys[i]];
-                SWMMObjectIdentifier identifier = new SWMMObjectIdentifier()
-                {
-                    ObjectId = subC.ID,
-                    ObjectIndex = i,
-                    ObjectType = ObjectType.SUBCATCH,
-                };
+                PropertyInfo property = properties[i];
+                SWMMVariableDefinitionAttribute attribute = property.GetCustomAttribute<SWMMVariableDefinitionAttribute>();
+                IValueDefinition valueDefinition = Link.GetValueDefinition(attribute.ValueDefinition);
 
-                identifiers.Add(identifier);
-            }
-
-            KeyValuePair<string, SWMMVariableDefinition>[] parameters = SWMM.SWMMExposedVariables[ObjectType.SUBCATCH];
-
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                KeyValuePair<string, SWMMVariableDefinition> parameter = parameters[i];
-
-                if (parameter.Value.IsOutput)
+                if (attribute.IsOutput)
                 {
                     SWMMOutputExchangeItem all = new SWMMOutputExchangeItem()
                     {
-                        Id = parameter.Value.Description + " |  All Sub-Catchments",
-                        Caption = parameter.Value.Description + " |  All Sub-Catchments",
-                        PropertyName = parameter.Key,
+                        Id = attribute.Description + " |  All Sub-Catchments",
+                        Caption = attribute.Description + " |  All Sub-Catchments",
+                        Property = property,
                         ObjectType = ObjectType.SUBCATCH,
-                        SWMMObjects = identifiers,
-                        Description = parameter.Value.Description + " for all sub-catchments",
+                        SWMMObjects = catchments.Values.ToList<SWMMObject>(),
+                        Description = attribute.Description + " for all sub-catchments",
                         CacheValues = false,
-                        ValueDefinition = parameter.Value.ValueDefinition,
+                        ValueDefinition = valueDefinition,
                         TimeSet = new TimeSet(timeExtent),
-                        Component = this
+                        Component = this,
+                        Model = model
                     };
 
                     all.ElementSet.ElementType = ElementType.IdBased;
                     all.ElementSet.HasZ = false;
                     outputs.Add(all);
 
-                    for (int j = 0; j < identifiers.Count; j++)
+                    for (int j = 0; j < keys.Count; j++)
                     {
 
-                        SWMMObjectIdentifier id = identifiers[j];
-                        List<SWMMObjectIdentifier> ids = new List<SWMMObjectIdentifier>(new SWMMObjectIdentifier[] { id });
+                        SubCatchment subCatchment = catchments[keys[j]];
+                        List<SWMMObject> tempSub = new List<SWMMObject>(new SWMMObject[] { subCatchment });
 
                         SWMMOutputExchangeItem output = new SWMMOutputExchangeItem()
                         {
-                            Id = parameter.Value.Description + " | Sub-Catchment = " + id.ObjectId,
-                            Caption = parameter.Value.Description + " | Sub-Catchment = " + id.ObjectId,
-                            PropertyName = parameter.Key,
+                            Id = attribute.Description + " | Sub-Catchment = " + subCatchment.ObjectId,
+                            Caption = attribute.Description + " | Sub-Catchment = " + subCatchment.ObjectId,
+                            Property = property,
                             ObjectType = ObjectType.SUBCATCH,
-                            SWMMObjects = ids,
-                            Description = parameter.Value.Description + " for sub-catchments " + id.ObjectId,
+                            SWMMObjects = tempSub,
+                            Description = attribute.Description + " for sub-catchments " + subCatchment.ObjectId,
                             CacheValues = false,
-                            ValueDefinition = parameter.Value.ValueDefinition,
+                            ValueDefinition = valueDefinition,
                             TimeSet = new TimeSet(timeExtent),
                             Component = this,
+                            Model = model
                         };
                         output.ElementSet.ElementType = ElementType.IdBased;
                         output.ElementSet.HasZ = false;
@@ -1272,133 +1183,20 @@ namespace SWMMOpenMIComponent
             }
         }
 
-        #endregion
-
-        #region update functions
-
-        void UpdateRequiredInputExchangeItems()
-        {
-            //parallel
-            for (int i = 0; i < requiredInputs.Length ; i++)
-            {
-
-                SWMMInputExchangeItem inputItem = requiredInputs[i] as SWMMInputExchangeItem;
-                int lastIndex = inputItem.TimeSet.Times.Count - 1;
-                ITime time = timeExtent[lastIndex];
-                
-                // get and store input
-                inputItem.Update(time);
-                inputItem.UpdateModel(model);
-                inputItem.UpdateCache(cachedInputValues[inputItem.ObjectType][inputItem.PropertyName]);
-
-            }
-        }
-
-        bool RetrieveSpecificRequiredInputExchangeItem(ObjectType objectType, string field, string id, out  double value)
-        {
-            value = 0.0;
-            Dictionary<string,Dictionary<string,double>> tval = cachedInputValues[objectType];
-          
-            if( tval.ContainsKey(field) )
-            {
-                Dictionary<string, double> ids = tval[field];
-
-                if(ids.ContainsKey(id))
-                {
-                    value = ids[id];
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        void UpdateRequiredOutputExchangeItems(IBaseOutput[] required = null)
-        {
-            if (required == null)
-                required = this.requiredOutputs;
-
-            ITime current =  new Time(timeExtent.Times[timeExtent.Times.Count - 1]);
-
-            for (int i = 0; i < required.Length; i++)
-            {
-                SWMMOutputExchangeItem output = (SWMMOutputExchangeItem)required[i];
-
-                int lastIndex = output.TimeSet.Times.Count - 1;
-
-                output.TimeSet.Times[lastIndex] = current;
-
-                output.RetrieveFromModel(model);
-
-                for (int j = 0; j < output.AdaptedOutputs.Count; j++)
-                {
-                    ITimeSpaceAdaptedOutput adaptedOutput = (ITimeSpaceAdaptedOutput)output.AdaptedOutputs[j];
-
-                    // Only update adaptedOutputs that are actually active
-                    lastIndex = adaptedOutput.TimeSet.Times.Count - 1;
-                    adaptedOutput.TimeSet.Times[lastIndex] = current;
-                    adaptedOutput.Refresh();
-                }
-            }
-        }
-
-        bool OutputItemsStillRequireData()
-        {
-            if (consumers != null)
-            {
-                for (int i = 0; i < consumers.Count; i++ )
-                {
-                    IBaseInput consumer = consumers[i];
-
-                    if (consumer.Component.Status != LinkableComponentStatus.Done &&
-                       consumer.Component.Status != LinkableComponentStatus.Finished &&
-                       consumer.Component.Status != LinkableComponentStatus.Finishing
-                       )
-                    {
-                        return true;
-                    }
-
-                }
-            }
-
-           return false;
-        }
-
-        DateTime GetEarliestTimeRequiredByOutput()
-        {
-            
-            DateTime dateTimeTest = model.EndDateTime;
-
-            for(int j = 0 ; j  < consumers.Count ; j++)
-            {
-                ITimeSpaceInput input = consumers[j] as ITimeSpaceInput;
-                ITime time = input.TimeSet.Times[input.TimeSet.Times.Count - 1];
-                DateTime date = time.ToDateTime().AddDays(time.DurationInDays);
-
-                if (date < dateTimeTest)
-                    dateTimeTest = date;
-            }
-
-            return dateTimeTest;
-
-        }
-
-        #endregion
-
         void RetrieveAllConsumers()
         {
             consumers = new List<IBaseInput>();
 
-            foreach(IBaseOutput output in outputs)
+            foreach (IBaseOutput output in outputs)
             {
-                if(output.Consumers.Count > 0)
+                if (output.Consumers.Count > 0)
                 {
                     consumers.AddRange(output.Consumers);
                 }
 
-                if(output.AdaptedOutputs.Count > 0)
+                if (output.AdaptedOutputs.Count > 0)
                 {
-                    foreach(IBaseAdaptedOutput adaptedOutput in output.AdaptedOutputs)
+                    foreach (IBaseAdaptedOutput adaptedOutput in output.AdaptedOutputs)
                     {
                         GetAdaptedOutputsConsumers(adaptedOutput, consumers);
                     }
@@ -1417,13 +1215,13 @@ namespace SWMMOpenMIComponent
         void RetrieveRequiredInputs()
         {
             requiredInputs = (from n in inputs
-                              where n.Provider != null || (n is IBaseMultiInput && (n as IBaseMultiInput).Providers.Count > 0 )
-                                  select n).ToArray();
+                              where n.Provider != null || (n is IBaseMultiInput && (n as IBaseMultiInput).Providers.Count > 0)
+                              select n).ToArray();
         }
 
-        void GetAdaptedOutputsConsumers(IBaseAdaptedOutput adaptedOutput , List<IBaseInput> consumers)
+        void GetAdaptedOutputsConsumers(IBaseAdaptedOutput adaptedOutput, List<IBaseInput> consumers)
         {
-            if(adaptedOutput.Consumers.Count > 0)
+            if (adaptedOutput.Consumers.Count > 0)
             {
                 consumers.AddRange(adaptedOutput.Consumers);
             }
@@ -1435,6 +1233,116 @@ namespace SWMMOpenMIComponent
         }
 
         #endregion
+
+        #region update functions
+
+        void UpdateRequiredInputExchangeItems()
+        {
+            for (int i = 0; i < requiredInputs.Length; i++)
+            {
+                SWMMInputExchangeItem inputItem = requiredInputs[i] as SWMMInputExchangeItem;
+                inputItem.Update();
+            }
+        }
+
+        void UpdateRequiredOutputExchangeItems(IBaseOutput[] required = null)
+        {
+            if (required == null || required.Length == 0)
+            {
+                for (int i = 0; i < requiredOutputs.Length; i++)
+                {
+                    SWMMOutputExchangeItem output = (SWMMOutputExchangeItem)requiredOutputs[i];
+                    output.Update();
+                }
+            }
+            else
+            {
+                for (int i = 0; i < required.Length; i++)
+                {
+                    SWMMOutputExchangeItem output = (SWMMOutputExchangeItem)required[i];
+                    output.Update();
+                }
+            }
+        }
+
+        bool OutputItemsStillRequireData()
+        {
+            for (int i = 0; i < consumers.Count; i++)
+            {
+                LinkableComponentStatus status = consumers[i].Component.Status;
+
+                if (status != LinkableComponentStatus.Done &&
+                    status != LinkableComponentStatus.Finished &&
+                    status != LinkableComponentStatus.Finishing
+                   )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        DateTime GetEarliestTimeRequiredConsumers(IBaseOutput[] required = null)
+        {
+            DateTime dateTimeTest = model.EndDateTime;
+
+            if (required == null || required.Length == 0)
+            {
+                for (int j = 0; j < consumers.Count; j++)
+                {
+                    ITimeSpaceInput input = consumers[j] as ITimeSpaceInput;
+                    ITime time = input.TimeSet.Times[input.TimeSet.Times.Count - 1];
+                    DateTime date = time.ToDateTime().AddDays(time.DurationInDays);
+
+                    if (date < dateTimeTest)
+                        dateTimeTest = date;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < required.Length; i++)
+                {
+                    ITimeSpaceOutput output = required[i] as ITimeSpaceOutput;
+
+                    for (int j = 0; j < output.Consumers.Count; j++)
+                    {
+                        ITimeSpaceInput input = output.Consumers[j] as ITimeSpaceInput;
+                        ITime time = input.TimeSet.Times[input.TimeSet.Times.Count - 1];
+                        DateTime date = time.ToDateTime().AddDays(time.DurationInDays);
+
+                        if (date < dateTimeTest)
+                            dateTimeTest = date;
+                    }
+
+                    for (int j = 0; j < output.AdaptedOutputs.Count; j++)
+                    {
+                        ITimeSpaceAdaptedOutput adaptedOutput = output.AdaptedOutputs[j] as ITimeSpaceAdaptedOutput;
+
+                        for (int k = 0; k < adaptedOutput.Consumers.Count; k++)
+                        {
+                            ITimeSpaceInput input = adaptedOutput.Consumers[k] as ITimeSpaceInput;
+                            ITime time = input.TimeSet.Times[input.TimeSet.Times.Count - 1];
+                            DateTime date = time.ToDateTime().AddDays(time.DurationInDays);
+
+                            if (date < dateTimeTest)
+                                dateTimeTest = date;
+                        }
+                    }
+                }
+            }
+
+            return dateTimeTest;
+        }
+
+        #endregion
+
+        #endregion
+
+        public override string ToString()
+        {
+            return Caption;
+        }
 
         # endregion
 

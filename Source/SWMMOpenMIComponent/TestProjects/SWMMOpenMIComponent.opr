@@ -1,0 +1,109 @@
+<opr
+  version="2.0">
+  <models>
+    <model
+      omi="Model_1.omi"
+      rect_x="30"
+      rect_y="30"
+      rect_width="147"
+      rect_height="51"
+      is_trigger="true" />
+    <model
+      omi="Model_2.omi"
+      rect_x="310"
+      rect_y="32"
+      rect_width="147"
+      rect_height="51" />
+  </models>
+  <connections>
+    <connection
+      source_model_index="0"
+      target_model_index="1">
+      <links>
+        <link
+          target_item_id="Lateral Inflow (cfs) | Node = Node2">
+          <source_item_id
+            source_item_id="Flowrate (cfs) | Link = Link1 =&gt; SWMM Interpolation"
+            source_item_is_adaptedoutput="true"
+            source_item_adpatedoutput_index="0">
+            <parent_item_id
+              source_item_id="Flowrate (cfs) | Link = Link1"
+              source_item_is_adaptedoutput="false"
+              source_item_adpatedoutput_index="-1" />
+          </source_item_id>
+          <multi_input_exchangeitem_sources>
+            <source
+              source_item_id="Flowrate (cfs) | Link = Link1 =&gt; SWMM Interpolation"
+              source_item_is_adaptedoutput="true"
+              source_item_adpatedoutput_index="0">
+              <parent_item_id
+                source_item_id="Flowrate (cfs) | Link = Link1"
+                source_item_is_adaptedoutput="false"
+                source_item_adpatedoutput_index="-1" />
+            </source>
+          </multi_input_exchangeitem_sources>
+        </link>
+      </links>
+      <decorators>
+        <adapted_outputs
+          item_id="Flowrate (cfs) | Link = Link1 =&gt; SWMM Interpolation">
+          <factory
+            id="SWWM Interpolation Factory"
+            type="SWMMOpenMIComponent.SWMMInterpolationAdaptedOutputFactory" />
+          <arguments>
+            <argument
+              id="InterpolationType"
+              value="Cubic" />
+            <argument
+              id="RelaxationFactor"
+              value="0" />
+          </arguments>
+        </adapted_outputs>
+      </decorators>
+    </connection>
+    <connection
+      source_model_index="1"
+      target_model_index="0">
+      <links>
+        <link target_item_id="Water Depth (ft) | Node = Node2">
+          <source_item_id
+            source_item_id="Water Depth (ft) | Node = Node2 =&gt; SWMM Interpolation"
+            source_item_is_adaptedoutput="true"
+            source_item_adpatedoutput_index="0">
+            <parent_item_id
+              source_item_id="Water Depth (ft) | Node = Node2"
+              source_item_is_adaptedoutput="false"
+              source_item_adpatedoutput_index="-1" />
+          </source_item_id>
+          <multi_input_exchangeitem_sources>
+            <source
+              source_item_id="Water Depth (ft) | Node = Node2 =&gt; SWMM Interpolation"
+              source_item_is_adaptedoutput="true"
+              source_item_adpatedoutput_index="0">
+              <parent_item_id
+                source_item_id="Water Depth (ft) | Node = Node2"
+                source_item_is_adaptedoutput="false"
+                source_item_adpatedoutput_index="-1" />
+            </source>
+          </multi_input_exchangeitem_sources>
+        </link>
+      </links>
+      <decorators>
+        <adapted_outputs
+          item_id="Water Depth (ft) | Node = Node2 =&gt; SWMM Interpolation">
+          <factory
+            id="SWWM Interpolation Factory"
+            type="SWMMOpenMIComponent.SWMMInterpolationAdaptedOutputFactory" />
+          <arguments>
+            <argument
+              id="InterpolationType"
+              value="Cubic" />
+            <argument
+              id="RelaxationFactor"
+              value="0" />
+          </arguments>
+        </adapted_outputs>
+      </decorators>
+    </connection>
+  </connections>
+</opr>

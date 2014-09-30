@@ -29,6 +29,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
@@ -43,18 +44,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Describable.cs" />
-    <Compile Include="Identifiable.cs" />
-    <Compile Include="ISWMMExchangeItem.cs" />
-    <Compile Include="SWMM.cs" />
-    <Compile Include="SWMMInputExchangeItem.cs" />
-    <Compile Include="SWMMMultiInputExchangeItem.cs" />
-    <Compile Include="SWMMObjects.cs" />
+    <Compile Include="Helpers\Describable.cs" />
+    <Compile Include="Helpers\Identifiable.cs" />
+    <Compile Include="ExchangeItems\ISWMMExchangeItem.cs" />
+    <Compile Include="Interpolation\SWMMInterpolationAdaptedOutputFactory.cs" />
+    <Compile Include="Interpolation\TimeInterpolationAdaptedOutput.cs" />
+    <Compile Include="SWMMObjects\SWMMObject.cs" />
+    <Compile Include="SWMMObjects\SubCatchment.cs" />
+    <Compile Include="SWMMObjects\Link.cs" />
+    <Compile Include="SWMMObjects\Node.cs" />
+    <Compile Include="Helpers\Native\SWMM.cs" />
+    <Compile Include="ExchangeItems\SWMMInputExchangeItem.cs" />
+    <Compile Include="ExchangeItems\SWMMMultiInputExchangeItem.cs" />
+    <Compile Include="Helpers\VariableDefinitions\VariableDefinitions.cs" />
     <Compile Include="SWMMOpenMIComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SWMMOutputExchangeItem.cs" />
-    <Compile Include="SWMMTimeSpaceValueSet.cs" />
-    <Compile Include="WinLibraryLoader.cs" />
+    <Compile Include="ExchangeItems\SWMMOutputExchangeItem.cs" />
+    <Compile Include="Helpers\SWMMTimeSpaceValueSet.cs" />
+    <Compile Include="SWMMObjects\SWMMVariableDefinitionAttribute.cs" />
+    <Compile Include="Helpers\Native\WinLibraryLoader.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\OpenMI\Source\csharp\Oatc.OpenMI\Sdk\Oatc.OpenMI.Sdk.csproj">
@@ -67,21 +75,32 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="FullModel.inp" />
-    <None Include="Model_1.omi">
+    <None Include="TestProjects\FullModel.inp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Model_2.omi">
+    <None Include="TestProjects\FullModel.omi">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestProjects\Model_1.omi">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestProjects\Model_2.omi">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="SWMMOpenMIComponent.cd" />
-    <None Include="SWMMOpenMIComponent.opr">
+    <None Include="TestProjects\SWMMOpenMIComponent.opr">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestModel_1.inp">
+    <None Include="TestProjects\TestModel_1.ini">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestModel_2.inp">
+    <None Include="TestProjects\TestModel_1.inp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestProjects\TestModel_2.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestProjects\TestModel_2.inp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

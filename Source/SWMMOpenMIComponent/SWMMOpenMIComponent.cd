@@ -1,137 +1,216 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="SWMMOpenMIComponent.SWMMOpenMIComponent" BaseTypeListCollapsed="true">
-    <Position X="0.5" Y="9" Width="2.75" />
+    <Position X="0.5" Y="8" Width="2.75" />
     <TypeIdentifier>
-      <HashCode>BAYBAAAEDACQSQAQAAAAABAoEEAgBzAAoAgAAIQIAQg=</HashCode>
+      <HashCode>BAYBKAgEDCHSWQAQAAABDhAoEEAgBzIAoAjIAIQIAQg=</HashCode>
       <FileName>SWMMOpenMIComponent.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.179" Collapsed="true" />
   </Class>
-  <Class Name="WinLibraryLoader">
-    <Position X="13" Y="5" Width="1.75" />
+  <Class Name="WinLibraryLoader" Collapsed="true">
+    <Position X="15.5" Y="5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAQAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAQAAQAAAAAA=</HashCode>
-      <FileName>WinLibraryLoader.cs</FileName>
+      <HashCode>AAQAAAAAAAAAAAAIQAAAAAAAAAAAAAAAAQAAQAAAAAA=</HashCode>
+      <FileName>Helpers\Native\WinLibraryLoader.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="SWMMOpenMIComponent.Describable">
-    <Position X="2.75" Y="5" Width="1.5" />
+    <Position X="2.75" Y="4" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAACAAAAAAAAAA=</HashCode>
-      <FileName>Describable.cs</FileName>
+      <FileName>Helpers\Describable.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
   </Class>
   <Class Name="SWMMOpenMIComponent.Identifiable">
-    <Position X="2.75" Y="7" Width="1.5" />
+    <Position X="2.75" Y="6" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>Identifiable.cs</FileName>
+      <FileName>Helpers\Identifiable.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
   </Class>
-  <Class Name="SWMMOpenMIComponent.SWMM" BaseTypeListCollapsed="true">
-    <Position X="11.25" Y="5" Width="1.5" />
+  <Class Name="SWMMOpenMIComponent.SWMM" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="13.75" Y="5" Width="1.5" />
     <NestedTypes>
       <Delegate Name="SWMMOpenMIComponent.SWMM.GetObjectDelegate" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+      <Delegate Name="SWMMOpenMIComponent.SWMM.SetObjectValue" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+      <Delegate Name="SWMMOpenMIComponent.SWMM.CallbackFunction" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
       <Delegate Name="SWMMOpenMIComponent.SWMM.GetErrorMessageDelegate" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Delegate>
-      <Delegate Name="SWMMOpenMIComponent.SWMM.EndRunDelegate" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
       <Delegate Name="SWMMOpenMIComponent.SWMM.DecodeDateTimeDelegate" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
-      <Delegate Name="SWMMOpenMIComponent.SWMM.CloseModelDelegate" Collapsed="true">
+      <Delegate Name="SWMMOpenMIComponent.SWMM.setCallBackFunction" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
       <Delegate Name="SWMMOpenMIComponent.SWMM.GetDateTimeDelegate" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+      <Delegate Name="SWMMOpenMIComponent.SWMM.IntRetureDelegate" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
       <Delegate Name="SWMMOpenMIComponent.SWMM.PerformTimeStepDelegate" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
       <Delegate Name="SWMMOpenMIComponent.SWMM.GetObjectTypeCountDelegate" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+      <Delegate Name="SWMMOpenMIComponent.SWMM.GetObjectByIdDelegate" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
       <Delegate Name="SWMMOpenMIComponent.SWMM.StartModelDelegate" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
       <Delegate Name="SWMMOpenMIComponent.SWMM.OpenDelegate" Collapsed="true">
         <TypeIdentifier>
-          <NewMemberFileName>SWMM.cs</NewMemberFileName>
+          <NewMemberFileName>Helpers\Native\SWMM.cs</NewMemberFileName>
         </TypeIdentifier>
       </Delegate>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AEIOAAAAAGAYEQBAQCgAAAAQFEQCGRAEBQEBAABQDAA=</HashCode>
-      <FileName>SWMM.cs</FileName>
+      <HashCode>EGKuKAAAAGAYEwBASCgAAAAyNEQLWRAEDSEBAABSLAI=</HashCode>
+      <FileName>Helpers\Native\SWMM.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" Collapsed="true" />
   </Class>
   <Class Name="SWMMOpenMIComponent.SWMMInputExchangeItem">
-    <Position X="4.75" Y="9" Width="2.25" />
+    <Position X="4" Y="8" Width="2.25" />
     <TypeIdentifier>
-      <HashCode>AACAACAAAAAEAAAAQAAAAAgAAAAAAIAICIBgAABAAQA=</HashCode>
-      <FileName>SWMMInputExchangeItem.cs</FileName>
+      <HashCode>AASAACAAAAAEAAAEAAAAEAgBgQgBASAIAIDgAQAAAQA=</HashCode>
+      <FileName>ExchangeItems\SWMMInputExchangeItem.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="1.786" />
   </Class>
-  <Struct Name="SWMMOpenMIComponent.TNode">
-    <Position X="15" Y="5" Width="1.5" />
+  <Class Name="SWMMOpenMIComponent.Link" Collapsed="true">
+    <Position X="13.75" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAAAAAASAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAA=</HashCode>
+      <FileName>SWMMObjects\Link.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SWMMOpenMIComponent.Node" Collapsed="true">
+    <Position X="15.5" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>TAAAAAICgAAAAgAAEAACEAAAAAQAQAEAQIAAAQCAAEQ=</HashCode>
+      <FileName>SWMMObjects\Node.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SWMMOpenMIComponent.SubCatchment" Collapsed="true">
+    <Position X="17.25" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAAAAAACAAAAEAAAAAAAAAAAAAAAAAAAAIAAAAAAAAA=</HashCode>
+      <FileName>SWMMObjects\SubCatchment.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="SWMMOpenMIComponent.TNode" Collapsed="true">
+    <Position X="15.5" Y="6.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABAAIACIAIAIgEgACgKCAAAABAABEAAAigEAQGBEgBA=</HashCode>
-      <FileName>SWMMObjects.cs</FileName>
+      <FileName>SWMMObjects\Node.cs</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="SWMMOpenMIComponent.TLink">
-    <Position X="16.75" Y="5" Width="1.5" />
+  <Struct Name="SWMMOpenMIComponent.TLink" Collapsed="true">
+    <Position X="13.75" Y="6.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>IEAABoAAEIBAoggASAAAAAACZCAhBAABCAEIAABQAFA=</HashCode>
-      <FileName>SWMMObjects.cs</FileName>
+      <FileName>SWMMObjects\Link.cs</FileName>
     </TypeIdentifier>
   </Struct>
-  <Enum Name="SWMMOpenMIComponent.ObjectType">
-    <Position X="20.25" Y="6.5" Width="1.5" />
+  <Struct Name="SWMMOpenMIComponent.TXsect" Collapsed="true">
+    <Position X="15.5" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CBAAAAAACAAAAAECAQAgAACACACkAAAAAEBAAIAAAAg=</HashCode>
-      <FileName>ISWMMExchangeItem.cs</FileName>
+      <HashCode>AgAABAAAAAAAAAAAQABAACAAAAABICgIAAAAAAAAFgg=</HashCode>
+      <FileName>SWMMObjects\Link.cs</FileName>
     </TypeIdentifier>
-  </Enum>
-  <Enum Name="SWMMOpenMIComponent.NodeType">
-    <Position X="20.25" Y="5" Width="1.5" />
+  </Struct>
+  <Struct Name="SWMMOpenMIComponent.TSubarea" Collapsed="true">
+    <Position X="17.25" Y="6.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAQAAAAAAAgAAAAAAAAAAIAAAAAAAAAAAAAAAIAAA=</HashCode>
-      <FileName>ISWMMExchangeItem.cs</FileName>
+      <HashCode>ABCAgAAAAAAAAAAAAAAAAAAAAABAAAAAAgAQIBQAAAA=</HashCode>
+      <FileName>SWMMObjects\SubCatchment.cs</FileName>
     </TypeIdentifier>
-  </Enum>
-  <Enum Name="SWMMOpenMIComponent.LinkType">
-    <Position X="18.5" Y="5" Width="1.5" />
+  </Struct>
+  <Struct Name="SWMMOpenMIComponent.TSubcatch" Collapsed="true">
+    <Position X="13.75" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAAEiAAARoABiAgCSAIAAABIBAAAAgAIAkAAQQAIAEE=</HashCode>
+      <FileName>SWMMObjects\SubCatchment.cs</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Interface Name="SWMMOpenMIComponent.ISWMMExchangeItem">
+    <Position X="9.25" Y="3.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAIAAAQAAAAA=</HashCode>
+      <FileName>ExchangeItems\ISWMMExchangeItem.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="SWMMOpenMIComponent.ISWMMInputExchangeItem">
+    <Position X="10.5" Y="6.25" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ExchangeItems\ISWMMInputExchangeItem.cs</FileName>
+      <NewMemberFileName>ExchangeItems\ISWMMExchangeItem.cs</NewMemberFileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="SWMMOpenMIComponent.ISWMMOutputExchangeItem">
+    <Position X="7.5" Y="6.25" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ExchangeItems\ISWMMOutputExchangeItem.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Enum Name="SWMMOpenMIComponent.LinkType" Collapsed="true">
+    <Position X="13.75" Y="8.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAIAgAAAAAAAAAAAAAYAAAAAAAIA=</HashCode>
-      <FileName>ISWMMExchangeItem.cs</FileName>
+      <FileName>SWMMObjects\Link.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SWMMOpenMIComponent.NodeType" Collapsed="true">
+    <Position X="15.5" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAAAAAAgAAAAAAAAAAIAAAAAAAAAAAAAAAIAAA=</HashCode>
+      <FileName>SWMMObjects\Node.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="SWMMOpenMIComponent.ObjectType" Collapsed="true">
+    <Position X="17.25" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CBAAAAAACAAAAAECAQAgAACACACkAAAAAEBAAIAAAAg=</HashCode>
+      <FileName>SWMMObjects\SWMMObject.cs</FileName>
     </TypeIdentifier>
   </Enum>
   <Font Name="Segoe UI" Size="9" />
