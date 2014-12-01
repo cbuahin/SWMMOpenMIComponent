@@ -60,7 +60,7 @@ namespace SWMMOpenMIComponent
         FileInfo SWMMLibrary, projectFile, reportFile, outputFile;
 
         SWMM model;
-        bool hasBeenInitialized = false, hasBeenPrepared = false, disposed = false;
+        bool isInitialized = false, isPrepared = false, isDisposed = false;
 
         //caching objects
         List<IBaseInput> consumers;
@@ -96,6 +96,7 @@ namespace SWMMOpenMIComponent
             timeExtent.Times.Add(new Time(date));
 
             requiredArguments = new String[] { "ModelID", "Caption", "Description", "SWMMLibrary", "ProjectFile", "ReportFile", "OutputFile" };
+           
             //Initialize arguments
             arguments.Add("ModelID", new ArgumentString("ModelID") { Caption = "ModelID", Description = "SWMM Model Component Identifier", DefaultValue = "SWMM Model Component", IsOptional = false, IsReadOnly = true, Value = "SWMM Model " + Guid.NewGuid() });
             arguments.Add("Caption", new ArgumentString("Caption") { Caption = "ModelCaption", Description = "SWMM Model Component Caption", DefaultValue = "SWMM OpenMI 2.0 Component", IsOptional = false, IsReadOnly = true, Value = "SWMM OpenMI 2.0 Component" });
@@ -245,14 +246,14 @@ namespace SWMMOpenMIComponent
             InitializeOutputExchangeItems();
             InitializeSpace();
 
-            hasBeenInitialized = true;
+            isInitialized = true;
 
             Status = LinkableComponentStatus.Initialized;
         }
 
         public string[] Validate()
         {
-            if (!hasBeenInitialized)
+            if (!isInitialized)
             {
                 throw new Exception("Prepare method in the LinkableEngine cannot be invoked before the Initialize method has been invoked");
             }
@@ -263,7 +264,7 @@ namespace SWMMOpenMIComponent
 
         public void Prepare()
         {
-            if (!hasBeenInitialized)
+            if (!isInitialized)
             {
                 throw new Exception("Prepare method in the LinkableEngine cannot be invoked before the Initialize method has been invoked");
             }
@@ -290,7 +291,7 @@ namespace SWMMOpenMIComponent
 
             UpdateRequiredOutputExchangeItems();
 
-            hasBeenPrepared = true;
+            isPrepared = true;
             Status = LinkableComponentStatus.Updated;
         }
 
@@ -338,8 +339,8 @@ namespace SWMMOpenMIComponent
             model.EndRun();
             model.CloseModel();
          
-            hasBeenInitialized = false;
-            hasBeenPrepared = false;
+            isInitialized = false;
+            isPrepared = false;
 
             Status = LinkableComponentStatus.Finished;
         }
@@ -356,7 +357,7 @@ namespace SWMMOpenMIComponent
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposed)
+            if (!isDisposed)
             {
                 if (disposing)
                 {
@@ -364,7 +365,7 @@ namespace SWMMOpenMIComponent
                 }
 
                 model.Dispose();
-                disposed = true;
+                isDisposed = true;
             }
         }
 

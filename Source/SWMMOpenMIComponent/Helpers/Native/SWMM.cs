@@ -17,7 +17,7 @@ namespace SWMMOpenMIComponent
     /// <summary>
     /// SWMM Engine Model Wrapper
     /// </summary>
-    /// <remarks>Responsible for managing the SWMM engine library. It marshalls SWMM objects via Platform invoke for updating</remarks>
+    /// <remarks>Responsible for managing the SWMM engine library. It marshalls SWMM objects via Platform invoke</remarks>
     public class SWMM : IDisposable
     {
 
@@ -30,7 +30,7 @@ namespace SWMMOpenMIComponent
 
         delegate int PerformTimeStepDelegate(out double elapsedTime);
 
-        delegate int IntRetureDelegate();
+        delegate int IntReturnDelegate();
 
         delegate string GetErrorMessageDelegate(int errorCode);
 
@@ -67,9 +67,9 @@ namespace SWMMOpenMIComponent
         OpenDelegate open;
         StartModelDelegate startModel;
         PerformTimeStepDelegate performTimeStep;
-        IntRetureDelegate endRun;
-        IntRetureDelegate closeModel;
-        IntRetureDelegate reportModelResults;
+        IntReturnDelegate endRun;
+        IntReturnDelegate closeModel;
+        IntReturnDelegate reportModelResults;
         GetErrorMessageDelegate getErrorMessage;
         DecodeDateTimeDelegate decodeDateTime;
         GetDateTimeDelegate getDateTime;
@@ -185,13 +185,13 @@ namespace SWMMOpenMIComponent
             performTimeStep = WinLibraryLoader.LoadFunction<PerformTimeStepDelegate>(ref hModule, "swmm_step");
             CheckIfLibraryError();
 
-            endRun = WinLibraryLoader.LoadFunction<IntRetureDelegate>(ref hModule, "swmm_end");
+            endRun = WinLibraryLoader.LoadFunction<IntReturnDelegate>(ref hModule, "swmm_end");
             CheckIfLibraryError();
 
-            reportModelResults = WinLibraryLoader.LoadFunction<IntRetureDelegate>(ref hModule, "swmm_report");
+            reportModelResults = WinLibraryLoader.LoadFunction<IntReturnDelegate>(ref hModule, "swmm_report");
             CheckIfLibraryError();
 
-            closeModel = WinLibraryLoader.LoadFunction<IntRetureDelegate>(ref hModule, "swmm_close");
+            closeModel = WinLibraryLoader.LoadFunction<IntReturnDelegate>(ref hModule, "swmm_close");
             CheckIfLibraryError();
 
             getErrorMessage = WinLibraryLoader.LoadFunction<GetErrorMessageDelegate>(ref hModule, "getErrorMsg");
@@ -251,6 +251,8 @@ namespace SWMMOpenMIComponent
 
             int error = open(inputFile, reportFile, outPutFile);
             SetError(error);
+
+            StartModel();
 
             int year, month, day, hour, minute, second;
             year = month = day = hour = minute = second = 0;

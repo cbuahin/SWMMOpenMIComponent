@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace SWMMOpenMIComponent
 {
+    /// <summary>
+    /// ITimeSpaceValueSet implementation. 
+    /// </summary>
     public class SWMMTimeSpaceValueSet<T> : ITimeSpaceValueSet
     {
         ListIList<T> values;

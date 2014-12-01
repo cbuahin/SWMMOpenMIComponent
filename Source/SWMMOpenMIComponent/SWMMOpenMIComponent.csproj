@@ -47,8 +47,8 @@
     <Compile Include="Helpers\Describable.cs" />
     <Compile Include="Helpers\Identifiable.cs" />
     <Compile Include="ExchangeItems\ISWMMExchangeItem.cs" />
-    <Compile Include="Interpolation\SWMMInterpolationAdaptedOutputFactory.cs" />
-    <Compile Include="Interpolation\TimeInterpolationAdaptedOutput.cs" />
+    <Compile Include="AdaptedOutputs\SWMMInterpolationAdaptedOutputFactory.cs" />
+    <Compile Include="AdaptedOutputs\TimeInterpolationAdaptedOutput.cs" />
     <Compile Include="SWMMObjects\SWMMObject.cs" />
     <Compile Include="SWMMObjects\SubCatchment.cs" />
     <Compile Include="SWMMObjects\Link.cs" />
@@ -75,6 +75,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="ExchangeItems\ExchangeItems.cd" />
     <None Include="TestProjects\FullModel.inp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -103,11 +104,6 @@
     <None Include="TestProjects\TestModel_2.inp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="SWMMQOpenMI.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
