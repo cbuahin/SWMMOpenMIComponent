@@ -3,14 +3,14 @@
 
 #include "swmmopenminoglobals_global.h"
 
-class SWMMOPENMINOGLOBALS_EXPORT SWMMOpenMINoGlobals
-{
-public:
-	SWMMOpenMINoGlobals();
-	~SWMMOpenMINoGlobals();
-
-private:
-
-};
+//class SWMMOPENMINOGLOBALS_EXPORT SWMMOpenMINoGlobals
+//{
+//public:
+//	SWMMOpenMINoGlobals();
+//	~SWMMOpenMINoGlobals();
+//
+//private:
+//
+//};
 
 #endif // SWMMOPENMINOGLOBALS_H

@@ -21,9 +21,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-
-#include <malloc.h>
-
+//
+//#include <malloc.h>
+#include <stdlib.h>
 #include "headers.h"
 #include "lid.h" 
 #include "hash.h"

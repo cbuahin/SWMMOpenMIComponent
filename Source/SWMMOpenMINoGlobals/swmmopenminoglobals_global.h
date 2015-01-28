@@ -1,7 +1,7 @@
 #ifndef SWMMOPENMINOGLOBALS_GLOBAL_H
 #define SWMMOPENMINOGLOBALS_GLOBAL_H
 
-#include <QtCore/qglobal.h>
+//#include <QtCore/qglobal.h>
 
 #ifdef SWMMOPENMINOGLOBALS_LIB
 # define SWMMOPENMINOGLOBALS_EXPORT Q_DECL_EXPORT

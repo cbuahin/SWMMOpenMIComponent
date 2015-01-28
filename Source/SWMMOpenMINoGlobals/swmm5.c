@@ -44,7 +44,7 @@
 #include <excpt.h>
 #endif
 
-#include <direct.h>
+//#include <direct.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
