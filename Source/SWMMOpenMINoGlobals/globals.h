@@ -15,139 +15,143 @@
 #include "hash.h"
 
 #ifdef __cplusplus
-extern "C" {
+ extern "C" {
 #endif 
 
+    struct Project
+    {
+
+        int J1;
+        int P1;
+        int J2;
+        double RT;
 
 
-EXTERN int J1, P1, J2;
-EXTERN double RT;
+  
+                TFile Finp;                     // Input file
+                TFile  Fout;                     // Output file
+               TFile   Frpt;                     // Report file
+               TFile   Fclimate;                 // Climate file
+               TFile   Frain;                    // Rainfall file
+               TFile   Frunoff;                  // Runoff file
+               TFile   Frdii;                    // RDII inflow file
+               TFile   Fhotstart1;               // Hot start input file
+               TFile   Fhotstart2;               // Hot start output file
+               TFile   Finflows;                 // Inflows routing file
+               TFile   Foutflows;                // Outflows routing file
 
+  
+                 long Nperiods;                 // Number of reporting periods
+                 long StepCount;                // Number of routing steps used
+                 long NonConvergeCount;         // Number of non-converging steps
 
-EXTERN TFile
-                  Finp,                     // Input file 
-                  Fout,                     // Output file
-                  Frpt,                     // Report file
-                  Fclimate,                 // Climate file
-                  Frain,                    // Rainfall file
-                  Frunoff,                  // Runoff file
-                  Frdii,                    // RDII inflow file
-                  Fhotstart1,               // Hot start input file
-                  Fhotstart2,               // Hot start output file
-                  Finflows,                 // Inflows routing file
-                  Foutflows;                // Outflows routing file
+  
+                 char Msg[MAXMSG+1];            // Text of output message
+                 char Title[MAXTITLE][MAXMSG+1];// Project title
+                 char TempDir[MAXFNAME+1];      // Temporary file directory
 
-EXTERN long
-                  Nperiods,                 // Number of reporting periods
-                  StepCount,                // Number of routing steps used
-                  NonConvergeCount;         // Number of non-converging steps
+  
+                 TRptFlags RptFlags;                 // Reporting options
 
-EXTERN char
-                  Msg[MAXMSG+1],            // Text of output message
-                  Title[MAXTITLE][MAXMSG+1],// Project title
-                  TempDir[MAXFNAME+1];      // Temporary file directory
+  
+                 int Nobjects[MAX_OBJ_TYPES];  // Number of each object type
+                 int Nnodes[MAX_NODE_TYPES];   // Number of each node sub-type
+                 int Nlinks[MAX_LINK_TYPES];   // Number of each link sub-type
+                 int UnitSystem;               // Unit system
+                 int FlowUnits;                // Flow units
+                 int InfilModel;               // Infiltration method
+                 int RouteModel;               // Flow routing method
+                 int ForceMainEqn;             // Flow equation for force mains
+                 int LinkOffsets;              // Link offset convention
+                 int AllowPonding;             // Allow water to pond at nodes
+                 int InertDamping;             // Degree of inertial damping
+                 int NormalFlowLtd;            // Normal flow limited
+                int  SlopeWeighting;           // Use slope weighting
+                 int Compatibility;            // SWMM 5/3/4 compatibility
+                 int SkipSteadyState;          // Skip over steady state periods
+                 int IgnoreRainfall;           // Ignore rainfall/runoff
+                 int IgnoreRDII;               // Ignore RDII                     //(5.1.004)
+                 int IgnoreSnowmelt;           // Ignore snowmelt
+                 int IgnoreGwater;             // Ignore groundwater
+                 int IgnoreRouting;            // Ignore flow routing
+                 int IgnoreQuality;            // Ignore water quality
+                 int ErrorCode;                // Error code number
+                 int WarningCode;              // Warning code number
+                 int WetStep;                  // Runoff wet time step (sec)
+                 int DryStep;                  // Runoff dry time step (sec)
+                 int ReportStep;               // Reporting time step (sec)
+                 int SweepStart;               // Day of year when sweeping starts
+                 int SweepEnd;                 // Day of year when sweeping ends
+                 int MaxTrials;                // Max. trials for DW routing
 
-EXTERN TRptFlags
-                  RptFlags;                 // Reporting options
+  
+                 double RouteStep;                // Routing time step (sec)
+                 double LengtheningStep;          // Time step for lengthening (sec)
+                 double StartDryDays;             // Antecedent dry days
+                 double CourantFactor;            // Courant time step factor
+                 double MinSurfArea;              // Minimum nodal surface area
+                 double MinSlope;                 // Minimum conduit slope
+                 double RunoffError;              // Runoff continuity error
+                 double GwaterError;              // Groundwater continuity error
+                 double FlowError;                // Flow routing error
+                 double QualError;                // Quality routing error
+                 double HeadTol;                  // DW routing head tolerance (ft)
+                 double SysFlowTol;               // Tolerance for steady system flow
+                 double LatFlowTol;               // Tolerance for steady nodal inflow
 
-EXTERN int
-                  Nobjects[MAX_OBJ_TYPES],  // Number of each object type
-                  Nnodes[MAX_NODE_TYPES],   // Number of each node sub-type
-                  Nlinks[MAX_LINK_TYPES],   // Number of each link sub-type
-                  UnitSystem,               // Unit system
-                  FlowUnits,                // Flow units
-                  InfilModel,               // Infiltration method
-                  RouteModel,               // Flow routing method
-                  ForceMainEqn,             // Flow equation for force mains
-                  LinkOffsets,              // Link offset convention
-                  AllowPonding,             // Allow water to pond at nodes
-                  InertDamping,             // Degree of inertial damping
-                  NormalFlowLtd,            // Normal flow limited
-                  SlopeWeighting,           // Use slope weighting
-                  Compatibility,            // SWMM 5/3/4 compatibility
-                  SkipSteadyState,          // Skip over steady state periods
-                  IgnoreRainfall,           // Ignore rainfall/runoff
-                  IgnoreRDII,               // Ignore RDII                     //(5.1.004)
-                  IgnoreSnowmelt,           // Ignore snowmelt
-                  IgnoreGwater,             // Ignore groundwater
-                  IgnoreRouting,            // Ignore flow routing
-                  IgnoreQuality,            // Ignore water quality
-                  ErrorCode,                // Error code number
-                  WarningCode,              // Warning code number
-                  WetStep,                  // Runoff wet time step (sec)
-                  DryStep,                  // Runoff dry time step (sec)
-                  ReportStep,               // Reporting time step (sec)
-                  SweepStart,               // Day of year when sweeping starts
-                  SweepEnd,                 // Day of year when sweeping ends
-                  MaxTrials;                // Max. trials for DW routing
+  
+                 DateTime StartDate;                // Starting date
+                 DateTime StartTime;                // Starting time
+                 DateTime StartDateTime;            // Starting Date+Time
+                 DateTime EndDate;                  // Ending date
+                 DateTime EndTime;                  // Ending time
+                 DateTime EndDateTime;              // Ending Date+Time
+                 DateTime ReportStartDate;          // Report start date
+                 DateTime ReportStartTime;          // Report start time
+                 DateTime ReportStart;              // Report start Date+Time
 
-EXTERN double
-                  RouteStep,                // Routing time step (sec)
-                  LengtheningStep,          // Time step for lengthening (sec)
-                  StartDryDays,             // Antecedent dry days
-                  CourantFactor,            // Courant time step factor
-                  MinSurfArea,              // Minimum nodal surface area
-                  MinSlope,                 // Minimum conduit slope
-                  RunoffError,              // Runoff continuity error
-                  GwaterError,              // Groundwater continuity error
-                  FlowError,                // Flow routing error
-                  QualError,                // Quality routing error
-                  HeadTol,                  // DW routing head tolerance (ft)
-                  SysFlowTol,               // Tolerance for steady system flow
-                  LatFlowTol;               // Tolerance for steady nodal inflow       
+  
+                 double ReportTime;               // Current reporting time (msec)
+                 double OldRunoffTime;            // Previous runoff time (msec)
+                 double NewRunoffTime;            // Current runoff time (msec)
+                 double OldRoutingTime;           // Previous routing time (msec)
+                 double NewRoutingTime;           // Current routing time (msec)
+                 double TotalDuration;            // Simulation duration (msec)
 
-EXTERN DateTime
-                  StartDate,                // Starting date
-                  StartTime,                // Starting time
-                  StartDateTime,            // Starting Date+Time
-                  EndDate,                  // Ending date
-                  EndTime,                  // Ending time
-                  EndDateTime,              // Ending Date+Time
-                  ReportStartDate,          // Report start date
-                  ReportStartTime,          // Report start time
-                  ReportStart;              // Report start Date+Time
-
-EXTERN double
-                  ReportTime,               // Current reporting time (msec)
-                  OldRunoffTime,            // Previous runoff time (msec)
-                  NewRunoffTime,            // Current runoff time (msec)
-                  OldRoutingTime,           // Previous routing time (msec)
-                  NewRoutingTime,           // Current routing time (msec)
-                  TotalDuration;            // Simulation duration (msec)
-
-EXTERN TTemp      Temp;                     // Temperature data
-EXTERN TEvap      Evap;                     // Evaporation data
-EXTERN TWind      Wind;                     // Wind speed data
-EXTERN TSnow      Snow;                     // Snow melt data
-
-EXTERN TSnowmelt* Snowmelt;                 // Array of snow melt objects
-EXTERN TGage*     Gage;                     // Array of rain gages
-EXTERN TSubcatch* Subcatch;                 // Array of subcatchments
-EXTERN TAquifer*  Aquifer;                  // Array of groundwater aquifers
-EXTERN TUnitHyd*  UnitHyd;                  // Array of unit hydrographs
-EXTERN TNode*     Node;                     // Array of nodes
-EXTERN TOutfall*  Outfall;                  // Array of outfall nodes
-EXTERN TDivider*  Divider;                  // Array of divider nodes
-EXTERN TStorage*  Storage;                  // Array of storage nodes
-EXTERN TLink*     Link;                     // Array of links
-EXTERN TConduit*  Conduit;                  // Array of conduit links
-EXTERN TPump*     Pump;                     // Array of pump links
-EXTERN TOrifice*  Orifice;                  // Array of orifice links
-EXTERN TWeir*     Weir;                     // Array of weir links
-EXTERN TOutlet*   Outlet;                   // Array of outlet device links
-EXTERN TPollut*   Pollut;                   // Array of pollutants
-EXTERN TLanduse*  Landuse;                  // Array of landuses
-EXTERN TPattern*  Pattern;                  // Array of time patterns
-EXTERN TTable*    Curve;                    // Array of curve tables
-EXTERN TTable*    Tseries;                  // Array of time series tables
-EXTERN TTransect* Transect;                 // Array of transect data
-EXTERN TShape*    Shape;                    // Array of custom conduit shapes
+        TTemp      Temp;                     // Temperature data
+        TEvap      Evap;                     // Evaporation data
+        TWind      Wind;                     // Wind speed data
+        TSnow      Snow;                     // Snow melt data
+        TSnowmelt* Snowmelt;                 // Array of snow melt objects
+        TGage*     Gage;                     // Array of rain gages
+        TSubcatch* Subcatch;                 // Array of subcatchments
+        TAquifer*  Aquifer;                  // Array of groundwater aquifers
+        TUnitHyd*  UnitHyd;                  // Array of unit hydrographs
+        TNode*     Node;                     // Array of nodes
+        TOutfall*  Outfall;                  // Array of outfall nodes
+        TDivider*  Divider;                  // Array of divider nodes
+        TStorage*  Storage;                  // Array of storage nodes
+        TLink*     Link;                     // Array of links
+        TConduit*  Conduit;                  // Array of conduit links
+        TPump*     Pump;                     // Array of pump links
+        TOrifice*  Orifice;                  // Array of orifice links
+        TWeir*     Weir;                     // Array of weir links
+        TOutlet*   Outlet;                   // Array of outlet device links
+        TPollut*   Pollut;                   // Array of pollutants
+        TLanduse*  Landuse;                  // Array of landuses
+        TPattern*  Pattern;                  // Array of time patterns
+        TTable*    Curve;                    // Array of curve tables
+        TTable*    Tseries;                  // Array of time series tables
+        TTransect* Transect;                 // Array of transect data
+        TShape*    Shape;                    // Array of custom conduit shapes
 
 //typedef int (*swmm_retrieve_openmi_items)(int, char*, char* , double* );
 //
-//EXTERN swmm_retrieve_openmi_items retrieve_openmi_exchangeItems;
+//  swmm_retrieve_openmi_items retrieve_openmi_exchangeItems;
 
-#ifdef __cplusplus 
+    };
+    
+#ifdef __cplusplus
 }   // matches the linkage specification from above */ 
 #endif
 #endif
