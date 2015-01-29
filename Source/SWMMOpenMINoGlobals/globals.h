@@ -50,7 +50,7 @@
         char TempDir[MAXFNAME+1];      // Temporary file directory
 
 
-        TRptFlags                     // Reporting options
+        TRptFlags RptFlags;                    // Reporting options
 
 
         int Nobjects[MAX_OBJ_TYPES];  // Number of each object type
