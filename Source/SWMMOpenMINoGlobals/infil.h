@@ -19,7 +19,7 @@ enum InfilType {
      HORTON,                      // Horton infiltration
      MOD_HORTON,                  // Modified Horton infiltration
      GREEN_AMPT,                  // Green-Ampt infiltration
-     CURVE_NUMBER};               // SCS Curve Number infiltration
+     CURVE_NUMBER};               // SCS project->Curve Number infiltration
 
 //---------------------
 // Horton Infiltration
@@ -57,7 +57,7 @@ typedef struct
 
 
 //--------------------------
-// Curve Number Infiltration
+// project->Curve Number Infiltration
 //--------------------------
 typedef struct
 {

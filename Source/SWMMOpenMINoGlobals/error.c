@@ -18,40 +18,40 @@
 #include "error.h"
 
 #define ERR101 "\n  ERROR 101: memory allocation error."
-#define ERR103 "\n  ERROR 103: cannot solve KW equations for Link %s."
+#define ERR103 "\n  ERROR 103: cannot solve KW equations for project->Link %s."
 #define ERR105 "\n  ERROR 105: cannot open ODE solver."
 #define ERR107 "\n  ERROR 107: cannot compute a valid time step."
 
 #define ERR108 "\n  ERROR 108: ambiguous outlet ID name for Subcatchment %s."
-#define ERR109 "\n  ERROR 109: invalid parameter values for Aquifer %s."
+#define ERR109 "\n  ERROR 109: invalid parameter values for project->Aquifer %s."
 #define ERR110 \
 "\n  ERROR 110: ground elevation is below water table for Subcatchment %s."
 
-#define ERR111 "\n  ERROR 111: invalid length for Conduit %s."
-#define ERR112 "\n  ERROR 112: elevation drop exceeds length for Conduit %s."
-#define ERR113 "\n  ERROR 113: invalid roughness for Conduit %s."
-#define ERR114 "\n  ERROR 114: invalid number of barrels for Conduit %s."
-#define ERR115 "\n  ERROR 115: adverse slope for Conduit %s."
-#define ERR117 "\n  ERROR 117: no cross section defined for Link %s."
-#define ERR119 "\n  ERROR 119: invalid cross section for Link %s."
+#define ERR111 "\n  ERROR 111: invalid length for project->Conduit %s."
+#define ERR112 "\n  ERROR 112: elevation drop exceeds length for project->Conduit %s."
+#define ERR113 "\n  ERROR 113: invalid roughness for project->Conduit %s."
+#define ERR114 "\n  ERROR 114: invalid number of barrels for project->Conduit %s."
+#define ERR115 "\n  ERROR 115: adverse slope for project->Conduit %s."
+#define ERR117 "\n  ERROR 117: no cross section defined for project->Link %s."
+#define ERR119 "\n  ERROR 119: invalid cross section for project->Link %s."
 #define ERR121 \
-"\n  ERROR 121: missing or invalid pump curve assigned to Pump %s."
+"\n  ERROR 121: missing or invalid pump curve assigned to project->Pump %s."
 #define ERR122 \
-"\n  ERROR 122: startup depth not higher than shutoff depth for Pump %s."
+"\n  ERROR 122: startup depth not higher than shutoff depth for project->Pump %s."
 
 #define ERR131 \
 "\n  ERROR 131: the following links form cyclic loops in the drainage system:"
-#define ERR133 "\n  ERROR 133: Node %s has more than one outlet link."
-#define ERR134 "\n  ERROR 134: Node %s has illegal DUMMY link connections."
+#define ERR133 "\n  ERROR 133: project->Node %s has more than one outlet link."
+#define ERR134 "\n  ERROR 134: project->Node %s has illegal DUMMY link connections."
 
-#define ERR135 "\n  ERROR 135: Divider %s does not have two outlet links."
-#define ERR136 "\n  ERROR 136: Divider %s has invalid diversion link."
-#define ERR137 "\n  ERROR 137: Weir Divider %s has invalid parameters."
+#define ERR135 "\n  ERROR 135: project->Divider %s does not have two outlet links."
+#define ERR136 "\n  ERROR 136: project->Divider %s has invalid diversion link."
+#define ERR137 "\n  ERROR 137: project->Weir project->Divider %s has invalid parameters."
 #define ERR138 \
-"\n  ERROR 138: Node %s has initial depth greater than maximum depth."
+"\n  ERROR 138: project->Node %s has initial depth greater than maximum depth."
 #define ERR139 "\n  ERROR 139: Regulator %s is the outlet of a non-storage node."
 #define ERR141 \
-"\n  ERROR 141: Outfall %s has more than 1 inlet link or an outlet link."
+"\n  ERROR 141: project->Outfall %s has more than 1 inlet link or an outlet link."
 #define ERR143 "\n  ERROR 143: Regulator %s has invalid cross-section shape."
 #define ERR145 "\n  ERROR 145: Drainage system has no acceptable outlet nodes."
 
@@ -60,21 +60,21 @@
 "\n  ERROR 153: a Unit Hydrograph in set %s has invalid response ratios."
 #define ERR155 "\n  ERROR 155: invalid sewer area for RDII at node %s."
 
-#define ERR156 "\n  ERROR 156: ambiguous station ID for Rain Gage %s."
-#define ERR157 "\n  ERROR 157: inconsistent rainfall format for Rain Gage %s."
+#define ERR156 "\n  ERROR 156: ambiguous station ID for Rain project->Gage %s."
+#define ERR157 "\n  ERROR 157: inconsistent rainfall format for Rain project->Gage %s."
 #define ERR158 \
-"\n  ERROR 158: time series for Rain Gage %s is also used by another object."
+"\n  ERROR 158: time series for Rain project->Gage %s is also used by another object."
 #define ERR159 \
-"\n  ERROR 159: recording interval greater than time series interval for Rain Gage %s."
+"\n  ERROR 159: recording interval greater than time series interval for Rain project->Gage %s."
 
 #define ERR161 \
 "\n  ERROR 161: cyclic dependency in treatment functions at node %s."
 
-#define ERR171 "\n  ERROR 171: Curve %s has invalid or out of sequence data."
+#define ERR171 "\n  ERROR 171: project->Curve %s has invalid or out of sequence data."
 #define ERR173 "\n  ERROR 173: Time Series %s has its data out of sequence."
 
-#define ERR181 "\n  ERROR 181: invalid Snow Melt Climatology parameters."
-#define ERR182 "\n  ERROR 182: invalid parameters for Snow Pack %s."
+#define ERR181 "\n  ERROR 181: invalid project->Snow Melt Climatology parameters."
+#define ERR182 "\n  ERROR 182: invalid parameters for project->Snow Pack %s."
 
 #define ERR183 "\n  ERROR 183: no type specified for LID %s."
 #define ERR184 "\n  ERROR 184: missing layer for LID %s."
@@ -100,11 +100,11 @@
 #define ERR217 "\n  ERROR 217: control rule clause out of sequence "
 #define ERR219 "\n  ERROR 219: data provided for unidentified transect "
 #define ERR221 "\n  ERROR 221: transect station out of sequence "
-#define ERR223 "\n  ERROR 223: Transect %s has too few stations." 
-#define ERR225 "\n  ERROR 225: Transect %s has too many stations."
-#define ERR227 "\n  ERROR 227: Transect %s has no Manning's N."
-#define ERR229 "\n  ERROR 229: Transect %s has invalid overbank locations."
-#define ERR231 "\n  ERROR 231: Transect %s has no depth."
+#define ERR223 "\n  ERROR 223: project->Transect %s has too few stations." 
+#define ERR225 "\n  ERROR 225: project->Transect %s has too many stations."
+#define ERR227 "\n  ERROR 227: project->Transect %s has no Manning's N."
+#define ERR229 "\n  ERROR 229: project->Transect %s has invalid overbank locations."
+#define ERR231 "\n  ERROR 231: project->Transect %s has no depth."
 #define ERR233 "\n  ERROR 233: invalid treatment function expression "
 
 #define ERR301 "\n  ERROR 301: files share same names."

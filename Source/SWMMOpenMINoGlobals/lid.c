@@ -180,7 +180,7 @@ void lid_create(int lidCount, int subcatchCount)
     LidGroups = (TLidGroup *) calloc(GroupCount, sizeof(TLidGroup));
     if ( LidGroups == NULL )
     {
-        ErrorCode = ERR_MEMORY;
+        project->ErrorCode = ERR_MEMORY;
         return;
     }
 
@@ -192,7 +192,7 @@ void lid_create(int lidCount, int subcatchCount)
     LidProcs = (TLidProc *) calloc(LidCount, sizeof(TLidProc));
     if ( LidProcs == NULL )
     {
-        ErrorCode = ERR_MEMORY;
+        project->ErrorCode = ERR_MEMORY;
         return;
     }
 
@@ -686,16 +686,16 @@ void lid_writeSummary()
     TLidList*  lidList;
     TLidGroup  lidGroup;
  
-    fprintf(Frpt.file, "\n");
-    fprintf(Frpt.file, "\n");
-    fprintf(Frpt.file, "\n  *******************");
-    fprintf(Frpt.file, "\n  LID Control Summary");
-    fprintf(Frpt.file, "\n  *******************");
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file, "\n");
+    fprintf(project->Frpt.file, "\n");
+    fprintf(project->Frpt.file, "\n  *******************");
+    fprintf(project->Frpt.file, "\n  LID Control Summary");
+    fprintf(project->Frpt.file, "\n  *******************");
+    fprintf(project->Frpt.file,
 "\n                                   No. of        Unit        Unit      %% Area    %% Imperv");
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  Subcatchment     LID Control      Units        Area       Width     Covered     Treated");
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  ---------------------------------------------------------------------------------------");
     for (j = 0; j < GroupCount; j++)
     {
@@ -706,9 +706,9 @@ void lid_writeSummary()
         {
             lidUnit = lidList->lidUnit;
             k = lidUnit->lidIndex;
-            pctArea = lidUnit->area * lidUnit->number / Subcatch[j].area * 100.0;
-            fprintf(Frpt.file, "\n  %-16s %-16s", Subcatch[j].ID, LidProcs[k].ID);
-            fprintf(Frpt.file, "%6d  %10.2f  %10.2f  %10.2f  %10.2f",
+            pctArea = lidUnit->area * lidUnit->number / project->Subcatch[j].area * 100.0;
+            fprintf(project->Frpt.file, "\n  %-16s %-16s", project->Subcatch[j].ID, LidProcs[k].ID);
+            fprintf(project->Frpt.file, "%6d  %10.2f  %10.2f  %10.2f  %10.2f",
                 lidUnit->number, lidUnit->area * SQR(UCF(LENGTH)),
                 lidUnit->fullWidth * UCF(LENGTH), pctArea,
                 lidUnit->fromImperv*100.0);
@@ -891,7 +891,7 @@ void validateLidGroup(int j)
 {
     int        k;
     double     p[3];
-    double     totalArea = Subcatch[j].area;
+    double     totalArea = project->Subcatch[j].area;
     double     totalLidArea = 0.0;
     double     fromImperv = 0.0;
     TLidUnit*  lidUnit;
@@ -927,7 +927,7 @@ void validateLidGroup(int j)
         //... assign vegetative swale infiltration parameters
         if ( LidProcs[k].lidType == VEG_SWALE )
         {
-            if ( InfilModel == GREEN_AMPT )
+            if ( project->InfilModel == GREEN_AMPT )
             {
                 p[0] = GAInfil[j].S * UCF(RAINDEPTH);
                 p[1] = GAInfil[j].Ks * UCF(RAINFALL);
@@ -948,16 +948,16 @@ void validateLidGroup(int j)
     //... check contributing area fractions
     if ( totalLidArea > 1.001 * totalArea )
     {
-        report_writeErrorMsg(ERR_LID_AREAS, Subcatch[j].ID);
+        report_writeErrorMsg(ERR_LID_AREAS, project->Subcatch[j].ID);
     }
     if ( fromImperv > 1.001 )
     {
-        report_writeErrorMsg(ERR_LID_CAPTURE_AREA, Subcatch[j].ID);
+        report_writeErrorMsg(ERR_LID_CAPTURE_AREA, project->Subcatch[j].ID);
     }
 
     //... Make subcatchment LID area equal total area if the two are close
     if ( totalLidArea > 0.999 * totalArea ) totalLidArea = totalArea;
-    Subcatch[j].lidArea = totalLidArea;
+    project->Subcatch[j].lidArea = totalLidArea;
 }
 
 //=============================================================================
@@ -974,9 +974,9 @@ void lid_initState()
     TLidList*  lidList;
     TLidGroup  lidGroup;
     double     initVol;
-    double     initDryTime = StartDryDays * SECperDAY;
+    double     initDryTime = project->StartDryDays * SECperDAY;
 
-    NextReportTime = (double) (ReportStep * 1000.0); 
+    NextReportTime = (double) (project->ReportStep * 1000.0); 
     for (j = 0; j < GroupCount; j++)
     {
         //... check if group exists
@@ -1025,7 +1025,7 @@ void lid_initState()
             //... initialize report file for the LID
             if ( lidUnit->rptFile )
             {
-                initLidRptFile(Title[0], LidProcs[k].ID, Subcatch[j].ID, lidUnit);
+                initLidRptFile(project->Title[0], LidProcs[k].ID, project->Subcatch[j].ID, lidUnit);
             }
 
             //... set previous flux rates to 0
@@ -1077,7 +1077,7 @@ double lid_getSurfaceDepth(int j)
 
     lidGroup = LidGroups[j];
     if ( lidGroup == NULL ) return 0.0;
-    if ( Subcatch[j].lidArea == 0.0 ) return 0.0;
+    if ( project->Subcatch[j].lidArea == 0.0 ) return 0.0;
     lidList = lidGroup->lidList;
     while ( lidList )
     {
@@ -1087,7 +1087,7 @@ double lid_getSurfaceDepth(int j)
                  lidUnit->area * lidUnit->number;
         lidList = lidList->nextLidUnit;
     }
-    return depth / Subcatch[j].lidArea;
+    return depth / project->Subcatch[j].lidArea;
 }
 
 //=============================================================================
@@ -1133,7 +1133,7 @@ double lid_getStoredVolume(int j)
     TLidGroup  lidGroup;
 
     lidGroup = LidGroups[j];
-    if ( lidGroup == NULL || Subcatch[j].lidArea == 0.0 ) return 0.0;
+    if ( lidGroup == NULL || project->Subcatch[j].lidArea == 0.0 ) return 0.0;
     lidList = lidGroup->lidList;
     while ( lidList )
     {
@@ -1186,8 +1186,8 @@ double lid_getDepthOnPavement(int j, double impervDepth)
     }
 
     //... combine depth over non-LID impervious area with that over LID area
-    impervArea = Subcatch[j].fracImperv *
-                 (Subcatch[j].area - Subcatch[j].lidArea);
+    impervArea = project->Subcatch[j].fracImperv *
+                 (project->Subcatch[j].area - Subcatch[j].lidArea);
     return (impervDepth*impervArea + pondedLidDepth) /
            (impervArea + pondedLidArea);
 }
@@ -1231,31 +1231,31 @@ double lid_getRunoff(int j, double *outflow, double *evapVol,
     TotalInfilVol = *infilVol;
 
     //... determine the actual evaporation rate
-    EvapRate = Evap.rate;
-    if ( Evap.dryOnly && Subcatch[j].rainfall > 0.0 ) EvapRate = 0.0;
+    EvapRate = project->Evap.rate;
+    if ( project->Evap.dryOnly && project->Subcatch[j].rainfall > 0.0 ) EvapRate = 0.0;
 
     //... find subcatchment's infiltration rate into native soil
     findNativeInfil(j, *infilVol, tStep);
 
     //... get inflows from non-LID subareas of subcatchment (cfs)
-    qImperv = getImpervAreaInflow(j) * (Subcatch[j].area - Subcatch[j].lidArea);
+    qImperv = getImpervAreaInflow(j) * (project->Subcatch[j].area - Subcatch[j].lidArea);
     theLidGroup->impervRunoff += qImperv * tStep;
 
     //... check if detailed results should be saved
-    if ( NewRunoffTime < NextReportTime ) SaveResults = FALSE;
+    if ( project->NewRunoffTime < NextReportTime ) SaveResults = FALSE;
     else 
     {
         SaveResults = TRUE;
-        while ( NewRunoffTime > NextReportTime )                               //(5.1.006)
+        while ( project->NewRunoffTime > NextReportTime )                               //(5.1.006)
         {
-            NextReportTime += (double)(1000 * ReportStep);                     //(5.1.006)
+            NextReportTime += (double)(1000 * project->ReportStep);                     //(5.1.006)
         }
     }
 
     //... evaluate performance of each LID unit placed in the subcatchment
     while ( lidList )
     {
-        evalLidUnit(lidList->lidUnit, Subcatch[j].rainfall, Subcatch[j].runon,
+        evalLidUnit(lidList->lidUnit, project->Subcatch[j].rainfall, Subcatch[j].runon,
                     qImperv, tStep, &lidOutflow, &nonLidOutflow, &flowToPerv);
         lidList = lidList->nextLidUnit;
     }
@@ -1288,8 +1288,8 @@ void findNativeInfil(int j, double infilVol, double tStep)
     double nonLidArea;
 
     //... subcatchment has non-LID pervious area
-    nonLidArea = Subcatch[j].area - Subcatch[j].lidArea;
-    if ( nonLidArea > 0.0 && Subcatch[j].fracImperv < 1.0 )
+    nonLidArea = project->Subcatch[j].area - Subcatch[j].lidArea;
+    if ( nonLidArea > 0.0 && project->Subcatch[j].fracImperv < 1.0 )
     {
         NativeInfil = infilVol / nonLidArea / tStep;
     }
@@ -1297,14 +1297,14 @@ void findNativeInfil(int j, double infilVol, double tStep)
     //... otherwise find infil. rate for the subcatchment's rainfall + runon
     else
     {
-        NativeInfil = infil_getInfil(j, InfilModel, tStep, Subcatch[j].rainfall,
-                                     Subcatch[j].runon, lid_getSurfaceDepth(j));
+        NativeInfil = infil_getInfil(j, project->InfilModel, tStep, project->Subcatch[j].rainfall,
+                                     project->Subcatch[j].runon, lid_getSurfaceDepth(j));
     }
 
     //... see if there is any groundwater-imposed limit on infil.
-    if ( !IgnoreGwater && Subcatch[j].groundwater )
+    if ( !project->IgnoreGwater && project->Subcatch[j].groundwater )
     {
-        MaxNativeInfil = Subcatch[j].groundwater->maxInfilVol / tStep;
+        MaxNativeInfil = project->Subcatch[j].groundwater->maxInfilVol / tStep;
     }
     else MaxNativeInfil = BIG;
 }
@@ -1324,13 +1324,13 @@ double getImpervAreaInflow(int j)
     // --- runoff from impervious area w/ & w/o depression storage
     for (i = IMPERV0; i <= IMPERV1; i++)
     {
-        q += Subcatch[j].subArea[i].runoff * Subcatch[j].subArea[i].fArea;
+        q += project->Subcatch[j].subArea[i].runoff * Subcatch[j].subArea[i].fArea;
     }
 
     // --- adjust for any fraction of runoff sent to pervious area
-    if ( Subcatch[j].subArea[IMPERV0].routeTo == TO_PERV &&
-         Subcatch[j].fracImperv < 1.0 )
-            q *= Subcatch[j].subArea[IMPERV0].fOutlet;
+    if ( project->Subcatch[j].subArea[IMPERV0].routeTo == TO_PERV &&
+         project->Subcatch[j].fracImperv < 1.0 )
+            q *= project->Subcatch[j].subArea[IMPERV0].fOutlet;
     return q;
 }
 
@@ -1424,38 +1424,38 @@ void lid_writeWaterBalance()
     if ( k == 0 ) return;
 
     //... write table header
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
     "\n"
     "\n  ***********************"
     "\n  LID Performance Summary"
     "\n  ***********************\n");
 
 
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  ------------------------------------------------------------------------------------------------------------------"
-"\n                                         Total      Evap     Infil   Surface    Drain    Initial     Final   Percent"
-"\n                                        Inflow      Loss      Loss   Outflow   Outflow   Storage   Storage     Error");
-    if ( UnitSystem == US ) fprintf(Frpt.file, 
+"\n                                         Total      project->Evap     Infil   Surface    Drain    Initial     Final   Percent"
+"\n                                        Inflow      Loss      Loss   Outflow   Outflow   project->Storage   Storage     Error");
+    if ( project->UnitSystem == US ) fprintf(project->Frpt.file, 
 "\n  Subcatchment      LID Control             in        in        in        in        in        in        in");
-    else fprintf(Frpt.file,
+    else fprintf(project->Frpt.file,
 "\n  Subcatchment      LID Control             mm        mm        mm        mm        mm        mm        mm");
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  ------------------------------------------------------------------------------------------------------------------");
 
     //... examine each LID unit in each subcatchment
     for ( j = 0; j < GroupCount; j++ )
     {
         lidGroup = LidGroups[j];
-        if ( !lidGroup || Subcatch[j].lidArea == 0.0 ) continue;
+        if ( !lidGroup || project->Subcatch[j].lidArea == 0.0 ) continue;
         lidList = lidGroup->lidList;
         while ( lidList )
         {
             //... write water balance components to report file
             lidUnit = lidList->lidUnit;
             k = lidUnit->lidIndex;
-            fprintf(Frpt.file, "\n  %-16s  %-16s", Subcatch[j].ID,
+            fprintf(project->Frpt.file, "\n  %-16s  %-16s", project->Subcatch[j].ID,
                                                    LidProcs[k].ID);
-            fprintf(Frpt.file, "%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f",
+            fprintf(project->Frpt.file, "%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f",
                     lidUnit->waterBalance.inflow*ucf,
                     lidUnit->waterBalance.evap*ucf,
                     lidUnit->waterBalance.infil*ucf,
@@ -1474,7 +1474,7 @@ void lid_writeWaterBalance()
                       lidUnit->waterBalance.drainFlow;
             if ( inflow > 0.0 ) err = (inflow - outflow) / inflow;
             else                err = 1.0;
-            fprintf(Frpt.file, "%10.2f", err*100.0);
+            fprintf(project->Frpt.file, "%10.2f", err*100.0);
             lidList = lidList->nextLidUnit;
         }
     }
@@ -1504,11 +1504,11 @@ void initLidRptFile(char* title, char* lidID, char* subcatchID, TLidUnit* lidUni
 
     //... write column headings
     fprintf(f, 
-"\nElapsed\t    Total\t    Total\t  Surface\t     Soil\t   Bottom\t  Surface\t    Drain\t  Surface\t    Soil/\t  Storage" 
-"\n   Time\t   Inflow\t     Evap\t    Infil\t     Perc\t    Infil\t   Runoff\t  Outflow\t    Depth\t    Pave \t    Depth");
+"\nElapsed\t    Total\t    Total\t  Surface\t     Soil\t   Bottom\t  Surface\t    Drain\t  Surface\t    Soil/\t  project->Storage" 
+"\n   Time\t   Inflow\t     project->Evap\t    Infil\t     Perc\t    Infil\t   Runoff\t  Outflow\t    Depth\t    Pave \t    Depth");
 fprintf(f, 
 "\n  Hours\t");
-    if ( UnitSystem == US ) fprintf(f,
+    if ( project->UnitSystem == US ) fprintf(f,
            "    in/hr\t    in/hr\t    in/hr\t    in/hr\t    in/hr\t    in/hr\t    in/hr\t   inches\t    Moist\t   inches");
     else fprintf(f,
            "    mm/hr\t    mm/hr\t    mm/hr\t    mm/hr\t    mm/hr\t    mm/hr\t    mm/hr\t       mm\t    Moist\t       mm");

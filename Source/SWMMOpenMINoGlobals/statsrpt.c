@@ -66,28 +66,28 @@ void statsrpt_writeReport()
 //
 {
     // --- set number of decimal places for reporting flow values
-    if ( FlowUnits == MGD || FlowUnits == CMS ) strcpy(FlowFmt, "%9.3f");
+    if ( project->FlowUnits == MGD || FlowUnits == CMS ) strcpy(FlowFmt, "%9.3f");
     else strcpy(FlowFmt, "%9.2f");
 
     // --- volume conversion factor from ft3 to Mgal or Mliters
-    if (UnitSystem == US) Vcf = 7.48 / 1.0e6;
+    if (project->UnitSystem == US) Vcf = 7.48 / 1.0e6;
     else                  Vcf = 28.317 / 1.0e6;
 
     // --- report summary results for subcatchment runoff 
-    if ( Nobjects[SUBCATCH] > 0 )
+    if ( project->Nobjects[SUBCATCH] > 0 )
     {
-        if ( !IgnoreRainfall ||
-             (Nobjects[SNOWMELT] > 0 && !IgnoreSnowmelt) ||
-             (Nobjects[AQUIFER] > 0  && !IgnoreGwater) )
+        if ( !project->IgnoreRainfall ||
+             (project->Nobjects[SNOWMELT] > 0 && !project->IgnoreSnowmelt) ||
+             (project->Nobjects[AQUIFER] > 0  && !project->IgnoreGwater) )
         {
             writeSubcatchRunoff();
             lid_writeWaterBalance();
-            if ( Nobjects[POLLUT] > 0 && !IgnoreQuality) writeSubcatchLoads();
+            if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality) writeSubcatchLoads();
         }
     }
 
     // --- report summary results for flow routing
-    if ( Nobjects[LINK] > 0 && !IgnoreRouting )
+    if ( project->Nobjects[LINK] > 0 && !project->IgnoreRouting )
     {
         writeNodeDepths();
         writeNodeFlows();
@@ -99,7 +99,7 @@ void statsrpt_writeReport()
         writeFlowClass();
         writeLinkSurcharge();
         writePumpFlows();
-	    if ( Nobjects[POLLUT] > 0 && !IgnoreQuality) writeLinkLoads();
+	    if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality) writeLinkLoads();
     }
 }
 
@@ -110,48 +110,48 @@ void writeSubcatchRunoff()
     int    j;
     double a, x, r;
 
-    if ( Nobjects[SUBCATCH] == 0 ) return;
+    if ( project->Nobjects[SUBCATCH] == 0 ) return;
     WRITE("");
     WRITE("***************************");
     WRITE("Subcatchment Runoff Summary");
     WRITE("***************************");
     WRITE("");
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 
 "\n  --------------------------------------------------------------------------------------------------------"
 "\n                            Total      Total      Total      Total      Total       Total     Peak  Runoff"
-"\n                           Precip      Runon       Evap      Infil     Runoff      Runoff   Runoff   Coeff");
-    if ( UnitSystem == US ) fprintf(Frpt.file,
+"\n                           Precip      Runon       project->Evap      Infil     Runoff      Runoff   Runoff   Coeff");
+    if ( project->UnitSystem == US ) fprintf(project->Frpt.file,
 "\n  Subcatchment                 in         in         in         in         in    %8s      %3s",
-        VolUnitsWords[UnitSystem], FlowUnitWords[FlowUnits]);
-    else fprintf(Frpt.file,
+        VolUnitsWords[project->UnitSystem], FlowUnitWords[project->FlowUnits]);
+    else fprintf(project->Frpt.file,
 "\n  Subcatchment                 mm         mm         mm         mm         mm    %8s      %3s",
-        VolUnitsWords[UnitSystem], FlowUnitWords[FlowUnits]);
-    fprintf(Frpt.file,
+        VolUnitsWords[project->UnitSystem], FlowUnitWords[project->FlowUnits]);
+    fprintf(project->Frpt.file,
 "\n  --------------------------------------------------------------------------------------------------------");
 
-    for ( j = 0; j < Nobjects[SUBCATCH]; j++ )
+    for ( j = 0; j < project->Nobjects[SUBCATCH]; j++ )
     {
-        a = Subcatch[j].area;
+        a = project->Subcatch[j].area;
         if ( a == 0.0 ) continue;
-        fprintf(Frpt.file, "\n  %-20s", Subcatch[j].ID);
+        fprintf(project->Frpt.file, "\n  %-20s", project->Subcatch[j].ID);
         x = SubcatchStats[j].precip * UCF(RAINDEPTH);
-        fprintf(Frpt.file, " %10.2f", x/a);
+        fprintf(project->Frpt.file, " %10.2f", x/a);
         x = SubcatchStats[j].runon * UCF(RAINDEPTH); 
-        fprintf(Frpt.file, " %10.2f", x/a);
+        fprintf(project->Frpt.file, " %10.2f", x/a);
         x = SubcatchStats[j].evap * UCF(RAINDEPTH);
-        fprintf(Frpt.file, " %10.2f", x/a);
+        fprintf(project->Frpt.file, " %10.2f", x/a);
         x = SubcatchStats[j].infil * UCF(RAINDEPTH); 
-        fprintf(Frpt.file, " %10.2f", x/a);
+        fprintf(project->Frpt.file, " %10.2f", x/a);
         x = SubcatchStats[j].runoff * UCF(RAINDEPTH);
-        fprintf(Frpt.file, " %10.2f", x/a);
+        fprintf(project->Frpt.file, " %10.2f", x/a);
         x = SubcatchStats[j].runoff * Vcf;
-		fprintf(Frpt.file, "%12.2f", x);
+		fprintf(project->Frpt.file, "%12.2f", x);
         x = SubcatchStats[j].maxFlow * UCF(FLOW);
-        fprintf(Frpt.file, " %8.2f", x);
+        fprintf(project->Frpt.file, " %8.2f", x);
         r = SubcatchStats[j].precip + SubcatchStats[j].runon;
         if ( r > 0.0 ) r = SubcatchStats[j].runoff / r;
-        fprintf(Frpt.file, "%8.3f", r);
+        fprintf(project->Frpt.file, "%8.3f", r);
     }
     WRITE("");
 }
@@ -168,7 +168,7 @@ void writeSubcatchLoads()
     char  pollutLine[]   = "--------------";
 
     // --- create an array to hold total loads for each pollutant
-    totals = (double *) calloc(Nobjects[POLLUT], sizeof(double));
+    totals = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
     if ( totals )
     {
         // --- print the table headings 
@@ -177,44 +177,44 @@ void writeSubcatchLoads()
         WRITE("Subcatchment Washoff Summary");
         WRITE("****************************");
         WRITE("");
-        fprintf(Frpt.file, "\n  %s", subcatchLine);
-        for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "%s", pollutLine);
-        fprintf(Frpt.file, "\n                      ");
-        for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "%14s", Pollut[p].ID);
-        fprintf(Frpt.file, "\n  Subcatchment        ");
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        fprintf(project->Frpt.file, "\n  %s", subcatchLine);
+        for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "%s", pollutLine);
+        fprintf(project->Frpt.file, "\n                      ");
+        for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "%14s", project->Pollut[p].ID);
+        fprintf(project->Frpt.file, "\n  Subcatchment        ");
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
-            i = UnitSystem;
-            if ( Pollut[p].units == COUNT ) i = 2;
+            i = project->UnitSystem;
+            if ( project->Pollut[p].units == COUNT ) i = 2;
             strcpy(units, LoadUnitsWords[i]);
-            fprintf(Frpt.file, "%14s", units);
+            fprintf(project->Frpt.file, "%14s", units);
             totals[p] = 0.0;
         }
-        fprintf(Frpt.file, "\n  %s", subcatchLine);
-        for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "%s", pollutLine);
+        fprintf(project->Frpt.file, "\n  %s", subcatchLine);
+        for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "%s", pollutLine);
 
         // --- print the pollutant loadings from each subcatchment
-        for ( j = 0; j < Nobjects[SUBCATCH]; j++ )
+        for ( j = 0; j < project->Nobjects[SUBCATCH]; j++ )
         {
-            fprintf(Frpt.file, "\n  %-20s", Subcatch[j].ID);
-            for (p = 0; p < Nobjects[POLLUT]; p++)
+            fprintf(project->Frpt.file, "\n  %-20s", project->Subcatch[j].ID);
+            for (p = 0; p < project->Nobjects[POLLUT]; p++)
             {
-                x = Subcatch[j].totalLoad[p];
+                x = project->Subcatch[j].totalLoad[p];
                 totals[p] += x;
-                if ( Pollut[p].units == COUNT ) x = LOG10(x);
-				fprintf(Frpt.file, "%14.3f", x); 
+                if ( project->Pollut[p].units == COUNT ) x = LOG10(x);
+				fprintf(project->Frpt.file, "%14.3f", x); 
             }
         }
 
         // --- print the total loading of each pollutant
-        fprintf(Frpt.file, "\n  %s", subcatchLine);
-        for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "%s", pollutLine);
-        fprintf(Frpt.file, "\n  System              ");
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        fprintf(project->Frpt.file, "\n  %s", subcatchLine);
+        for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "%s", pollutLine);
+        fprintf(project->Frpt.file, "\n  System              ");
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
             x = totals[p];
-            if ( Pollut[p].units == COUNT ) x = LOG10(x);
-			fprintf(Frpt.file, "%14.3f", x); 
+            if ( project->Pollut[p].units == COUNT ) x = LOG10(x);
+			fprintf(project->Frpt.file, "%14.3f", x); 
         }
         free(totals);
         WRITE("");
@@ -231,34 +231,34 @@ void writeNodeDepths()
 //
 {
     int j, days, hrs, mins;
-    if ( Nobjects[LINK] == 0 ) return;
+    if ( project->Nobjects[LINK] == 0 ) return;
 
     WRITE("");
     WRITE("******************");
-    WRITE("Node Depth Summary");
+    WRITE("project->Node Depth Summary");
     WRITE("******************");
     WRITE("");
 
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  ---------------------------------------------------------------------"
 "\n                                 Average  Maximum  Maximum  Time of Max"
 "\n                                   Depth    Depth      HGL   Occurrence");
-    if ( UnitSystem == US ) fprintf(Frpt.file,
-"\n  Node                 Type         Feet     Feet     Feet  days hr:min");
-    else fprintf(Frpt.file,
-"\n  Node                 Type       Meters   Meters   Meters  days hr:min");
-    fprintf(Frpt.file,
+    if ( project->UnitSystem == US ) fprintf(project->Frpt.file,
+"\n  project->Node                 Type         Feet     Feet     Feet  days hr:min");
+    else fprintf(project->Frpt.file,
+"\n  project->Node                 Type       Meters   Meters   Meters  days hr:min");
+    fprintf(project->Frpt.file,
 "\n  ---------------------------------------------------------------------");
 
-    for ( j = 0; j < Nobjects[NODE]; j++ )
+    for ( j = 0; j < project->Nobjects[NODE]; j++ )
     {
-        fprintf(Frpt.file, "\n  %-20s", Node[j].ID);
-        fprintf(Frpt.file, " %-9s ", NodeTypeWords[Node[j].type]);
+        fprintf(project->Frpt.file, "\n  %-20s", project->Node[j].ID);
+        fprintf(project->Frpt.file, " %-9s ", NodeTypeWords[project->Node[j].type]);
         getElapsedTime(NodeStats[j].maxDepthDate, &days, &hrs, &mins);
-        fprintf(Frpt.file, "%7.2f  %7.2f  %7.2f  %4d  %02d:%02d",
-            NodeStats[j].avgDepth / StepCount * UCF(LENGTH),
+        fprintf(project->Frpt.file, "%7.2f  %7.2f  %7.2f  %4d  %02d:%02d",
+            NodeStats[j].avgDepth / project->StepCount * UCF(LENGTH),
             NodeStats[j].maxDepth * UCF(LENGTH),
-            (NodeStats[j].maxDepth + Node[j].invertElev) * UCF(LENGTH),
+            (NodeStats[j].maxDepth + project->Node[j].invertElev) * UCF(LENGTH),
             days, hrs, mins);
     }
     WRITE("");
@@ -278,37 +278,37 @@ void writeNodeFlows()
 
     WRITE("");
     WRITE("*******************");
-    WRITE("Node Inflow Summary");
+    WRITE("project->Node Inflow Summary");
     WRITE("*******************");
     WRITE("");
 
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  -------------------------------------------------------------------------------------------------"
 "\n                                  Maximum  Maximum                  Lateral       Total        Flow"
 "\n                                  Lateral    Total  Time of Max      Inflow      Inflow     Balance"
 "\n                                   Inflow   Inflow   Occurrence      Volume      Volume       Error"
-"\n  Node                 Type           %3s      %3s  days hr:min    %8s    %8s     Percent",
-        FlowUnitWords[FlowUnits], FlowUnitWords[FlowUnits], VolUnitsWords[UnitSystem],
-        VolUnitsWords[UnitSystem], VolUnitsWords2[UnitSystem]);
-    fprintf(Frpt.file,
+"\n  project->Node                 Type           %3s      %3s  days hr:min    %8s    %8s     Percent",
+        FlowUnitWords[project->FlowUnits], FlowUnitWords[FlowUnits], VolUnitsWords[project->UnitSystem],
+        VolUnitsWords[project->UnitSystem], VolUnitsWords2[UnitSystem]);
+    fprintf(project->Frpt.file,
 "\n  -------------------------------------------------------------------------------------------------");
 
-    for ( j = 0; j < Nobjects[NODE]; j++ )
+    for ( j = 0; j < project->Nobjects[NODE]; j++ )
     {
-        fprintf(Frpt.file, "\n  %-20s", Node[j].ID);
-        fprintf(Frpt.file, " %-9s", NodeTypeWords[Node[j].type]);
+        fprintf(project->Frpt.file, "\n  %-20s", project->Node[j].ID);
+        fprintf(project->Frpt.file, " %-9s", NodeTypeWords[project->Node[j].type]);
         getElapsedTime(NodeStats[j].maxInflowDate, &days1, &hrs1, &mins1);
-        fprintf(Frpt.file, FlowFmt, NodeStats[j].maxLatFlow * UCF(FLOW));
-        fprintf(Frpt.file, FlowFmt, NodeStats[j].maxInflow * UCF(FLOW));
-        fprintf(Frpt.file, "  %4d  %02d:%02d", days1, hrs1, mins1);
-		fprintf(Frpt.file, "%12.3g", NodeStats[j].totLatFlow * Vcf);
-		fprintf(Frpt.file, "%12.3g", NodeInflow[j] * Vcf);
+        fprintf(project->Frpt.file, FlowFmt, NodeStats[j].maxLatFlow * UCF(FLOW));
+        fprintf(project->Frpt.file, FlowFmt, NodeStats[j].maxInflow * UCF(FLOW));
+        fprintf(project->Frpt.file, "  %4d  %02d:%02d", days1, hrs1, mins1);
+		fprintf(project->Frpt.file, "%12.3g", NodeStats[j].totLatFlow * Vcf);
+		fprintf(project->Frpt.file, "%12.3g", NodeInflow[j] * Vcf);
     	if ( fabs(NodeOutflow[j]) < 1.0 )
-            fprintf(Frpt.file, "%12.3f %s",
+            fprintf(project->Frpt.file, "%12.3f %s",
                 (NodeInflow[j]-NodeOutflow[j])*Vcf*1.0e6,
-                VolUnitsWords2[UnitSystem]);
+                VolUnitsWords2[project->UnitSystem]);
 	    else
-            fprintf(Frpt.file, "%12.3f", (NodeInflow[j]-NodeOutflow[j]) /
+            fprintf(project->Frpt.file, "%12.3f", (NodeInflow[j]-NodeOutflow[j]) /
                                           NodeOutflow[j]*100.); 
     }
     WRITE("");
@@ -323,37 +323,37 @@ void writeNodeSurcharge()
 
     WRITE("");
     WRITE("**********************");
-    WRITE("Node Surcharge Summary");
+    WRITE("project->Node Surcharge Summary");
     WRITE("**********************");
     WRITE("");
 
-    for ( j = 0; j < Nobjects[NODE]; j++ )
+    for ( j = 0; j < project->Nobjects[NODE]; j++ )
     {
-        if ( Node[j].type == OUTFALL ) continue;
+        if ( project->Node[j].type == OUTFALL ) continue;
         if ( NodeStats[j].timeSurcharged == 0.0 ) continue;
         t = MAX(0.01, (NodeStats[j].timeSurcharged / 3600.0));
         if ( n == 0 )
         {
             WRITE("Surcharging occurs when water rises above the top of the highest conduit."); 
-            fprintf(Frpt.file, 
+            fprintf(project->Frpt.file, 
 "\n  ---------------------------------------------------------------------"
 "\n                                               Max. Height   Min. Depth"
 "\n                                   Hours       Above Crown    Below Rim");
-    if ( UnitSystem == US ) fprintf(Frpt.file,
-"\n  Node                 Type      Surcharged           Feet         Feet");
-    else fprintf(Frpt.file,
-"\n  Node                 Type      Surcharged         Meters       Meters");
-    fprintf(Frpt.file,
+    if ( project->UnitSystem == US ) fprintf(project->Frpt.file,
+"\n  project->Node                 Type      Surcharged           Feet         Feet");
+    else fprintf(project->Frpt.file,
+"\n  project->Node                 Type      Surcharged         Meters       Meters");
+    fprintf(project->Frpt.file,
 "\n  ---------------------------------------------------------------------");
             n = 1;
         }
-        fprintf(Frpt.file, "\n  %-20s", Node[j].ID);
-        fprintf(Frpt.file, " %-9s", NodeTypeWords[Node[j].type]);
-        d1 = NodeStats[j].maxDepth + Node[j].invertElev - Node[j].crownElev;
+        fprintf(project->Frpt.file, "\n  %-20s", project->Node[j].ID);
+        fprintf(project->Frpt.file, " %-9s", NodeTypeWords[project->Node[j].type]);
+        d1 = NodeStats[j].maxDepth + project->Node[j].invertElev - Node[j].crownElev;
         if ( d1 < 0.0 ) d1 = 0.0;
-        d2 = Node[j].fullDepth - NodeStats[j].maxDepth;
+        d2 = project->Node[j].fullDepth - NodeStats[j].maxDepth;
         if ( d2 < 0.0 ) d2 = 0.0;
-        fprintf(Frpt.file, "  %9.2f      %9.3f    %9.3f",
+        fprintf(project->Frpt.file, "  %9.2f      %9.3f    %9.3f",
                 t, d1*UCF(LENGTH), d2*UCF(LENGTH));
     }
     if ( n == 0 ) WRITE("No nodes were surcharged.");
@@ -370,48 +370,48 @@ void writeNodeFlooding()
 
     WRITE("");
     WRITE("*********************");
-    WRITE("Node Flooding Summary");
+    WRITE("project->Node Flooding Summary");
     WRITE("*********************");
     WRITE("");
 
-    for ( j = 0; j < Nobjects[NODE]; j++ )
+    for ( j = 0; j < project->Nobjects[NODE]; j++ )
     {
-        if ( Node[j].type == OUTFALL ) continue;
+        if ( project->Node[j].type == OUTFALL ) continue;
         if ( NodeStats[j].timeFlooded == 0.0 ) continue;
         t = MAX(0.01, (NodeStats[j].timeFlooded / 3600.0));
 
         if ( n == 0 )
         {
             WRITE("Flooding refers to all water that overflows a node, whether it ponds or not.");
-            fprintf(Frpt.file, 
+            fprintf(project->Frpt.file, 
 "\n  --------------------------------------------------------------------------"
 "\n                                                             Total   Maximum"
 "\n                                 Maximum   Time of Max       Flood    Ponded"
 "\n                        Hours       Rate    Occurrence      Volume");
-            if ( RouteModel == DW ) fprintf(Frpt.file, "     Depth");
-            else                    fprintf(Frpt.file, "    Volume");
-            fprintf(Frpt.file, 
-"\n  Node                 Flooded       %3s   days hr:min    %8s",
-                FlowUnitWords[FlowUnits], VolUnitsWords[UnitSystem]);
-            if ( RouteModel == DW )      fprintf(Frpt.file, "    %6s",
-                                         PondingUnitsWords[UnitSystem]);
-            else if ( UnitSystem == US ) fprintf(Frpt.file, "  1000 ft3");
-            else                         fprintf(Frpt.file, "   1000 m3");
-            fprintf(Frpt.file,
+            if ( project->RouteModel == DW ) fprintf(project->Frpt.file, "     Depth");
+            else                    fprintf(project->Frpt.file, "    Volume");
+            fprintf(project->Frpt.file, 
+"\n  project->Node                 Flooded       %3s   days hr:min    %8s",
+                FlowUnitWords[project->FlowUnits], VolUnitsWords[project->UnitSystem]);
+            if ( project->RouteModel == DW )      fprintf(project->Frpt.file, "    %6s",
+                                         PondingUnitsWords[project->UnitSystem]);
+            else if ( project->UnitSystem == US ) fprintf(project->Frpt.file, "  1000 ft3");
+            else                         fprintf(project->Frpt.file, "   1000 m3");
+            fprintf(project->Frpt.file,
 "\n  --------------------------------------------------------------------------");
             n = 1;
         }
-        fprintf(Frpt.file, "\n  %-20s", Node[j].ID);
-        fprintf(Frpt.file, " %7.2f ", t);
-        fprintf(Frpt.file, FlowFmt, NodeStats[j].maxOverflow * UCF(FLOW));
+        fprintf(project->Frpt.file, "\n  %-20s", project->Node[j].ID);
+        fprintf(project->Frpt.file, " %7.2f ", t);
+        fprintf(project->Frpt.file, FlowFmt, NodeStats[j].maxOverflow * UCF(FLOW));
         getElapsedTime(NodeStats[j].maxOverflowDate, &days, &hrs, &mins);
-        fprintf(Frpt.file, "   %4d  %02d:%02d", days, hrs, mins);
-		fprintf(Frpt.file, "%12.3f", NodeStats[j].volFlooded * Vcf);
-        if ( RouteModel == DW )
-            fprintf(Frpt.file, " %9.3f",
-                (NodeStats[j].maxDepth - Node[j].fullDepth) * UCF(LENGTH));
+        fprintf(project->Frpt.file, "   %4d  %02d:%02d", days, hrs, mins);
+		fprintf(project->Frpt.file, "%12.3f", NodeStats[j].volFlooded * Vcf);
+        if ( project->RouteModel == DW )
+            fprintf(project->Frpt.file, " %9.3f",
+                (NodeStats[j].maxDepth - project->Node[j].fullDepth) * UCF(LENGTH));
         else
-            fprintf(Frpt.file, " %9.3f", NodeStats[j].maxPondedVol /
+            fprintf(project->Frpt.file, " %9.3f", NodeStats[j].maxPondedVol /
                                          1000.0 * UCF(VOLUME));
     }
 
@@ -432,39 +432,39 @@ void writeStorageVolumes()
     double avgVol, maxVol, pctAvgVol, pctMaxVol;
     double addedVol, pctEvapLoss, pctSeepLoss;
 
-    if ( Nnodes[STORAGE] > 0 )
+    if ( project->Nnodes[STORAGE] > 0 )
     {
         WRITE("");
         WRITE("**********************");
-        WRITE("Storage Volume Summary");
+        WRITE("project->Storage Volume Summary");
         WRITE("**********************");
         WRITE("");
 
-        fprintf(Frpt.file,
+        fprintf(project->Frpt.file,
 "\n  --------------------------------------------------------------------------------------------------"
-"\n                         Average     Avg  Evap Infil       Maximum     Max    Time of Max    Maximum"
+"\n                         Average     Avg  project->Evap Infil       Maximum     Max    Time of Max    Maximum"
 "\n                          Volume    Pcnt  Pcnt  Pcnt        Volume    Pcnt     Occurrence    Outflow");
-        if ( UnitSystem == US ) fprintf(Frpt.file,
-"\n  Storage Unit          1000 ft3    Full  Loss  Loss      1000 ft3    Full    days hr:min        ");
-        else fprintf(Frpt.file,
-"\n  Storage Unit           1000 m3    Full  Loss  Loss       1000 m3    Full    days hr:min        ");
-        fprintf(Frpt.file, "%3s", FlowUnitWords[FlowUnits]);
-        fprintf(Frpt.file,
+        if ( project->UnitSystem == US ) fprintf(project->Frpt.file,
+"\n  project->Storage Unit          1000 ft3    Full  Loss  Loss      1000 ft3    Full    days hr:min        ");
+        else fprintf(project->Frpt.file,
+"\n  project->Storage Unit           1000 m3    Full  Loss  Loss       1000 m3    Full    days hr:min        ");
+        fprintf(project->Frpt.file, "%3s", FlowUnitWords[project->FlowUnits]);
+        fprintf(project->Frpt.file,
 "\n  --------------------------------------------------------------------------------------------------");
 
-        for ( j = 0; j < Nobjects[NODE]; j++ )
+        for ( j = 0; j < project->Nobjects[NODE]; j++ )
         {
-            if ( Node[j].type != STORAGE ) continue;
-            k = Node[j].subIndex;
-            fprintf(Frpt.file, "\n  %-20s", Node[j].ID);
-            avgVol = StorageStats[k].avgVol / StepCount;
+            if ( project->Node[j].type != STORAGE ) continue;
+            k = project->Node[j].subIndex;
+            fprintf(project->Frpt.file, "\n  %-20s", project->Node[j].ID);
+            avgVol = StorageStats[k].avgVol / project->StepCount;
             maxVol = StorageStats[k].maxVol;
             pctMaxVol = 0.0;
             pctAvgVol = 0.0;
-            if ( Node[j].fullVolume > 0.0 )
+            if ( project->Node[j].fullVolume > 0.0 )
             {
-                pctAvgVol = avgVol / Node[j].fullVolume * 100.0;
-                pctMaxVol = maxVol / Node[j].fullVolume * 100.0;
+                pctAvgVol = avgVol / project->Node[j].fullVolume * 100.0;
+                pctMaxVol = maxVol / project->Node[j].fullVolume * 100.0;
             }
             pctEvapLoss = 0.0;
             pctSeepLoss = 0.0;
@@ -475,13 +475,13 @@ void writeStorageVolumes()
                 pctSeepLoss = StorageStats[k].seepLosses / addedVol * 100.0;
             }
 
-            fprintf(Frpt.file, "%10.3f    %4.0f  %4.0f  %4.0f    %10.3f    %4.0f",
+            fprintf(project->Frpt.file, "%10.3f    %4.0f  %4.0f  %4.0f    %10.3f    %4.0f",
                 avgVol*UCF(VOLUME)/1000.0, pctAvgVol, pctEvapLoss, pctSeepLoss,
                 maxVol*UCF(VOLUME)/1000.0, pctMaxVol);
 
             getElapsedTime(StorageStats[k].maxVolDate, &days, &hrs, &mins);
-            fprintf(Frpt.file, "    %4d  %02d:%02d  ", days, hrs, mins);
-            fprintf(Frpt.file, FlowFmt, StorageStats[k].maxFlow*UCF(FLOW));
+            fprintf(project->Frpt.file, "    %4d  %02d:%02d  ", days, hrs, mins);
+            fprintf(project->Frpt.file, FlowFmt, StorageStats[k].maxFlow*UCF(FLOW));
         }
         WRITE("");
     }
@@ -503,11 +503,11 @@ void writeOutfallLoads()
     double  flowSum, freqSum, volSum;
     double* totals;
 
-    if ( Nnodes[OUTFALL] > 0 )
+    if ( project->Nnodes[OUTFALL] > 0 )
     {
         // --- initial totals
-        totals = (double *) calloc(Nobjects[POLLUT], sizeof(double));
-        for (p=0; p<Nobjects[POLLUT]; p++) totals[p] = 0.0;
+        totals = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+        for (p=0; p<project->Nobjects[POLLUT]; p++) totals[p] = 0.0;
         flowSum = 0.0;
         freqSum = 0.0;
 		volSum  = 0.0;
@@ -515,46 +515,46 @@ void writeOutfallLoads()
         // --- print table title
         WRITE("");
         WRITE("***********************");
-        WRITE("Outfall Loading Summary");
+        WRITE("project->Outfall Loading Summary");
         WRITE("***********************");
         WRITE("");
 
         // --- print table column headers
-        fprintf(Frpt.file,
+        fprintf(project->Frpt.file,
  "\n  -----------------------------------------------------------"); 
-        for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "--------------");
-        fprintf(Frpt.file,
+        for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "--------------");
+        fprintf(project->Frpt.file,
  "\n                         Flow       Avg       Max       Total");
-        for (p=0; p<Nobjects[POLLUT]; p++) fprintf(Frpt.file,"         Total");
-        fprintf(Frpt.file,
+        for (p=0; p<project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file,"         Total");
+        fprintf(project->Frpt.file,
  "\n                         Freq      Flow      Flow      Volume");
-        for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "%14s", Pollut[p].ID);
-        fprintf(Frpt.file,
- "\n  Outfall Node           Pcnt       %3s       %3s    %8s",
-            FlowUnitWords[FlowUnits], FlowUnitWords[FlowUnits],
-			VolUnitsWords[UnitSystem]);
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "%14s", project->Pollut[p].ID);
+        fprintf(project->Frpt.file,
+ "\n  project->Outfall project->Node           Pcnt       %3s       %3s    %8s",
+            FlowUnitWords[project->FlowUnits], FlowUnitWords[FlowUnits],
+			VolUnitsWords[project->UnitSystem]);
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
-            i = UnitSystem;
-            if ( Pollut[p].units == COUNT ) i = 2;
+            i = project->UnitSystem;
+            if ( project->Pollut[p].units == COUNT ) i = 2;
             strcpy(units, LoadUnitsWords[i]);
-            fprintf(Frpt.file, "%14s", units);
+            fprintf(project->Frpt.file, "%14s", units);
         }
-        fprintf(Frpt.file,
+        fprintf(project->Frpt.file,
  "\n  -----------------------------------------------------------");
-        for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "--------------");
+        for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "--------------");
 
         // --- identify each outfall node
-        for (j=0; j<Nobjects[NODE]; j++)
+        for (j=0; j<project->Nobjects[NODE]; j++)
         {
-            if ( Node[j].type != OUTFALL ) continue;
-            k = Node[j].subIndex;
+            if ( project->Node[j].type != OUTFALL ) continue;
+            k = project->Node[j].subIndex;
             flowCount = OutfallStats[k].totalPeriods;
 
             // --- print node ID, flow freq., avg. flow, max. flow & flow vol.
-            fprintf(Frpt.file, "\n  %-20s", Node[j].ID);
-            x = 100.*flowCount/(double)StepCount;
-            fprintf(Frpt.file, "%7.2f", x);
+            fprintf(project->Frpt.file, "\n  %-20s", project->Node[j].ID);
+            x = 100.*flowCount/(double)project->StepCount;
+            fprintf(project->Frpt.file, "%7.2f", x);
             freqSum += x;
             if ( flowCount > 0 )
                 x = OutfallStats[k].avgFlow*UCF(FLOW)/flowCount;
@@ -562,41 +562,41 @@ void writeOutfallLoads()
                 x = 0.0;
             flowSum += x;
 
-            fprintf(Frpt.file, " ");
-            fprintf(Frpt.file, FlowFmt, x);
-            fprintf(Frpt.file, " ");
-            fprintf(Frpt.file, FlowFmt, OutfallStats[k].maxFlow*UCF(FLOW));
-			fprintf(Frpt.file, "%12.3f", NodeInflow[j] * Vcf);
+            fprintf(project->Frpt.file, " ");
+            fprintf(project->Frpt.file, FlowFmt, x);
+            fprintf(project->Frpt.file, " ");
+            fprintf(project->Frpt.file, FlowFmt, OutfallStats[k].maxFlow*UCF(FLOW));
+			fprintf(project->Frpt.file, "%12.3f", NodeInflow[j] * Vcf);
 			volSum += NodeInflow[j];
 
             // --- print load of each pollutant for outfall
-            for (p=0; p<Nobjects[POLLUT]; p++)
+            for (p=0; p<project->Nobjects[POLLUT]; p++)
             {
-                x = OutfallStats[k].totalLoad[p] * LperFT3 * Pollut[p].mcf;
+                x = OutfallStats[k].totalLoad[p] * LperFT3 * project->Pollut[p].mcf;
                 totals[p] += x;
-                if ( Pollut[p].units == COUNT ) x = LOG10(x);
-				fprintf(Frpt.file, "%14.3f", x); 
+                if ( project->Pollut[p].units == COUNT ) x = LOG10(x);
+				fprintf(project->Frpt.file, "%14.3f", x); 
             }
         }
 
         // --- print total outfall loads
-        outfallCount = Nnodes[OUTFALL];
-        fprintf(Frpt.file,
+        outfallCount = project->Nnodes[OUTFALL];
+        fprintf(project->Frpt.file,
  "\n  -----------------------------------------------------------"); 
-        for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "--------------");
+        for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "--------------");
 
-        fprintf(Frpt.file, "\n  System              %7.2f ",
+        fprintf(project->Frpt.file, "\n  System              %7.2f ",
             freqSum/outfallCount);
-        fprintf(Frpt.file, FlowFmt, flowSum);
-        fprintf(Frpt.file, " ");
-        fprintf(Frpt.file, FlowFmt, MaxOutfallFlow*UCF(FLOW));
-		fprintf(Frpt.file, "%12.3f", volSum * Vcf);
+        fprintf(project->Frpt.file, FlowFmt, flowSum);
+        fprintf(project->Frpt.file, " ");
+        fprintf(project->Frpt.file, FlowFmt, MaxOutfallFlow*UCF(FLOW));
+		fprintf(project->Frpt.file, "%12.3f", volSum * Vcf);
 
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
 			x = totals[p];
-            if ( Pollut[p].units == COUNT ) x = LOG10(x);
-			fprintf(Frpt.file, "%14.3f", x); 
+            if ( project->Pollut[p].units == COUNT ) x = LOG10(x);
+			fprintf(project->Frpt.file, "%14.3f", x); 
         }
         WRITE("");
         free(totals);
@@ -615,77 +615,77 @@ void writeLinkFlows()
     int    j, k, days, hrs, mins;
     double v, fullDepth;
 
-    if ( Nobjects[LINK] == 0 ) return;
+    if ( project->Nobjects[LINK] == 0 ) return;
     WRITE("");
     WRITE("********************");
-    WRITE("Link Flow Summary");
+    WRITE("project->Link Flow Summary");
     WRITE("********************");
     WRITE("");
 
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  -----------------------------------------------------------------------------"
 "\n                                 Maximum  Time of Max   Maximum    Max/    Max/"
 "\n                                  |Flow|   Occurrence   |Veloc|    Full    Full");
-    if ( UnitSystem == US ) fprintf(Frpt.file,
-"\n  Link                 Type          %3s  days hr:min    ft/sec    Flow   Depth",
-        FlowUnitWords[FlowUnits]);
-    else fprintf(Frpt.file, 
-"\n  Link                 Type          %3s  days hr:min     m/sec    Flow   Depth",
-        FlowUnitWords[FlowUnits]);
-    fprintf(Frpt.file,
+    if ( project->UnitSystem == US ) fprintf(project->Frpt.file,
+"\n  project->Link                 Type          %3s  days hr:min    ft/sec    Flow   Depth",
+        FlowUnitWords[project->FlowUnits]);
+    else fprintf(project->Frpt.file, 
+"\n  project->Link                 Type          %3s  days hr:min     m/sec    Flow   Depth",
+        FlowUnitWords[project->FlowUnits]);
+    fprintf(project->Frpt.file,
 "\n  -----------------------------------------------------------------------------");
 
-    for ( j = 0; j < Nobjects[LINK]; j++ )
+    for ( j = 0; j < project->Nobjects[LINK]; j++ )
     {
         // --- print link ID
-        k = Link[j].subIndex;
-        fprintf(Frpt.file, "\n  %-20s", Link[j].ID);
+        k = project->Link[j].subIndex;
+        fprintf(project->Frpt.file, "\n  %-20s", project->Link[j].ID);
 
         // --- print link type
-        if ( Link[j].xsect.type == DUMMY ) fprintf(Frpt.file, " DUMMY   ");
-        else if ( Link[j].xsect.type == IRREGULAR ) fprintf(Frpt.file, " CHANNEL ");
-        else fprintf(Frpt.file, " %-7s ", LinkTypeWords[Link[j].type]);
+        if ( project->Link[j].xsect.type == DUMMY ) fprintf(project->Frpt.file, " DUMMY   ");
+        else if ( project->Link[j].xsect.type == IRREGULAR ) fprintf(project->Frpt.file, " CHANNEL ");
+        else fprintf(project->Frpt.file, " %-7s ", LinkTypeWords[project->Link[j].type]);
 
         // --- print max. flow & time of occurrence
         getElapsedTime(LinkStats[j].maxFlowDate, &days, &hrs, &mins);
-        fprintf(Frpt.file, FlowFmt, LinkStats[j].maxFlow*UCF(FLOW));
-        fprintf(Frpt.file, "  %4d  %02d:%02d", days, hrs, mins);
+        fprintf(project->Frpt.file, FlowFmt, LinkStats[j].maxFlow*UCF(FLOW));
+        fprintf(project->Frpt.file, "  %4d  %02d:%02d", days, hrs, mins);
 
         // --- print max flow / flow capacity for pumps
-        if ( Link[j].type == PUMP && Link[j].qFull > 0.0)
+        if ( project->Link[j].type == PUMP && Link[j].qFull > 0.0)
         {
-            fprintf(Frpt.file, "          ");
-            fprintf(Frpt.file, "  %6.2f",
-                LinkStats[j].maxFlow / Link[j].qFull);
+            fprintf(project->Frpt.file, "          ");
+            fprintf(project->Frpt.file, "  %6.2f",
+                LinkStats[j].maxFlow / project->Link[j].qFull);
             continue;
         }
 
         // --- stop printing for dummy conduits
-        if ( Link[j].xsect.type == DUMMY ) continue;
+        if ( project->Link[j].xsect.type == DUMMY ) continue;
 
         // --- stop printing for outlet links (since they don't have xsections)
-        if ( Link[j].type == OUTLET ) continue;
+        if ( project->Link[j].type == OUTLET ) continue;
 
         // --- print max velocity & max/full flow for conduits
-        if ( Link[j].type == CONDUIT )
+        if ( project->Link[j].type == CONDUIT )
         {
             v = LinkStats[j].maxVeloc*UCF(LENGTH);
-            if ( v > 50.0 ) fprintf(Frpt.file, "    >50.00");
-            else fprintf(Frpt.file, "   %7.2f", v);
-            fprintf(Frpt.file, "  %6.2f", LinkStats[j].maxFlow / Link[j].qFull /
-                                          (double)Conduit[k].barrels);
+            if ( v > 50.0 ) fprintf(project->Frpt.file, "    >50.00");
+            else fprintf(project->Frpt.file, "   %7.2f", v);
+            fprintf(project->Frpt.file, "  %6.2f", LinkStats[j].maxFlow / project->Link[j].qFull /
+                                          (double)project->Conduit[k].barrels);
         }
-        else fprintf(Frpt.file, "                  ");
+        else fprintf(project->Frpt.file, "                  ");
 
         // --- print max/full depth
-        fullDepth = Link[j].xsect.yFull;
-        if ( Link[j].type == ORIFICE &&
-             Orifice[k].type == BOTTOM_ORIFICE ) fullDepth = 0.0;
+        fullDepth = project->Link[j].xsect.yFull;
+        if ( project->Link[j].type == ORIFICE &&
+             project->Orifice[k].type == BOTTOM_ORIFICE ) fullDepth = 0.0;
         if ( fullDepth > 0.0 )
         {
-            fprintf(Frpt.file, "  %6.2f", LinkStats[j].maxDepth / fullDepth); 
+            fprintf(project->Frpt.file, "  %6.2f", LinkStats[j].maxDepth / fullDepth); 
         }
-        else fprintf(Frpt.file, "        ");
+        else fprintf(project->Frpt.file, "        ");
     }
     WRITE("");
 }
@@ -701,34 +701,34 @@ void writeFlowClass()
 {
     int   i, j, k;
 
-    if ( RouteModel != DW ) return;
+    if ( project->RouteModel != DW ) return;
     WRITE("");
     WRITE("***************************");
     WRITE("Flow Classification Summary");
     WRITE("***************************");
     WRITE("");
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  -------------------------------------------------------------------------------------"
 "\n                      Adjusted    ---------- Fraction of Time in Flow Class ---------- "
 "\n                       /Actual         Up    Down  Sub   Sup   Up    Down  Norm  Inlet "
-"\n  Conduit               Length    Dry  Dry   Dry   Crit  Crit  Crit  Crit  Ltd   Ctrl  "
+"\n  project->Conduit               Length    Dry  Dry   Dry   Crit  Crit  Crit  Crit  Ltd   Ctrl  "
 "\n  -------------------------------------------------------------------------------------");
-    for ( j = 0; j < Nobjects[LINK]; j++ )
+    for ( j = 0; j < project->Nobjects[LINK]; j++ )
     {
-        if ( Link[j].type != CONDUIT ) continue;
-        if ( Link[j].xsect.type == DUMMY ) continue;
-        k = Link[j].subIndex;
-        fprintf(Frpt.file, "\n  %-20s", Link[j].ID);
-        fprintf(Frpt.file, "  %6.2f ", Conduit[k].modLength / Conduit[k].length);
+        if ( project->Link[j].type != CONDUIT ) continue;
+        if ( project->Link[j].xsect.type == DUMMY ) continue;
+        k = project->Link[j].subIndex;
+        fprintf(project->Frpt.file, "\n  %-20s", project->Link[j].ID);
+        fprintf(project->Frpt.file, "  %6.2f ", project->Conduit[k].modLength / Conduit[k].length);
         for ( i=0; i<MAX_FLOW_CLASSES; i++ )
         {
-            fprintf(Frpt.file, "  %4.2f",
-                LinkStats[j].timeInFlowClass[i] /= StepCount);
+            fprintf(project->Frpt.file, "  %4.2f",
+                LinkStats[j].timeInFlowClass[i] /= project->StepCount);
         }
-        fprintf(Frpt.file, "  %4.2f", LinkStats[j].timeNormalFlow /
-                                      (NewRoutingTime/1000.0));
-        fprintf(Frpt.file, "  %4.2f", LinkStats[j].timeInletControl /
-                                      (NewRoutingTime/1000.0)); 
+        fprintf(project->Frpt.file, "  %4.2f", LinkStats[j].timeNormalFlow /
+                                      (project->NewRoutingTime/1000.0));
+        fprintf(project->Frpt.file, "  %4.2f", LinkStats[j].timeInletControl /
+                                      (project->NewRoutingTime/1000.0)); 
     }
     WRITE("");
 }
@@ -742,13 +742,13 @@ void writeLinkSurcharge()
 
     WRITE("");
     WRITE("*************************");
-    WRITE("Conduit Surcharge Summary");
+    WRITE("project->Conduit Surcharge Summary");
     WRITE("*************************");
     WRITE("");
-    for ( j = 0; j < Nobjects[LINK]; j++ )
+    for ( j = 0; j < project->Nobjects[LINK]; j++ )
     {
-        if ( Link[j].type != CONDUIT ||
-			 Link[j].xsect.type == DUMMY ) continue; 
+        if ( project->Link[j].type != CONDUIT ||
+			 project->Link[j].xsect.type == DUMMY ) continue; 
         t[0] = LinkStats[j].timeSurcharged / 3600.0;
         t[1] = LinkStats[j].timeFullUpstream / 3600.0;
         t[2] = LinkStats[j].timeFullDnstream / 3600.0;
@@ -758,16 +758,16 @@ void writeLinkSurcharge()
         for (i=0; i<5; i++) t[i] = MAX(0.01, t[i]);
         if (n == 0)
         {
-            fprintf(Frpt.file, 
+            fprintf(project->Frpt.file, 
 "\n  ----------------------------------------------------------------------------"
 "\n                                                           Hours        Hours "
 "\n                         --------- Hours Full --------   Above Full   Capacity"
-"\n  Conduit                Both Ends  Upstream  Dnstream   Normal Flow   Limited"
+"\n  project->Conduit                Both Ends  Upstream  Dnstream   Normal Flow   Limited"
 "\n  ----------------------------------------------------------------------------");
             n = 1;
         }
-        fprintf(Frpt.file, "\n  %-20s", Link[j].ID);
-        fprintf(Frpt.file, "    %8.2f  %8.2f  %8.2f  %8.2f     %8.2f",
+        fprintf(project->Frpt.file, "\n  %-20s", project->Link[j].ID);
+        fprintf(project->Frpt.file, "    %8.2f  %8.2f  %8.2f  %8.2f     %8.2f",
                 t[0], t[1], t[2], t[3], t[4]);
     }
     if ( n == 0 ) WRITE("No conduits were surcharged.");
@@ -786,7 +786,7 @@ void writePumpFlows()
     int    j, k;
     double avgFlow, pctUtilized, pctOffCurve1, pctOffCurve2, totalSeconds;
 
-    if ( Nlinks[PUMP] == 0 ) return;
+    if ( project->Nlinks[PUMP] == 0 ) return;
 
     WRITE("");
     WRITE("***************");
@@ -794,25 +794,25 @@ void writePumpFlows()
     WRITE("***************");
     WRITE("");
 
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
 "\n  ---------------------------------------------------------------------------------------------------------"
 "\n                                                  Min       Avg       Max     Total     Power    %% Time Off"
-"\n                        Percent   Number of      Flow      Flow      Flow    Volume     Usage    Pump Curve"
-"\n  Pump                 Utilized   Start-Ups       %3s       %3s       %3s  %8s     Kw-hr    Low   High"
+"\n                        Percent   Number of      Flow      Flow      Flow    Volume     Usage    project->Pump project->Curve"
+"\n  project->Pump                 Utilized   Start-Ups       %3s       %3s       %3s  %8s     Kw-hr    Low   High"
 "\n  ---------------------------------------------------------------------------------------------------------",
-        FlowUnitWords[FlowUnits], FlowUnitWords[FlowUnits],
-        FlowUnitWords[FlowUnits], VolUnitsWords[UnitSystem]);
-    for ( j = 0; j < Nobjects[LINK]; j++ )
+        FlowUnitWords[project->FlowUnits], FlowUnitWords[FlowUnits],
+        FlowUnitWords[project->FlowUnits], VolUnitsWords[project->UnitSystem]);
+    for ( j = 0; j < project->Nobjects[LINK]; j++ )
     {
-        if ( Link[j].type != PUMP ) continue;
-        k = Link[j].subIndex;
-        fprintf(Frpt.file, "\n  %-20s", Link[j].ID);
-        totalSeconds = NewRoutingTime / 1000.0;
+        if ( project->Link[j].type != PUMP ) continue;
+        k = project->Link[j].subIndex;
+        fprintf(project->Frpt.file, "\n  %-20s", project->Link[j].ID);
+        totalSeconds = project->NewRoutingTime / 1000.0;
         pctUtilized = PumpStats[k].utilized / totalSeconds * 100.0;
         avgFlow = PumpStats[k].avgFlow;
         if ( PumpStats[k].totalPeriods > 0 )
             avgFlow /=  PumpStats[k].totalPeriods;
-        fprintf(Frpt.file, " %8.2f  %10d %9.2f %9.2f %9.2f %9.3f %9.2f",
+        fprintf(project->Frpt.file, " %8.2f  %10d %9.2f %9.2f %9.2f %9.3f %9.2f",
             pctUtilized, PumpStats[k].startUps, PumpStats[k].minFlow*UCF(FLOW),
             avgFlow*UCF(FLOW), PumpStats[k].maxFlow*UCF(FLOW), 
             PumpStats[k].volume*Vcf, PumpStats[k].energy);
@@ -823,7 +823,7 @@ void writePumpFlows()
             pctOffCurve1 = pctOffCurve1 / PumpStats[k].utilized * 100.0;
             pctOffCurve2 = pctOffCurve2 / PumpStats[k].utilized * 100.0;
         }
-        fprintf(Frpt.file, " %6.1f %6.1f", pctOffCurve1, pctOffCurve2); 
+        fprintf(project->Frpt.file, " %6.1f %6.1f", pctOffCurve1, pctOffCurve2); 
     }
     WRITE("");
 }
@@ -841,34 +841,34 @@ void writeLinkLoads()
     // --- print the table headings 
     WRITE("");
     WRITE("***************************");
-    WRITE("Link Pollutant Load Summary");
+    WRITE("project->Link Pollutant Load Summary");
     WRITE("***************************");
     WRITE("");
-    fprintf(Frpt.file, "\n  %s", linkLine);
-    for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "%s", pollutLine);
-    fprintf(Frpt.file, "\n                      ");
-    for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "%14s", Pollut[p].ID);
-    fprintf(Frpt.file, "\n  Link                ");
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    fprintf(project->Frpt.file, "\n  %s", linkLine);
+    for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "%s", pollutLine);
+    fprintf(project->Frpt.file, "\n                      ");
+    for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "%14s", project->Pollut[p].ID);
+    fprintf(project->Frpt.file, "\n  project->Link                ");
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
-        i = UnitSystem;
-        if ( Pollut[p].units == COUNT ) i = 2;
+        i = project->UnitSystem;
+        if ( project->Pollut[p].units == COUNT ) i = 2;
         strcpy(units, LoadUnitsWords[i]);
-        fprintf(Frpt.file, "%14s", units);
+        fprintf(project->Frpt.file, "%14s", units);
     }
-    fprintf(Frpt.file, "\n  %s", linkLine);
-    for (p = 0; p < Nobjects[POLLUT]; p++) fprintf(Frpt.file, "%s", pollutLine);
+    fprintf(project->Frpt.file, "\n  %s", linkLine);
+    for (p = 0; p < project->Nobjects[POLLUT]; p++) fprintf(project->Frpt.file, "%s", pollutLine);
 
     // --- print the pollutant loadings carried by each link
-    for ( j = 0; j < Nobjects[LINK]; j++ )
+    for ( j = 0; j < project->Nobjects[LINK]; j++ )
     {
-        fprintf(Frpt.file, "\n  %-20s", Link[j].ID);
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        fprintf(project->Frpt.file, "\n  %-20s", project->Link[j].ID);
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
-            x = Link[j].totalLoad[p] * LperFT3 * Pollut[p].mcf;
-            if ( Pollut[p].units == COUNT ) x = LOG10(x);
-            if ( x < 10000. ) fprintf(Frpt.file, "%14.3f", x);
-		else fprintf(Frpt.file, "%14.3e", x);
+            x = project->Link[j].totalLoad[p] * LperFT3 * project->Pollut[p].mcf;
+            if ( project->Pollut[p].units == COUNT ) x = LOG10(x);
+            if ( x < 10000. ) fprintf(project->Frpt.file, "%14.3f", x);
+		else fprintf(project->Frpt.file, "%14.3e", x);
         }
     }
     WRITE("");

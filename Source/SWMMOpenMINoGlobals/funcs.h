@@ -82,7 +82,7 @@ void    rain_open(void);
 void    rain_close(void);
 
 //-----------------------------------------------------------------------------
-//   Snowmelt Processing Methods
+//   project->Snowmelt Processing Methods
 //-----------------------------------------------------------------------------
 int     snow_readMeltParams(char* tok[], int ntoks);
 int     snow_createSnowpack(int subcacth, int snowIndex);
@@ -154,7 +154,7 @@ int     rdii_getNumRdiiFlows(DateTime aDate);
 void    rdii_getRdiiFlow(int index, int* node, double* q);
 
 //-----------------------------------------------------------------------------
-//   Landuse Methods
+//   project->Landuse Methods
 //-----------------------------------------------------------------------------
 int     landuse_readParams(int landuse, char* tok[], int ntoks);
 int     landuse_readPollutParams(int pollut, char* tok[], int ntoks);
@@ -268,7 +268,7 @@ double  subcatch_getWtdWashoff(int subcatch, int pollut, double wt);
 void    subcatch_getResults(int subcatch, double wt, float x[]);
 
 //-----------------------------------------------------------------------------
-//   Conveyance System Node Methods
+//   Conveyance System project->Node Methods
 //-----------------------------------------------------------------------------
 int     node_readParams(int node, int type, int subIndex, char* tok[], int ntoks);
 void    node_validate(int node);
@@ -322,7 +322,7 @@ int     hotstart_open(void);
 void    hotstart_close(void);
 
 //-----------------------------------------------------------------------------
-//   Conveyance System Link Methods
+//   Conveyance System project->Link Methods
 //-----------------------------------------------------------------------------
 int     link_readParams(int link, int type, int subIndex, char* tok[], int ntoks);
 int     link_readXsectParams(char* tok[], int ntoks);
@@ -346,7 +346,7 @@ double  link_getLossRate(int link, double tStep);
 void    link_getResults(int link, double wt, float x[]);
 
 //-----------------------------------------------------------------------------
-//   Link Cross-Section Methods
+//   project->Link Cross-Section Methods
 //-----------------------------------------------------------------------------
 int     xsect_isOpen(int type);
 int     xsect_setParams(TXsect *xsect, int type, double p[], double ucf);
@@ -376,7 +376,7 @@ double  forcemain_getRoughFactor(int j, double lengthFactor);
 double  forcemain_getFricSlope(int j, double v, double hrad);
 
 //-----------------------------------------------------------------------------
-//   Cross-Section Transect Methods
+//   Cross-Section project->Transect Methods
 //-----------------------------------------------------------------------------
 int     transect_create(int n);
 void    transect_delete(void);
@@ -384,7 +384,7 @@ int     transect_readParams(int* count, char* tok[], int ntoks);
 void    transect_validate(int j);
 
 //-----------------------------------------------------------------------------
-//   Custom Shape Cross-Section Methods
+//   Custom project->Shape Cross-Section Methods
 //-----------------------------------------------------------------------------
 int     shape_validate(TShape *shape, TTable *curve);
 

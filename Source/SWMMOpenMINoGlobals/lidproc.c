@@ -252,10 +252,10 @@ double lidproc_getOutflow(TLidUnit* lidUnit, TLidProc* lidProc, double inflow,
     if  (i == 0) 
     {
 /** For debugging only ********************************************
-        fprintf(Frpt.file,
+        fprintf(project->Frpt.file,
         "\n  WARNING 09: integration failed to converge at %s %s",
             theDate, theTime);
-        fprintf(Frpt.file,
+        fprintf(project->Frpt.file,
         "\n              for LID %s placed in subcatchment %s.",
             theLidProc->ID, theSubcatch->ID);
 *******************************************************************/
@@ -338,7 +338,7 @@ void lidproc_saveResults(TLidUnit* lidUnit, int saveResults,
         rptVars[STOR_DEPTH] = theLidUnit->storageDepth*ucf;
 
         //... one reporting period prior to current one
-        prevReportTime = NewRunoffTime - (double)(ReportStep*1000);            //(5.1.006)
+        prevReportTime = project->NewRunoffTime - (double)(project->ReportStep*1000);            //(5.1.006)
 
         //... if last reported time is prior to previous time
         //    then add a blank line to break the time series                   //(5.1.006)
@@ -347,14 +347,14 @@ void lidproc_saveResults(TLidUnit* lidUnit, int saveResults,
 
         //... write results to file
         fprintf(theLidUnit->rptFile->file, "\n%7.3f\t",
-                NewRunoffTime/1000.0/3600.0);
+                project->NewRunoffTime/1000.0/3600.0);
         fprintf(theLidUnit->rptFile->file, " %8.2f\t %8.4f\t",                 //(5.1.006)
             rptVars[SURF_INFLOW], rptVars[TOTAL_EVAP]);                        //(5.1.006)
         for ( i = SURF_INFIL; i <= STOR_DRAIN; i++)                            //(5.1.006)
                 fprintf(theLidUnit->rptFile->file, " %8.2f\t", rptVars[i]);
         for ( i = SURF_DEPTH; i <= STOR_DEPTH; i++)
                 fprintf(theLidUnit->rptFile->file, " %8.2f\t", rptVars[i]);
-		theLidUnit->rptFile->lastReportTime = NewRunoffTime;
+		theLidUnit->rptFile->lastReportTime = project->NewRunoffTime;
     }
 }
 

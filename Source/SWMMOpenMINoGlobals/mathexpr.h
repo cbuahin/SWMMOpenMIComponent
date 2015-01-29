@@ -10,7 +10,7 @@
 #ifndef EXPRNODE_H
 #define EXPRNODE_H
 
-//  Node in a tokenized math expression list
+//  project->Node in a tokenized math expression list
 struct ExprNode
 {
     int    opcode;                // operator code

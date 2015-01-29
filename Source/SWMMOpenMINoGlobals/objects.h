@@ -220,7 +220,7 @@ typedef struct TGroundwater TGroundwater;
 //----------------
 // SNOWMELT OBJECT
 //----------------
-// Snowmelt objects contain parameters that describe the melting
+// project->Snowmelt objects contain parameters that describe the melting
 // process of snow packs on 3 different types of surfaces:
 //   1 - plowable impervious area
 //   2 - non-plowable impervious area

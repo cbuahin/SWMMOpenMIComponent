@@ -70,7 +70,7 @@ int inflow_readExtInflow(char* tok[], int ntoks)
     {
         tseries = project_findObject(TSERIES, tok[2]);
         if ( tseries < 0 ) return error_setInpError(ERR_NAME, tok[2]);
-        Tseries[tseries].refersTo = EXTERNAL_INFLOW;
+        project->Tseries[tseries].refersTo = EXTERNAL_INFLOW;
     }
 
     // --- assign type & cf values for a FLOW inflow
@@ -123,7 +123,7 @@ int inflow_readExtInflow(char* tok[], int ntoks)
     if ( type == MASS_INFLOW ) cf /= LperFT3;
 
     // --- check if an external inflow object for this constituent already exists
-    inflow = Node[j].extInflow;
+    inflow = project->Node[j].extInflow;
     while ( inflow )
     {
         if ( inflow->param == param ) break;
@@ -135,8 +135,8 @@ int inflow_readExtInflow(char* tok[], int ntoks)
     {
         inflow = (TExtInflow *) malloc(sizeof(TExtInflow));
         if ( inflow == NULL ) return error_setInpError(ERR_MEMORY, "");
-        inflow->next = Node[j].extInflow;
-        Node[j].extInflow = inflow;
+        inflow->next = project->Node[j].extInflow;
+        project->Node[j].extInflow = inflow;
     }
 
     // --- assign property values to the inflow object
@@ -161,7 +161,7 @@ void inflow_deleteExtInflows(int j)
 {
     TExtInflow* inflow1;
     TExtInflow* inflow2;
-    inflow1 = Node[j].extInflow;
+    inflow1 = project->Node[j].extInflow;
     while ( inflow1 )
     {
         inflow2 = inflow1->next;
@@ -196,7 +196,7 @@ double inflow_getExtInflow(TExtInflow* inflow, DateTime aDate)
         hour  = datetime_hourOfDay(aDate);
         blv  *= inflow_getPatternFactor(p, month, day, hour);
     }
-    if ( k >= 0 ) tsv = table_tseriesLookup(&Tseries[k], aDate, FALSE) * sf;
+    if ( k >= 0 ) tsv = table_tseriesLookup(&project->Tseries[k], aDate, FALSE) * sf;
     return cf * (tsv + blv);
 }
 
@@ -251,7 +251,7 @@ int inflow_readDwfInflow(char* tok[], int ntoks)
     }
 
     // --- check if inflow for this constituent already exists
-    inflow = Node[j].dwfInflow;
+    inflow = project->Node[j].dwfInflow;
     while ( inflow )
     {
         if ( inflow->param == k ) break;
@@ -263,8 +263,8 @@ int inflow_readDwfInflow(char* tok[], int ntoks)
     {
         inflow = (TDwfInflow *) malloc(sizeof(TDwfInflow));
         if ( inflow == NULL ) return error_setInpError(ERR_MEMORY, "");
-        inflow->next = Node[j].dwfInflow;
-        Node[j].dwfInflow = inflow;
+        inflow->next = project->Node[j].dwfInflow;
+        project->Node[j].dwfInflow = inflow;
     }
 
     // --- assign property values to the inflow object
@@ -285,7 +285,7 @@ void inflow_deleteDwfInflows(int j)
 {
     TDwfInflow* inflow1;
     TDwfInflow* inflow2;
-    inflow1 = Node[j].dwfInflow;
+    inflow1 = project->Node[j].dwfInflow;
     while ( inflow1 )
     {
         inflow2 = inflow1->next;
@@ -317,7 +317,7 @@ void   inflow_initDwfInflow(TDwfInflow* inflow)
     for (i=0; i<4; i++)
     {
         p = inflow->patterns[i];
-        if ( p >= 0 ) tmpPattern[Pattern[p].type] = p;
+        if ( p >= 0 ) tmpPattern[project->Pattern[p].type] = p;
     }
 
     // --- re-fill inflow pattern array by pattern type
@@ -367,10 +367,10 @@ void inflow_initDwfPattern(int j)
 //
 {
     int i;
-    for (i=0; i<24; i++) Pattern[j].factor[i] = 1.0;
-    Pattern[j].count = 0;
-    Pattern[j].type  = -1;
-    Pattern[j].ID    = NULL;
+    for (i=0; i<24; i++) project->Pattern[j].factor[i] = 1.0;
+    project->Pattern[j].count = 0;
+    project->Pattern[j].type  = -1;
+    project->Pattern[j].ID    = NULL;
 }
 
 //=============================================================================
@@ -397,23 +397,23 @@ int inflow_readDwfPattern(char* tok[], int ntoks)
 
     // --- check if this is first line of pattern
     //     (ID pointer will not have been assigned yet)
-    if ( Pattern[j].ID == NULL )
+    if ( project->Pattern[j].ID == NULL )
     {
         // --- assign ID pointer & pattern type
-        Pattern[j].ID = project_findID(TIMEPATTERN, tok[0]);
+        project->Pattern[j].ID = project_findID(TIMEPATTERN, tok[0]);
         k = findmatch(tok[1], PatternTypeWords);
         if ( k < 0 ) return error_setInpError(ERR_KEYWORD, tok[1]);
-        Pattern[j].type = k;
+        project->Pattern[j].type = k;
         n = 2;
     }
 
     // --- start reading pattern factors from rest of line
-    while ( ntoks > n && Pattern[j].count < 24 )
+    while ( ntoks > n && project->Pattern[j].count < 24 )
     {
-        i = Pattern[j].count;
-        if ( !getDouble(tok[n], &Pattern[j].factor[i]) )
+        i = project->Pattern[j].count;
+        if ( !getDouble(tok[n], &project->Pattern[j].factor[i]) )
             return error_setInpError(ERR_NUMBER, tok[n]);
-        Pattern[j].count++;
+        project->Pattern[j].count++;
         n++;
     }
     return 0;
@@ -430,21 +430,21 @@ double inflow_getPatternFactor(int p, int month, int day, int hour)
 //  Output:  returns value of a time pattern multiplier
 //  Purpose: computes time pattern multiplier for a specific point in time.
 {
-    switch ( Pattern[p].type )
+    switch ( project->Pattern[p].type )
     {
       case MONTHLY_PATTERN:
-        if ( month >= 0 && month < 12 ) return Pattern[p].factor[month];
+        if ( month >= 0 && month < 12 ) return project->Pattern[p].factor[month];
         break;
       case DAILY_PATTERN:
-        if ( day >= 0 && day < 7 ) return Pattern[p].factor[day];
+        if ( day >= 0 && day < 7 ) return project->Pattern[p].factor[day];
         break;
       case HOURLY_PATTERN:
-        if ( hour >= 0 && hour < 24 ) return Pattern[p].factor[hour];
+        if ( hour >= 0 && hour < 24 ) return project->Pattern[p].factor[hour];
         break;
       case WEEKEND_PATTERN:
         if ( day == 0 || day == 6 )
         {
-            if ( hour >= 0 && hour < 24 ) return Pattern[p].factor[hour];
+            if ( hour >= 0 && hour < 24 ) return project->Pattern[p].factor[hour];
         }
         break;
     }

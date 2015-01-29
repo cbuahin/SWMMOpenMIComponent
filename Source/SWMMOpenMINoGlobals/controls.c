@@ -480,23 +480,23 @@ int  addAction(int r, char* tok[], int nToks)
     switch (obj)
     {
       case r_CONDUIT:
-	if ( Link[link].type != CONDUIT )
+	if ( project->Link[link].type != CONDUIT )
 	    return error_setInpError(ERR_NAME, tok[2]);
 	break;
       case r_PUMP:
-        if ( Link[link].type != PUMP )
+        if ( project->Link[link].type != PUMP )
             return error_setInpError(ERR_NAME, tok[2]);
         break;
       case r_ORIFICE:
-        if ( Link[link].type != ORIFICE )
+        if ( project->Link[link].type != ORIFICE )
             return error_setInpError(ERR_NAME, tok[2]);
         break;
       case r_WEIR:
-        if ( Link[link].type != WEIR )
+        if ( project->Link[link].type != WEIR )
             return error_setInpError(ERR_NAME, tok[2]);
         break;
       case r_OUTLET:
-        if ( Link[link].type != OUTLET )
+        if ( project->Link[link].type != OUTLET )
             return error_setInpError(ERR_NAME, tok[2]);
         break;
     }
@@ -602,7 +602,7 @@ int  setActionSetting(char* tok[], int nToks, int* curve, int* tseries,
 {
     int k, m;
 
-    // --- see if control action is determined by a Curve or Time Series
+    // --- see if control action is determined by a project->Curve or Time Series
     if (nToks < 6) return error_setInpError(ERR_ITEMS, "");
     k = findmatch(tok[5], SettingTypeWords);
     if ( k >= 0 && nToks < 7 ) return error_setInpError(ERR_ITEMS, "");
@@ -621,7 +621,7 @@ int  setActionSetting(char* tok[], int nToks, int* curve, int* tseries,
         m = project_findObject(TSERIES, tok[6]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[6]);
         *tseries = m;
-        Tseries[m].refersTo = CONTROL;
+        project->Tseries[m].refersTo = CONTROL;
         break;
 
     // --- control determined by PID controller 
@@ -656,11 +656,11 @@ void  updateActionValue(struct TAction* a, DateTime currentTime, double dt)
 {
     if ( a->curve >= 0 )
     {
-        a->value = table_lookup(&Curve[a->curve], ControlValue);
+        a->value = table_lookup(&project->Curve[a->curve], ControlValue);
     }
     else if ( a->tseries >= 0 )
     {
-        a->value = table_tseriesLookup(&Tseries[a->tseries], currentTime, TRUE);
+        a->value = table_tseriesLookup(&project->Tseries[a->tseries], currentTime, TRUE);
     }
     else if ( a->attribute == r_PID )
     {
@@ -713,7 +713,7 @@ double getPIDSetting(struct TAction* a, double dt)
 	d = a->kd * (e0 - 2.0*a->e1 + a->e2) / dt;
 	update = a->kp * (p + i + d);
 	if ( fabs(update) < tolerance ) update = 0.0;
-	setting = Link[a->link].targetSetting + update;
+	setting = project->Link[a->link].targetSetting + update;
 
 	// --- update previous errors
     a->e2 = a->e1;
@@ -721,7 +721,7 @@ double getPIDSetting(struct TAction* a, double dt)
 
     // --- check that new setting lies within feasible limits
     if ( setting < 0.0 ) setting = 0.0;
-    if (Link[a->link].type != PUMP && setting > 1.0 ) setting = 1.0;
+    if (project->Link[a->link].type != PUMP && setting > 1.0 ) setting = 1.0;
     return setting;
 }
 
@@ -784,11 +784,11 @@ int executeActionList(DateTime currentTime)
         if ( !a1 ) break;
         if ( a1->link >= 0 )
         {
-            if ( Link[a1->link].targetSetting != a1->value )
+            if ( project->Link[a1->link].targetSetting != a1->value )
             {
-                Link[a1->link].targetSetting = a1->value;
-                if ( RptFlags.controls )
-                    report_writeControlAction(currentTime, Link[a1->link].ID,
+                project->Link[a1->link].targetSetting = a1->value;
+                if ( project->RptFlags.controls )
+                    report_writeControlAction(currentTime, project->Link[a1->link].ID,
                                               a1->value, Rules[a1->rule].ID);
                 count++;
             }
@@ -836,32 +836,32 @@ int evaluatePremise(struct TPremise* p, DateTime theDate, DateTime theTime,
 
       case r_STATUS:
         if ( j < 0 ||
-            (Link[j].type != CONDUIT && Link[j].type != PUMP) ) return FALSE;
-        else return checkValue(p, Link[j].setting);
+            (project->Link[j].type != CONDUIT && Link[j].type != PUMP) ) return FALSE;
+        else return checkValue(p, project->Link[j].setting);
         
       case r_SETTING:
-        if ( j < 0 || (Link[j].type != ORIFICE && Link[j].type != WEIR) )
+        if ( j < 0 || (project->Link[j].type != ORIFICE && Link[j].type != WEIR) )
             return FALSE;
-        else return checkValue(p, Link[j].setting);
+        else return checkValue(p, project->Link[j].setting);
 
       case r_FLOW:
         if ( j < 0 ) return FALSE;
-        else return checkValue(p, Link[j].direction*Link[j].newFlow*UCF(FLOW));
+        else return checkValue(p, project->Link[j].direction*Link[j].newFlow*UCF(FLOW));
 
       case r_DEPTH:
-        if ( j >= 0 ) return checkValue(p, Link[j].newDepth*UCF(LENGTH));
+        if ( j >= 0 ) return checkValue(p, project->Link[j].newDepth*UCF(LENGTH));
         else if ( i >= 0 )
-            return checkValue(p, Node[i].newDepth*UCF(LENGTH));
+            return checkValue(p, project->Node[i].newDepth*UCF(LENGTH));
         else return FALSE;
 
       case r_HEAD:
         if ( i < 0 ) return FALSE;
-        head = (Node[i].newDepth + Node[i].invertElev) * UCF(LENGTH);
+        head = (project->Node[i].newDepth + Node[i].invertElev) * UCF(LENGTH);
         return checkValue(p, head);
 
       case r_INFLOW:
         if ( i < 0 ) return FALSE;
-        else return checkValue(p, Node[i].newLatFlow*UCF(FLOW));
+        else return checkValue(p, project->Node[i].newLatFlow*UCF(FLOW));
 
       default: return FALSE;
     }

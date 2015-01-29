@@ -133,20 +133,20 @@ int gwater_readAquiferParams(int j, char* tok[], int ntoks)
     }
 
     // --- assign parameters to aquifer object
-    Aquifer[j].ID = id;
-    Aquifer[j].porosity       = x[0];
-    Aquifer[j].wiltingPoint   = x[1];
-    Aquifer[j].fieldCapacity  = x[2];
-    Aquifer[j].conductivity   = x[3] / UCF(RAINFALL);
-    Aquifer[j].conductSlope   = x[4];
-    Aquifer[j].tensionSlope   = x[5] / UCF(LENGTH);
-    Aquifer[j].upperEvapFrac  = x[6];
-    Aquifer[j].lowerEvapDepth = x[7] / UCF(LENGTH);
-    Aquifer[j].lowerLossCoeff = x[8] / UCF(RAINFALL);
-    Aquifer[j].bottomElev     = x[9] / UCF(LENGTH);
-    Aquifer[j].waterTableElev = x[10] / UCF(LENGTH);
-    Aquifer[j].upperMoisture  = x[11];
-    Aquifer[j].upperEvapPat   = p;
+    project->Aquifer[j].ID = id;
+    project->Aquifer[j].porosity       = x[0];
+    project->Aquifer[j].wiltingPoint   = x[1];
+    project->Aquifer[j].fieldCapacity  = x[2];
+    project->Aquifer[j].conductivity   = x[3] / UCF(RAINFALL);
+    project->Aquifer[j].conductSlope   = x[4];
+    project->Aquifer[j].tensionSlope   = x[5] / UCF(LENGTH);
+    project->Aquifer[j].upperEvapFrac  = x[6];
+    project->Aquifer[j].lowerEvapDepth = x[7] / UCF(LENGTH);
+    project->Aquifer[j].lowerLossCoeff = x[8] / UCF(RAINFALL);
+    project->Aquifer[j].bottomElev     = x[9] / UCF(LENGTH);
+    project->Aquifer[j].waterTableElev = x[10] / UCF(LENGTH);
+    project->Aquifer[j].upperMoisture  = x[11];
+    project->Aquifer[j].upperEvapPat   = p;
     return 0;
 }
 
@@ -204,13 +204,13 @@ int gwater_readGroundwaterParams(char* tok[], int ntoks)
     }
 
     // --- create a groundwater flow object
-    if ( !Subcatch[j].groundwater )
+    if ( !project->Subcatch[j].groundwater )
     {
         gw = (TGroundwater *) malloc(sizeof(TGroundwater));
         if ( !gw ) return error_setInpError(ERR_MEMORY, "");
-        Subcatch[j].groundwater = gw;
+        project->Subcatch[j].groundwater = gw;
     }
-    else gw = Subcatch[j].groundwater;
+    else gw = project->Subcatch[j].groundwater;
 
     // --- populate the groundwater flow object with its parameters
     gw->aquifer    = k;
@@ -278,7 +278,7 @@ int gwater_readFlowExpression(char* tok[], int ntoks)
     //      variable's name into an index number) 
     expr = mathexpr_create(exprStr, getVariableIndex);
     if ( expr == NULL ) return error_setInpError(ERR_TREATMENT_EXPR, "");
-    Subcatch[j].gwFlowExpr = expr;
+    project->Subcatch[j].gwFlowExpr = expr;
     return 0;
 }
 
@@ -291,7 +291,7 @@ void gwater_deleteFlowExpression(int j)
 //  Purpose: deletes a subcatchment's groundwater outflow expression.
 //
 {
-    mathexpr_delete(Subcatch[j].gwFlowExpr);
+    mathexpr_delete(project->Subcatch[j].gwFlowExpr);
 }
 
 //=============================================================================
@@ -305,23 +305,23 @@ void  gwater_validateAquifer(int j)
 {
 	int p;
 
-    if ( Aquifer[j].porosity          <= 0.0 
-    ||   Aquifer[j].fieldCapacity     >= Aquifer[j].porosity
-    ||   Aquifer[j].wiltingPoint      >= Aquifer[j].fieldCapacity
-    ||   Aquifer[j].conductivity      <= 0.0
-    ||   Aquifer[j].conductSlope      <  0.0
-    ||   Aquifer[j].tensionSlope      <  0.0
-    ||   Aquifer[j].upperEvapFrac     <  0.0
-    ||   Aquifer[j].lowerEvapDepth    <  0.0
-    ||   Aquifer[j].waterTableElev    <  Aquifer[j].bottomElev
-    ||   Aquifer[j].upperMoisture     >  Aquifer[j].porosity 
-    ||   Aquifer[j].upperMoisture     <  Aquifer[j].wiltingPoint )
-        report_writeErrorMsg(ERR_AQUIFER_PARAMS, Aquifer[j].ID);
+    if ( project->Aquifer[j].porosity          <= 0.0 
+    ||   project->Aquifer[j].fieldCapacity     >= Aquifer[j].porosity
+    ||   project->Aquifer[j].wiltingPoint      >= Aquifer[j].fieldCapacity
+    ||   project->Aquifer[j].conductivity      <= 0.0
+    ||   project->Aquifer[j].conductSlope      <  0.0
+    ||   project->Aquifer[j].tensionSlope      <  0.0
+    ||   project->Aquifer[j].upperEvapFrac     <  0.0
+    ||   project->Aquifer[j].lowerEvapDepth    <  0.0
+    ||   project->Aquifer[j].waterTableElev    <  Aquifer[j].bottomElev
+    ||   project->Aquifer[j].upperMoisture     >  Aquifer[j].porosity 
+    ||   project->Aquifer[j].upperMoisture     <  Aquifer[j].wiltingPoint )
+        report_writeErrorMsg(ERR_AQUIFER_PARAMS, project->Aquifer[j].ID);
 
-    p = Aquifer[j].upperEvapPat;
-    if ( p >= 0 && Pattern[p].type != MONTHLY_PATTERN )
+    p = project->Aquifer[j].upperEvapPat;
+    if ( p >= 0 && project->Pattern[p].type != MONTHLY_PATTERN )
     {
-        report_writeErrorMsg(ERR_AQUIFER_PARAMS, Aquifer[j].ID);
+        report_writeErrorMsg(ERR_AQUIFER_PARAMS, project->Aquifer[j].ID);
     }
 }
 
@@ -329,13 +329,13 @@ void  gwater_validateAquifer(int j)
 
 void  gwater_validate(int j)
 {
-    TAquifer a;         // Aquifer data structure
+    TAquifer a;         // project->Aquifer data structure
     TGroundwater* gw;   // Groundwater data structure
     
-    gw = Subcatch[j].groundwater;
+    gw = project->Subcatch[j].groundwater;
     if ( gw )
     {
-        a = Aquifer[gw->aquifer];
+        a = project->Aquifer[gw->aquifer];
 
         // ... use aquifer values for missing groundwater parameters
         if ( gw->bottomElev == MISSING ) gw->bottomElev = a.bottomElev;
@@ -344,7 +344,7 @@ void  gwater_validate(int j)
 
         // ... ground elevation can't be below water table elevation
         if ( gw->surfElev < gw->waterTableElev )
-            report_writeErrorMsg(ERR_GROUND_ELEV, Subcatch[j].ID);
+            report_writeErrorMsg(ERR_GROUND_ELEV, project->Subcatch[j].ID);
     }
 }
 
@@ -357,13 +357,13 @@ void  gwater_initState(int j)
 //  Purpose: initializes state of subcatchment's groundwater.
 //
 {
-    TAquifer a;         // Aquifer data structure
+    TAquifer a;         // project->Aquifer data structure
     TGroundwater* gw;   // Groundwater data structure
     
-    gw = Subcatch[j].groundwater;
+    gw = project->Subcatch[j].groundwater;
     if ( gw )
     {
-        a = Aquifer[gw->aquifer];
+        a = project->Aquifer[gw->aquifer];
 
         // ... initial moisture content
         gw->theta = gw->upperMoisture;
@@ -399,7 +399,7 @@ void gwater_getState(int j, double x[])
 //  Purpose: retrieves state of subcatchment's groundwater.
 //
 {
-    TGroundwater* gw = Subcatch[j].groundwater;
+    TGroundwater* gw = project->Subcatch[j].groundwater;
     x[0] = gw->theta;
     x[1] = gw->bottomElev + gw->lowerDepth;
     x[2] = gw->newFlow;
@@ -415,7 +415,7 @@ void gwater_setState(int j, double x[])
 //  Purpose: assigns values to a subcatchment's groundwater state.
 //
 {
-    TGroundwater* gw = Subcatch[j].groundwater;
+    TGroundwater* gw = project->Subcatch[j].groundwater;
     if ( gw == NULL ) return;
     gw->theta = x[0];
     gw->lowerDepth = x[1] - gw->bottomElev;
@@ -435,9 +435,9 @@ double gwater_getVolume(int j)
     TAquifer a;
     TGroundwater* gw;
     double upperDepth;
-    gw = Subcatch[j].groundwater;
+    gw = project->Subcatch[j].groundwater;
     if ( gw == NULL ) return 0.0;
-    a = Aquifer[gw->aquifer];
+    a = project->Aquifer[gw->aquifer];
     upperDepth = gw->surfElev - gw->bottomElev - gw->lowerDepth;
     return (upperDepth * gw->theta) + (gw->lowerDepth * a.porosity);
 }
@@ -462,15 +462,15 @@ void gwater_getGroundwater(int j, double evap, double infil, double tStep)
 
     // --- save subcatchment's groundwater and aquifer objects to 
     //     shared variables
-    GW = Subcatch[j].groundwater;
+    GW = project->Subcatch[j].groundwater;
     if ( GW == NULL ) return;
-    FlowExpr = Subcatch[j].gwFlowExpr;
-    A = Aquifer[GW->aquifer];
+    FlowExpr = project->Subcatch[j].gwFlowExpr;
+    A = project->Aquifer[GW->aquifer];
 
     // --- get fraction of total area that is pervious
     FracPerv = subcatch_getFracPerv(j);
     if ( FracPerv <= 0.0 ) return;
-    area = Subcatch[j].area;
+    area = project->Subcatch[j].area;
 
     // --- convert infiltration volume (ft3) to equivalent rate
     //     over entire GW (subcatchment) area
@@ -485,7 +485,7 @@ void gwater_getGroundwater(int j, double evap, double infil, double tStep)
     // --- convert max. surface evap rate (ft/sec) to a rate
     //     that applies to GW evap (GW evap can only occur
     //     through the pervious land surface area)
-    MaxEvap = Evap.rate * FracPerv;
+    MaxEvap = project->Evap.rate * FracPerv;
 
     // --- available subsurface evaporation is difference between max.
     //     rate and pervious surface evap already exerted
@@ -500,15 +500,15 @@ void gwater_getGroundwater(int j, double evap, double infil, double tStep)
     //     GW flow can occur (override node's invert if a value was provided
     //     in the GW object)
     if ( GW->nodeElev != MISSING ) Hstar = GW->nodeElev - GW->bottomElev;
-    else Hstar = Node[n].invertElev - GW->bottomElev;
+    else Hstar = project->Node[n].invertElev - GW->bottomElev;
     
     // --- establish surface water height (relative to aquifer bottom)
     //     for drainage system node connected to the GW aquifer
     if ( GW->fixedDepth > 0.0 )
     {
-        Hsw = GW->fixedDepth + Node[n].invertElev - GW->bottomElev;
+        Hsw = GW->fixedDepth + project->Node[n].invertElev - GW->bottomElev;
     }
-    else Hsw = Node[n].newDepth + Node[n].invertElev - GW->bottomElev;
+    else Hsw = project->Node[n].newDepth + Node[n].invertElev - GW->bottomElev;
 
     // --- store state variables (upper zone moisture content, lower zone
     //     depth) in work vector x
@@ -528,7 +528,7 @@ void gwater_getGroundwater(int j, double evap, double infil, double tStep)
     //     inflow to the node
     MaxGWFlowNeg = (TotalDepth - x[LOWERDEPTH]) * (A.porosity - x[THETA])
                    / tStep;
-    nodeFlow = (Node[n].inflow + Node[n].newVolume/tStep) / area;
+    nodeFlow = (project->Node[n].inflow + Node[n].newVolume/tStep) / area;
     MaxGWFlowNeg = -MIN(MaxGWFlowNeg, nodeFlow);
     
     // --- integrate eqns. for d(Theta)/dt and d(LowerDepth)/dt
@@ -691,8 +691,8 @@ void getEvapRates(double theta, double upperDepth)
     p = A.upperEvapPat;
     if ( p >= 0 )
     {
-        month = datetime_monthOfYear(getDateTime(NewRunoffTime));
-        f = Pattern[p].factor[month-1];
+        month = datetime_monthOfYear(getDateTime(project->NewRunoffTime));
+        f = project->Pattern[p].factor[month-1];
     }
     upperFrac *= f;
 

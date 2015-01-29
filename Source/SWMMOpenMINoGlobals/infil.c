@@ -83,17 +83,17 @@ void infil_create(int subcatchCount, int model)
     case HORTON:
     case MOD_HORTON:
         HortInfil = (THorton *) calloc(subcatchCount, sizeof(THorton));
-        if ( HortInfil == NULL ) ErrorCode = ERR_MEMORY;
+        if ( HortInfil == NULL ) project->ErrorCode = ERR_MEMORY;
         break;
     case GREEN_AMPT:
         GAInfil = (TGrnAmpt *) calloc(subcatchCount, sizeof(TGrnAmpt));
-        if ( GAInfil == NULL ) ErrorCode = ERR_MEMORY;
+        if ( GAInfil == NULL ) project->ErrorCode = ERR_MEMORY;
         break;
     case CURVE_NUMBER:
         CNInfil = (TCurveNum *) calloc(subcatchCount, sizeof(TCurveNum));
-        if ( CNInfil == NULL ) ErrorCode = ERR_MEMORY;
+        if ( CNInfil == NULL ) project->ErrorCode = ERR_MEMORY;
         break;
-    default: ErrorCode = ERR_MEMORY;
+    default: project->ErrorCode = ERR_MEMORY;
     }
 }
 
@@ -155,7 +155,7 @@ int infil_readParams(int m, char* tok[], int ntoks)
     }
 
     // --- assign parameter values to infil. object
-    Subcatch[j].infil = j;
+    project->Subcatch[j].infil = j;
     switch (m)
     {
       case HORTON:
@@ -346,7 +346,7 @@ double horton_getInfil(THorton *infil, double tstep, double irate, double depth)
     double tp   = infil->tp;
     double df   = infil->f0 - fmin;
     double kd   = infil->decay;
-    double kr   = infil->regen * Evap.recoveryFactor;
+    double kr   = infil->regen * project->Evap.recoveryFactor;
 
     // --- special cases of no infil. or constant infil
     if ( df < 0.0 || kd < 0.0 || kr < 0.0 ) return 0.0;
@@ -452,7 +452,7 @@ double modHorton_getInfil(THorton *infil, double tstep, double irate,
     double fp, fa;
     double df = infil->f0 - infil->fmin;
     double kd = infil->decay;
-    double kr = infil->regen * Evap.recoveryFactor;
+    double kr = infil->regen * project->Evap.recoveryFactor;
 
     // --- special cases of no or constant infiltration
     if ( df < 0.0 || kd < 0.0 || kr < 0.0 ) return 0.0;
@@ -628,7 +628,7 @@ double grnampt_getInfil(TGrnAmpt *infil, double tstep, double irate,
         {
            // --- return if no upper zone moisture
             if ( infil->FU <= 0.0 ) return 0.0;
-            DF = infil->L / 300. * (12. / 3600.) * Evap.recoveryFactor;
+            DF = infil->L / 300. * (12. / 3600.) * project->Evap.recoveryFactor;
             DV = DF * infil->FUmax * tstep;
             infil->F -= DV;
             infil->FU -= DV;
@@ -789,7 +789,7 @@ void grnampt_setT(TGrnAmpt *infil)
 //           infiltration.
 //
 {
-    double DF = infil->L / 300.0 * (12. / 3600.) * Evap.recoveryFactor;
+    double DF = infil->L / 300.0 * (12. / 3600.) * project->Evap.recoveryFactor;
     infil->T = 6.0 / (100.0 * DF);
 }
 
@@ -797,14 +797,14 @@ void grnampt_setT(TGrnAmpt *infil)
 
 int curvenum_setParams(TCurveNum *infil, double p[])
 //
-//  Input:   infil = ptr. to Curve Number infiltration object
+//  Input:   infil = ptr. to project->Curve Number infiltration object
 //           p[] = array of parameter values
 //  Output:  returns TRUE if parameters are valid, FALSE otherwise
-//  Purpose: assigns Curve Number infiltration parameters to a subcatchment.
+//  Purpose: assigns project->Curve Number infiltration parameters to a subcatchment.
 //
 {
 
-    // --- convert Curve Number to max. infil. capacity
+    // --- convert project->Curve Number to max. infil. capacity
     if ( p[0] < 10.0 ) p[0] = 10.0;
     if ( p[0] > 99.0 ) p[0] = 99.0;
     infil->Smax    = (1000.0 / p[0] - 10.0) / 12.0;
@@ -828,9 +828,9 @@ int curvenum_setParams(TCurveNum *infil, double p[])
 
 void curvenum_initState(TCurveNum *infil)
 //
-//  Input:   infil = ptr. to Curve Number infiltration object
+//  Input:   infil = ptr. to project->Curve Number infiltration object
 //  Output:  none
-//  Purpose: initializes state of Curve Number infiltration for a subcatchment.
+//  Purpose: initializes state of project->Curve Number infiltration for a subcatchment.
 //
 {
     infil->S  = infil->Smax;
@@ -866,12 +866,12 @@ void curvenum_setState(TCurveNum *infil, double x[])
 double curvenum_getInfil(TCurveNum *infil, double tstep, double irate,
     double depth)
 //
-//  Input:   infil = ptr. to Curve Number infiltration object
+//  Input:   infil = ptr. to project->Curve Number infiltration object
 //           tstep = runoff time step (sec),
 //           irate = rainfall rate (ft/sec);                        
 //           depth = depth of runon + ponded water (ft)
 //  Output:  returns infiltration rate (ft/sec)
-//  Purpose: computes infiltration rate using the Curve Number method.
+//  Purpose: computes infiltration rate using the project->Curve Number method.
 //  Note:    this function treats runon from other subcatchments as part
 //           of the ponded depth and not as an effective rainfall rate.
 {
@@ -939,7 +939,7 @@ double curvenum_getInfil(TCurveNum *infil, double tstep, double irate,
     // --- otherwise regenerate infil. capacity
     else
     {
-        infil->S += infil->regen * infil->Smax * tstep * Evap.recoveryFactor;
+        infil->S += infil->regen * infil->Smax * tstep * project->Evap.recoveryFactor;
         if ( infil->S > infil->Smax ) infil->S = infil->Smax;
     }
     infil->f = f1;

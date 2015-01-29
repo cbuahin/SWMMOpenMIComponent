@@ -116,22 +116,22 @@ void  rain_open(void)
 
     // --- see how many gages get their data from a file
     count = 0;
-    for (i = 0; i < Nobjects[GAGE]; i++)
+    for (i = 0; i < project->Nobjects[GAGE]; i++)
     {
-        if ( Gage[i].dataSource == RAIN_FILE ) count++;
+        if ( project->Gage[i].dataSource == RAIN_FILE ) count++;
     }
-    Frain.file = NULL;
+    project->Frain.file = NULL;
     if ( count == 0 )
     {
-        Frain.mode = NO_FILE;
+        project->Frain.mode = NO_FILE;
     }
 
     // --- see what kind of rain interface file to open
-    else switch ( Frain.mode )
+    else switch ( project->Frain.mode )
     {
       case SCRATCH_FILE:
-        getTempFileName(Frain.name);
-        if ( (Frain.file = fopen(Frain.name, "w+b")) == NULL)
+        getTempFileName(project->Frain.name);
+        if ( (project->Frain.file = fopen(Frain.name, "w+b")) == NULL)
         {
             report_writeErrorMsg(ERR_RAIN_FILE_SCRATCH, "");
             return;
@@ -139,30 +139,30 @@ void  rain_open(void)
         break;
 
       case USE_FILE:
-        if ( (Frain.file = fopen(Frain.name, "r+b")) == NULL)
+        if ( (project->Frain.file = fopen(Frain.name, "r+b")) == NULL)
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_OPEN, Frain.name);
+            report_writeErrorMsg(ERR_RAIN_FILE_OPEN, project->Frain.name);
             return;
         }
         break;
 
       case SAVE_FILE:
-        if ( (Frain.file = fopen(Frain.name, "w+b")) == NULL)
+        if ( (project->Frain.file = fopen(Frain.name, "w+b")) == NULL)
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_OPEN, Frain.name);
+            report_writeErrorMsg(ERR_RAIN_FILE_OPEN, project->Frain.name);
             return;
         }
         break;
     }
 
     // --- create new rain file if required
-    if ( Frain.mode == SCRATCH_FILE || Frain.mode == SAVE_FILE )
+    if ( project->Frain.mode == SCRATCH_FILE || Frain.mode == SAVE_FILE )
     {
         createRainFile(count);
     }
 
     // --- initialize rain file
-    if ( Frain.mode != NO_FILE ) initRainFile();
+    if ( project->Frain.mode != NO_FILE ) initRainFile();
 
     // --- open RDII processor (creates/opens a RDII interface file)
     rdii_openRdii();
@@ -177,12 +177,12 @@ void rain_close(void)
 //  Purpose: closes rain interface file and RDII processor.
 //
 {
-    if ( Frain.file )
+    if ( project->Frain.file )
     {
-        fclose(Frain.file);
-        if ( Frain.mode == SCRATCH_FILE ) remove(Frain.name);
+        fclose(project->Frain.file);
+        if ( project->Frain.mode == SCRATCH_FILE ) remove(Frain.name);
     }
-    Frain.file = NULL;
+    project->Frain.file = NULL;
     rdii_closeRdii();
 }
 
@@ -206,58 +206,58 @@ void createRainFile(int count)
     char  fileStamp[] = "SWMM5-RAIN";
 
     // --- make sure interface file is open and no error condition
-    if ( ErrorCode || !Frain.file ) return;
+    if ( project->ErrorCode || !project->Frain.file ) return;
 
     // --- write file stamp & # gages to file
-    fwrite(fileStamp, sizeof(char), strlen(fileStamp), Frain.file);
-    fwrite(&kount, sizeof(int), 1, Frain.file);
-    filePos1 = ftell(Frain.file); 
+    fwrite(fileStamp, sizeof(char), strlen(fileStamp), project->Frain.file);
+    fwrite(&kount, sizeof(int), 1, project->Frain.file);
+    filePos1 = ftell(project->Frain.file); 
 
     // --- write default fill-in header records to file for each gage
     //     (will be replaced later with actual records)
     if ( count > 0 ) report_writeRainStats(-1, &RainStats);
     for ( i = 0;  i < count; i++ )
     {
-        fwrite(staID, sizeof(char), MAXMSG+1, Frain.file);
+        fwrite(staID, sizeof(char), MAXMSG+1, project->Frain.file);
         for ( k = 1; k <= 3; k++ )
-            fwrite(&dummy, sizeof(int), 1, Frain.file);
+            fwrite(&dummy, sizeof(int), 1, project->Frain.file);
     }
-    filePos2 = ftell(Frain.file);
+    filePos2 = ftell(project->Frain.file);
 
     // --- loop through project's  rain gages,
     //     looking for ones using rain files
-    for ( i = 0; i < Nobjects[GAGE]; i++ )
+    for ( i = 0; i < project->Nobjects[GAGE]; i++ )
     {
-        if ( ErrorCode || Gage[i].dataSource != RAIN_FILE ) continue;
+        if ( project->ErrorCode || project->Gage[i].dataSource != RAIN_FILE ) continue;
         if ( rainFileConflict(i) ) break;
 
         // --- position rain file to where data for gage will begin
-        fseek(Frain.file, filePos2, SEEK_SET);
+        fseek(project->Frain.file, filePos2, SEEK_SET);
 
         // --- add gage's data to rain file
         if ( addGageToRainFile(i) )
         {
             // --- write header records for gage to beginning of rain file
-            filePos3 = ftell(Frain.file);
-            fseek(Frain.file, filePos1, SEEK_SET);
-            sstrncpy(staID, Gage[i].staID, MAXMSG);
+            filePos3 = ftell(project->Frain.file);
+            fseek(project->Frain.file, filePos1, SEEK_SET);
+            sstrncpy(staID, project->Gage[i].staID, MAXMSG);
             interval = Interval;
-            fwrite(staID,      sizeof(char), MAXMSG+1, Frain.file);
-            fwrite(&interval,  sizeof(int), 1, Frain.file);
-            fwrite(&filePos2,  sizeof(int), 1, Frain.file);
-            fwrite(&filePos3,  sizeof(int), 1, Frain.file);
-            filePos1 = ftell(Frain.file);
+            fwrite(staID,      sizeof(char), MAXMSG+1, project->Frain.file);
+            fwrite(&interval,  sizeof(int), 1, project->Frain.file);
+            fwrite(&filePos2,  sizeof(int), 1, project->Frain.file);
+            fwrite(&filePos3,  sizeof(int), 1, project->Frain.file);
+            filePos1 = ftell(project->Frain.file);
             filePos2 = filePos3;
             report_writeRainStats(i, &RainStats);
         }
     }
 
     // --- if there was an error condition, then delete newly created file
-    if ( ErrorCode )
+    if ( project->ErrorCode )
     {
-        fclose(Frain.file);
-        Frain.file = NULL;
-        remove(Frain.name);
+        fclose(project->Frain.file);
+        project->Frain.file = NULL;
+        remove(project->Frain.name);
     }
 }
 
@@ -272,13 +272,13 @@ int rainFileConflict(int i)
 //
 {
     int j;
-    char* staID = Gage[i].staID;
-    char* fname = Gage[i].fname;
+    char* staID = project->Gage[i].staID;
+    char* fname = project->Gage[i].fname;
     for (j = 1; j < i; j++)
     {
-        if ( strcomp(Gage[j].staID, staID) && !strcomp(Gage[j].fname, fname) )
+        if ( strcomp(project->Gage[j].staID, staID) && !strcomp(Gage[j].fname, fname) )
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_CONFLICT, Gage[i].ID);
+            report_writeErrorMsg(ERR_RAIN_FILE_CONFLICT, project->Gage[i].ID);
             return 1;
         }
     }
@@ -302,24 +302,24 @@ int addGageToRainFile(int i)
     StationID = NULL;
 
     // --- check that rain file exists
-    if ( (f = fopen(Gage[i].fname, "rt")) == NULL )
-        report_writeErrorMsg(ERR_RAIN_FILE_DATA, Gage[i].fname);
+    if ( (f = fopen(project->Gage[i].fname, "rt")) == NULL )
+        report_writeErrorMsg(ERR_RAIN_FILE_DATA, project->Gage[i].fname);
     else
     {
         fileFormat = findFileFormat(f, i, &hdrLines);
         if ( fileFormat == UNKNOWN_FORMAT )
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_FORMAT, Gage[i].fname);
+            report_writeErrorMsg(ERR_RAIN_FILE_FORMAT, project->Gage[i].fname);
         }
         else
         {
             GageIndex = i;
-            readFile(f, fileFormat, hdrLines, Gage[i].startFileDate,
-                     Gage[i].endFileDate);
+            readFile(f, fileFormat, hdrLines, project->Gage[i].startFileDate,
+                     project->Gage[i].endFileDate);
         }
         fclose(f);
     }
-    if ( ErrorCode ) return 0;
+    if ( project->ErrorCode ) return 0;
     else
     return 1;
 }
@@ -340,30 +340,30 @@ void initRainFile(void)
     long  filePos;
 
     // --- make sure interface file is open and no error condition
-    if ( ErrorCode || !Frain.file ) return;
+    if ( project->ErrorCode || !project->Frain.file ) return;
 
     // --- check that interface file contains proper file stamp
-    rewind(Frain.file);
-    fread(fStamp, sizeof(char), strlen(fileStamp), Frain.file);
+    rewind(project->Frain.file);
+    fread(fStamp, sizeof(char), strlen(fileStamp), project->Frain.file);
     if ( strcmp(fStamp, fileStamp) != 0 )
     {
         report_writeErrorMsg(ERR_RAIN_IFACE_FORMAT, "");
         return;
     }
-    fread(&kount, sizeof(int), 1, Frain.file);
-    filePos = ftell(Frain.file);
+    fread(&kount, sizeof(int), 1, project->Frain.file);
+    filePos = ftell(project->Frain.file);
 
     // --- locate information for each raingage in interface file
-    for ( i = 0; i < Nobjects[GAGE]; i++ )
+    for ( i = 0; i < project->Nobjects[GAGE]; i++ )
     {
-        if ( ErrorCode || Gage[i].dataSource != RAIN_FILE ) continue;
+        if ( project->ErrorCode || project->Gage[i].dataSource != RAIN_FILE ) continue;
 
         // --- match station ID for gage with one in file
-        fseek(Frain.file, filePos, SEEK_SET);
+        fseek(project->Frain.file, filePos, SEEK_SET);
         if ( !findGageInFile(i, (int)kount) ||
-             Gage[i].startFilePos == Gage[i].endFilePos )
+             project->Gage[i].startFilePos == Gage[i].endFilePos )
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_GAGE, Gage[i].ID);
+            report_writeErrorMsg(ERR_RAIN_FILE_GAGE, project->Gage[i].ID);
         }
     }
 }
@@ -385,18 +385,18 @@ int findGageInFile(int i, int kount)
 
     for ( k = 1; k <= kount; k++ )
     {
-        fread(staID,      sizeof(char), MAXMSG+1, Frain.file);
-        fread(&interval,  sizeof(int), 1, Frain.file);
-        fread(&filePos1,  sizeof(int), 1, Frain.file);
-        fread(&filePos2,  sizeof(int), 1, Frain.file);
-        if ( strcmp(staID, Gage[i].staID) == 0 )
+        fread(staID,      sizeof(char), MAXMSG+1, project->Frain.file);
+        fread(&interval,  sizeof(int), 1, project->Frain.file);
+        fread(&filePos1,  sizeof(int), 1, project->Frain.file);
+        fread(&filePos2,  sizeof(int), 1, project->Frain.file);
+        if ( strcmp(staID, project->Gage[i].staID) == 0 )
         {
             // --- match found; save file parameters
-            Gage[i].rainType     = RAINFALL_VOLUME;
-            Gage[i].rainInterval = interval;
-            Gage[i].startFilePos = (long)filePos1;
-            Gage[i].endFilePos   = (long)filePos2;
-            Gage[i].currentFilePos = Gage[i].startFilePos;
+            project->Gage[i].rainType     = RAINFALL_VOLUME;
+            project->Gage[i].rainInterval = interval;
+            project->Gage[i].startFilePos = (long)filePos1;
+            project->Gage[i].endFilePos   = (long)filePos2;
+            project->Gage[i].currentFilePos = Gage[i].startFilePos;
             return TRUE;
         }
     }
@@ -553,17 +553,17 @@ int findFileFormat(FILE *f, int i, int *hdrLines)
         if ( parseStdLine(line, &year, &month, &day, &hour, &minute, &x) )
         {
             fileFormat = STD_SPACE_DELIMITED;
-            RainType = Gage[i].rainType;
-            Interval = Gage[i].rainInterval;
-            if ( Gage[i].rainUnits == SI ) UnitsFactor = 1.0/MMperINCH;
+            RainType = project->Gage[i].rainType;
+            Interval = project->Gage[i].rainInterval;
+            if ( project->Gage[i].rainUnits == SI ) UnitsFactor = 1.0/MMperINCH;
             TimeOffset = 0;
-            StationID = Gage[i].staID;
+            StationID = project->Gage[i].staID;
             break;         
         }
         (*hdrLines)++;
 
     }
-    if ( fileFormat != UNKNOWN_FORMAT ) Gage[i].rainInterval = Interval;
+    if ( fileFormat != UNKNOWN_FORMAT ) project->Gage[i].rainInterval = Interval;
     return fileFormat;
 }
 
@@ -980,9 +980,9 @@ int readStdLine(char *line, DateTime day1, DateTime day2)
     {
         report_writeLine(
             "ERROR 318: the following line is out of sequence in rainfall file ");
-        report_writeLine(Gage[GageIndex].fname);
+        report_writeLine(project->Gage[GageIndex].fname);
         report_writeLine(line);
-        ErrorCode = ERR_RAIN_FILE_SEQUENCE;
+        project->ErrorCode = ERR_RAIN_FILE_SEQUENCE;
         return -1;
     }
     PreviousDate = date2;
@@ -1078,8 +1078,8 @@ void saveAccumRainfall(DateTime date1, int hour, int minute, long v)
         if ( RainStats.startDate == NO_DATE ) RainStats.startDate = date2;
         for (j = 0; j < n; j++)
         {
-            fwrite(&date2, sizeof(DateTime), 1, Frain.file);
-            fwrite(&x, sizeof(float), 1, Frain.file);
+            fwrite(&date2, sizeof(DateTime), 1, project->Frain.file);
+            fwrite(&x, sizeof(float), 1, project->Frain.file);
             date2 = datetime_addSeconds(date2, Interval);
             RainStats.endDate = date2;
         }
@@ -1117,8 +1117,8 @@ void saveRainfall(DateTime date1, int hour, int minute, float x, char isMissing)
         date2 = datetime_addSeconds(date1, seconds);
 
         // --- write date & value (in inches) to interface file
-        fwrite(&date2, sizeof(DateTime), 1, Frain.file);
-        fwrite(&x, sizeof(float), 1, Frain.file);
+        fwrite(&date2, sizeof(DateTime), 1, project->Frain.file);
+        fwrite(&x, sizeof(float), 1, project->Frain.file);
 
         // --- update actual start & end of record dates
         if ( RainStats.startDate == NO_DATE ) RainStats.startDate = date2;

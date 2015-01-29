@@ -87,43 +87,43 @@ int iface_readFileParams(char* tok[], int ntoks)
     switch ( j )
     {
       case RAINFALL_FILE:
-        Frain.mode = k;
-        sstrncpy(Frain.name, tok[2], MAXFNAME);
+        project->Frain.mode = k;
+        sstrncpy(project->Frain.name, tok[2], MAXFNAME);
         break;
 
       case RUNOFF_FILE:
-        Frunoff.mode = k;
-        sstrncpy(Frunoff.name, tok[2], MAXFNAME);
+        project->Frunoff.mode = k;
+        sstrncpy(project->Frunoff.name, tok[2], MAXFNAME);
         break;
 
       case HOTSTART_FILE:
         if ( k == USE_FILE )
         {
-            Fhotstart1.mode = k;
-            sstrncpy(Fhotstart1.name, tok[2], MAXFNAME);
+            project->Fhotstart1.mode = k;
+            sstrncpy(project->Fhotstart1.name, tok[2], MAXFNAME);
         }
         else if ( k == SAVE_FILE )
         {
-            Fhotstart2.mode = k;
-            sstrncpy(Fhotstart2.name, tok[2], MAXFNAME);
+            project->Fhotstart2.mode = k;
+            sstrncpy(project->Fhotstart2.name, tok[2], MAXFNAME);
         }
         break;
 
       case RDII_FILE:
-        Frdii.mode = k;
-        sstrncpy(Frdii.name, tok[2], MAXFNAME);
+        project->Frdii.mode = k;
+        sstrncpy(project->Frdii.name, tok[2], MAXFNAME);
         break;
 
       case INFLOWS_FILE:
         if ( k != USE_FILE ) return error_setInpError(ERR_ITEMS, "");
-        Finflows.mode = k;
-        sstrncpy(Finflows.name, tok[2], MAXFNAME);
+        project->Finflows.mode = k;
+        sstrncpy(project->Finflows.name, tok[2], MAXFNAME);
         break;
 
       case OUTFLOWS_FILE:
         if ( k != SAVE_FILE ) return error_setInpError(ERR_ITEMS, "");
-        Foutflows.mode = k;
-        sstrncpy(Foutflows.name, tok[2], MAXFNAME);
+        project->Foutflows.mode = k;
+        sstrncpy(project->Foutflows.name, tok[2], MAXFNAME);
         break;
     }
     return 0;
@@ -147,9 +147,9 @@ void iface_openRoutingFiles()
     NewIfaceValues = NULL;
 
     // --- check that inflows & outflows files are not the same
-    if ( Foutflows.mode != NO_FILE && Finflows.mode != NO_FILE )
+    if ( project->Foutflows.mode != NO_FILE && project->Finflows.mode != NO_FILE )
     {
-        if ( strcomp(Foutflows.name, Finflows.name) )
+        if ( strcomp(project->Foutflows.name, project->Finflows.name) )
         {
             report_writeErrorMsg(ERR_ROUTING_FILE_NAMES, "");
             return;
@@ -157,8 +157,8 @@ void iface_openRoutingFiles()
     }
 
     // --- open the file for reading or writing
-    if ( Foutflows.mode == SAVE_FILE ) openFileForOutput();
-    if ( Finflows.mode == USE_FILE ) openFileForInput();
+    if ( project->Foutflows.mode == SAVE_FILE ) openFileForOutput();
+    if ( project->Finflows.mode == USE_FILE ) openFileForInput();
 }
 
 //=============================================================================
@@ -174,8 +174,8 @@ void iface_closeRoutingFiles()
     FREE(IfaceNodes);
     if ( OldIfaceValues != NULL ) project_freeMatrix(OldIfaceValues);
     if ( NewIfaceValues != NULL ) project_freeMatrix(NewIfaceValues);
-    if ( Finflows.file )  fclose(Finflows.file);
-    if ( Foutflows.file ) fclose(Foutflows.file);
+    if ( project->Finflows.file )  fclose(Finflows.file);
+    if ( project->Foutflows.file ) fclose(Foutflows.file);
 }
 
 //=============================================================================
@@ -288,18 +288,18 @@ void iface_saveOutletResults(DateTime reportDate, FILE* file)
     datetime_decodeTime(reportDate, &hr, &min, &sec);
     sprintf(theDate, " %04d %02d  %02d  %02d  %02d  %02d ",
             yr, mon, day, hr, min, sec);
-    for (i=0; i<Nobjects[NODE]; i++)
+    for (i=0; i<project->Nobjects[NODE]; i++)
     {
         // --- check that node is an outlet node
         if ( !isOutletNode(i) ) continue;
 
         // --- write node ID, date, flow, and quality to file
-        fprintf(file, "\n%-16s", Node[i].ID);
+        fprintf(file, "\n%-16s", project->Node[i].ID);
         fprintf(file, "%s", theDate);
-        fprintf(file, " %-10f", Node[i].inflow * UCF(FLOW));
-        for ( p = 0; p < Nobjects[POLLUT]; p++ )
+        fprintf(file, " %-10f", project->Node[i].inflow * UCF(FLOW));
+        for ( p = 0; p < project->Nobjects[POLLUT]; p++ )
         {
-            fprintf(file, " %-10f", Node[i].newQual[p]);
+            fprintf(file, " %-10f", project->Node[i].newQual[p]);
         }
     }
 }
@@ -316,55 +316,55 @@ void openFileForOutput()
     int i, n;
 
     // --- open the routing file for writing text
-    Foutflows.file = fopen(Foutflows.name, "wt");
-    if ( Foutflows.file == NULL )
+    project->Foutflows.file = fopen(Foutflows.name, "wt");
+    if ( project->Foutflows.file == NULL )
     {
-        report_writeErrorMsg(ERR_ROUTING_FILE_OPEN, Foutflows.name);
+        report_writeErrorMsg(ERR_ROUTING_FILE_OPEN, project->Foutflows.name);
         return;
     }
 
     // --- write title & reporting time step to file
-    fprintf(Foutflows.file, "SWMM5 Interface File");
-    fprintf(Foutflows.file, "\n%s", Title[0]);
-    fprintf(Foutflows.file, "\n%-4d - reporting time step in sec", ReportStep);
+    fprintf(project->Foutflows.file, "SWMM5 Interface File");
+    fprintf(project->Foutflows.file, "\n%s", project->Title[0]);
+    fprintf(project->Foutflows.file, "\n%-4d - reporting time step in sec", project->ReportStep);
 
     // --- write number & names of each constituent (including flow) to file
-    fprintf(Foutflows.file, "\n%-4d - number of constituents as listed below:",
-            Nobjects[POLLUT] + 1);
-    fprintf(Foutflows.file, "\nFLOW %s", FlowUnitWords[FlowUnits]);
-    for (i=0; i<Nobjects[POLLUT]; i++)
+    fprintf(project->Foutflows.file, "\n%-4d - number of constituents as listed below:",
+            project->Nobjects[POLLUT] + 1);
+    fprintf(project->Foutflows.file, "\nFLOW %s", FlowUnitWords[project->FlowUnits]);
+    for (i=0; i<project->Nobjects[POLLUT]; i++)
     {
-        fprintf(Foutflows.file, "\n%s %s", Pollut[i].ID,
-            QualUnitsWords[Pollut[i].units]);
+        fprintf(project->Foutflows.file, "\n%s %s", project->Pollut[i].ID,
+            QualUnitsWords[project->Pollut[i].units]);
     }
 
     // --- count number of outlet nodes
     n = 0;
-    for (i=0; i<Nobjects[NODE]; i++)
+    for (i=0; i<project->Nobjects[NODE]; i++)
     {
         if ( isOutletNode(i) ) n++;
     }
 
     // --- write number and names of outlet nodes to file
-    fprintf(Foutflows.file, "\n%-4d - number of nodes as listed below:", n);
-    for (i=0; i<Nobjects[NODE]; i++)
+    fprintf(project->Foutflows.file, "\n%-4d - number of nodes as listed below:", n);
+    for (i=0; i<project->Nobjects[NODE]; i++)
     {
           if ( isOutletNode(i) )
-            fprintf(Foutflows.file, "\n%s", Node[i].ID);
+            fprintf(project->Foutflows.file, "\n%s", project->Node[i].ID);
     }
 
     // --- write column headings
-    fprintf(Foutflows.file,
+    fprintf(project->Foutflows.file,
         "\nNode             Year Mon Day Hr  Min Sec FLOW      ");
-    for (i=0; i<Nobjects[POLLUT]; i++)
+    for (i=0; i<project->Nobjects[POLLUT]; i++)
     {
-        fprintf(Foutflows.file, " %-10s", Pollut[i].ID);
+        fprintf(project->Foutflows.file, " %-10s", project->Pollut[i].ID);
     }
 
     // --- if reporting starts immediately, save initial outlet values
-    if ( ReportStart == StartDateTime )
+    if ( project->ReportStart == project->StartDateTime )
     {
-        iface_saveOutletResults(ReportStart, Foutflows.file);
+        iface_saveOutletResults(project->ReportStart, project->Foutflows.file);
     }
 }
 
@@ -382,32 +382,32 @@ void openFileForInput()
     char  s[MAXLINE+1];                // general string variable
 
     // --- open the routing interface file for reading text
-    Finflows.file = fopen(Finflows.name, "rt");
-    if ( Finflows.file == NULL )
+    project->Finflows.file = fopen(Finflows.name, "rt");
+    if ( project->Finflows.file == NULL )
     {
-        report_writeErrorMsg(ERR_ROUTING_FILE_OPEN, Finflows.name);
+        report_writeErrorMsg(ERR_ROUTING_FILE_OPEN, project->Finflows.name);
         return;
     }
 
     // --- check for correct file type
-    fgets(line, MAXLINE, Finflows.file);
+    fgets(line, MAXLINE, project->Finflows.file);
     sscanf(line, "%s", s);
     if ( !strcomp(s, "SWMM5") )
     {
-        report_writeErrorMsg(ERR_ROUTING_FILE_FORMAT, Finflows.name);
+        report_writeErrorMsg(ERR_ROUTING_FILE_FORMAT, project->Finflows.name);
         return;
     }
 
     // --- skip title line
-    fgets(line, MAXLINE, Finflows.file);
+    fgets(line, MAXLINE, project->Finflows.file);
 
     // --- read reporting time step (sec)
     IfaceStep = 0;
-    fgets(line, MAXLINE, Finflows.file);
+    fgets(line, MAXLINE, project->Finflows.file);
     sscanf(line, "%d", &IfaceStep);
     if ( IfaceStep <= 0 )
     {
-        report_writeErrorMsg(ERR_ROUTING_FILE_FORMAT, Finflows.name);
+        report_writeErrorMsg(ERR_ROUTING_FILE_FORMAT, project->Finflows.name);
         return;
     }
 
@@ -415,7 +415,7 @@ void openFileForInput()
     err = getIfaceFilePolluts();
     if ( err > 0 )
     {
-        report_writeErrorMsg(err, Finflows.name);
+        report_writeErrorMsg(err, project->Finflows.name);
         return;
     }
 
@@ -423,7 +423,7 @@ void openFileForInput()
     err = getIfaceFileNodes();
     if ( err > 0 )
     {
-        report_writeErrorMsg(err, Finflows.name);
+        report_writeErrorMsg(err, project->Finflows.name);
         return;
     }
 
@@ -458,24 +458,24 @@ int  getIfaceFilePolluts()
     char  s2[MAXLINE+1];         
 
     // --- read number of pollutants (minus FLOW)
-    fgets(line, MAXLINE, Finflows.file);
+    fgets(line, MAXLINE, project->Finflows.file);
     sscanf(line, "%d", &NumIfacePolluts);
     NumIfacePolluts--;
     if ( NumIfacePolluts < 0 ) return ERR_ROUTING_FILE_FORMAT;
 
     // --- read flow units
-    fgets(line, MAXLINE, Finflows.file);
+    fgets(line, MAXLINE, project->Finflows.file);
     sscanf(line, "%s %s", s1, s2);
     if ( !strcomp(s1, "FLOW") )  return ERR_ROUTING_FILE_FORMAT;
     IfaceFlowUnits = findmatch(s2, FlowUnitWords);
     if ( IfaceFlowUnits < 0 ) return ERR_ROUTING_FILE_FORMAT;
 
     // --- allocate memory for pollutant index array
-    if ( Nobjects[POLLUT] > 0 )
+    if ( project->Nobjects[POLLUT] > 0 )
     {
-        IfacePolluts = (int *) calloc(Nobjects[POLLUT], sizeof(int));
+        IfacePolluts = (int *) calloc(project->Nobjects[POLLUT], sizeof(int));
         if ( !IfacePolluts ) return ERR_MEMORY;
-        for (i=0; i<Nobjects[POLLUT]; i++) IfacePolluts[i] = -1;
+        for (i=0; i<project->Nobjects[POLLUT]; i++) IfacePolluts[i] = -1;
     }
 
     // --- read pollutant names & units
@@ -484,14 +484,14 @@ int  getIfaceFilePolluts()
         // --- check each pollutant name on file with project's pollutants
         for (i=0; i<NumIfacePolluts; i++)
         {
-            if ( feof(Finflows.file) ) return ERR_ROUTING_FILE_FORMAT;
-            fgets(line, MAXLINE, Finflows.file);
+            if ( feof(project->Finflows.file) ) return ERR_ROUTING_FILE_FORMAT;
+            fgets(line, MAXLINE, project->Finflows.file);
             sscanf(line, "%s %s", s1, s2);
-            if ( Nobjects[POLLUT] > 0 )
+            if ( project->Nobjects[POLLUT] > 0 )
             {
                 j = project_findObject(POLLUT, s1);
                 if ( j < 0 ) continue;
-                if ( !strcomp(s2, QualUnitsWords[Pollut[j].units]) )
+                if ( !strcomp(s2, QualUnitsWords[project->Pollut[j].units]) )
                     return ERR_ROUTING_FILE_NOMATCH;
                 IfacePolluts[j] = i;
             }
@@ -514,7 +514,7 @@ int getIfaceFileNodes()
     char  s[MAXLINE+1];                // general string variable
 
     // --- read number of interface nodes
-    fgets(line, MAXLINE, Finflows.file);
+    fgets(line, MAXLINE, project->Finflows.file);
     sscanf(line, "%d", &NumIfaceNodes);
     if ( NumIfaceNodes <= 0 ) return ERR_ROUTING_FILE_FORMAT;
 
@@ -525,15 +525,15 @@ int getIfaceFileNodes()
     // --- read names of interface nodes from file & save their indexes
     for ( i=0; i<NumIfaceNodes; i++ )
     {
-        if ( feof(Finflows.file) ) return ERR_ROUTING_FILE_FORMAT;
-        fgets(line, MAXLINE, Finflows.file);
+        if ( feof(project->Finflows.file) ) return ERR_ROUTING_FILE_FORMAT;
+        fgets(line, MAXLINE, project->Finflows.file);
         sscanf(line, "%s", s);
         IfaceNodes[i] = project_findObject(NODE, s);
     }
 
     // --- skip over column headings line
-    if ( feof(Finflows.file) ) return ERR_ROUTING_FILE_FORMAT;
-    fgets(line, MAXLINE, Finflows.file);
+    if ( feof(project->Finflows.file) ) return ERR_ROUTING_FILE_FORMAT;
+    fgets(line, MAXLINE, project->Finflows.file);
     return 0;
 }
 
@@ -556,8 +556,8 @@ void readNewIfaceValues()
     NewIfaceDate = NO_DATE;
     for (i=0; i<NumIfaceNodes; i++)
     {
-        if ( feof(Finflows.file) ) return;
-        fgets(line, MAXLINE, Finflows.file);
+        if ( feof(project->Finflows.file) ) return;
+        fgets(line, MAXLINE, project->Finflows.file);
 
         // --- parse date & time from line
         if ( strtok(line, SEPSTR) == NULL ) return;
@@ -630,11 +630,11 @@ int  isOutletNode(int i)
 //
 {
     // --- for DW routing only outfalls are outlets
-    if ( RouteModel == DW )
+    if ( project->RouteModel == DW )
     {
-        return (Node[i].type == OUTFALL);
+        return (project->Node[i].type == OUTFALL);
     }
 
     // --- otherwise outlets are nodes with no outflow links (degree is 0)
-    else return (Node[i].degree == 0);
+    else return (project->Node[i].degree == 0);
 }

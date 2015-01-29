@@ -52,7 +52,7 @@ int gage_readParams(int j, char* tok[], int ntoks)
 //
 //  Data formats are:
 //    Name RainType RecdFreq SCF TIMESERIES SeriesName
-//    Name RainType RecdFreq SCF FILE FileName Station Units StartDate
+//    Name RainType RecdFreq SCF FILE FileName Station Units project->StartDate
 //
 {
     int      k, err;
@@ -70,7 +70,7 @@ int gage_readParams(int j, char* tok[], int ntoks)
     x[0] = -1.0;         // No time series index
     x[1] = 1.0;          // Rain type is volume
     x[2] = 3600.0;       // Recording freq. is 3600 sec
-    x[3] = 1.0;          // Snow catch deficiency factor
+    x[3] = 1.0;          // project->Snow catch deficiency factor
     x[4] = NO_DATE;      // Default is no start/end date
     x[5] = NO_DATE;
     x[6] = 0.0;          // US units
@@ -94,24 +94,24 @@ int gage_readParams(int j, char* tok[], int ntoks)
 
     // --- save parameters to rain gage object
     if ( err > 0 ) return err;
-    Gage[j].ID = id;
-    Gage[j].tSeries      = (int)x[0];
-    Gage[j].rainType     = (int)x[1];
-    Gage[j].rainInterval = (int)x[2];
-    Gage[j].snowFactor   = x[3];
-    Gage[j].rainUnits    = (int)x[6];
-    if ( Gage[j].tSeries >= 0 ) Gage[j].dataSource = RAIN_TSERIES;
-    else                        Gage[j].dataSource = RAIN_FILE;
-    if ( Gage[j].dataSource == RAIN_FILE )
+    project->Gage[j].ID = id;
+    project->Gage[j].tSeries      = (int)x[0];
+    project->Gage[j].rainType     = (int)x[1];
+    project->Gage[j].rainInterval = (int)x[2];
+    project->Gage[j].snowFactor   = x[3];
+    project->Gage[j].rainUnits    = (int)x[6];
+    if ( project->Gage[j].tSeries >= 0 ) Gage[j].dataSource = RAIN_TSERIES;
+    else                        project->Gage[j].dataSource = RAIN_FILE;
+    if ( project->Gage[j].dataSource == RAIN_FILE )
     {
-        sstrncpy(Gage[j].fname, fname, MAXFNAME);
-        sstrncpy(Gage[j].staID, staID, MAXMSG);
-        Gage[j].startFileDate = x[4];
-        Gage[j].endFileDate = x[5];
+        sstrncpy(project->Gage[j].fname, fname, MAXFNAME);
+        sstrncpy(project->Gage[j].staID, staID, MAXMSG);
+        project->Gage[j].startFileDate = x[4];
+        project->Gage[j].endFileDate = x[5];
     }
-    Gage[j].unitsFactor = 1.0;
-    Gage[j].coGage = -1;
-    Gage[j].isUsed = FALSE;
+    project->Gage[j].unitsFactor = 1.0;
+    project->Gage[j].coGage = -1;
+    project->Gage[j].isUsed = FALSE;
     return 0;
 }
 
@@ -207,40 +207,40 @@ void  gage_validate(int j)
     int gageInterval;
 
     // --- for gage with time series data:
-    if ( Gage[j].dataSource == RAIN_TSERIES )
+    if ( project->Gage[j].dataSource == RAIN_TSERIES )
     {
         // --- check gage's recording interval against that of time series
-        k = Gage[j].tSeries;
-        if ( Tseries[k].refersTo >= 0 )
+        k = project->Gage[j].tSeries;
+        if ( project->Tseries[k].refersTo >= 0 )
         {
-            report_writeErrorMsg(ERR_RAIN_GAGE_TSERIES, Gage[j].ID);
+            report_writeErrorMsg(ERR_RAIN_GAGE_TSERIES, project->Gage[j].ID);
         }
-        gageInterval = (int)(floor(Tseries[k].dxMin*SECperDAY + 0.5));
-        if ( gageInterval > 0 && Gage[j].rainInterval > gageInterval )
+        gageInterval = (int)(floor(project->Tseries[k].dxMin*SECperDAY + 0.5));
+        if ( gageInterval > 0 && project->Gage[j].rainInterval > gageInterval )
         {
-            report_writeErrorMsg(ERR_RAIN_GAGE_INTERVAL, Gage[j].ID);
+            report_writeErrorMsg(ERR_RAIN_GAGE_INTERVAL, project->Gage[j].ID);
         } 
-        if ( Gage[j].rainInterval < gageInterval )
+        if ( project->Gage[j].rainInterval < gageInterval )
         {
-            report_writeWarningMsg(WARN09, Gage[j].ID);
+            report_writeWarningMsg(WARN09, project->Gage[j].ID);
         }
-        if ( Gage[j].rainInterval < WetStep )
+        if ( project->Gage[j].rainInterval < project->WetStep )
         {
-            report_writeWarningMsg(WARN01, Gage[j].ID);
-            WetStep = Gage[j].rainInterval;
+            report_writeWarningMsg(WARN01, project->Gage[j].ID);
+            project->WetStep = project->Gage[j].rainInterval;
         }
 
         // --- see if gage uses same time series as another gage
         for (i=0; i<j; i++)
         {
-            if ( Gage[i].dataSource == RAIN_TSERIES && Gage[i].tSeries == k )
+            if ( project->Gage[i].dataSource == RAIN_TSERIES && Gage[i].tSeries == k )
             {
-                Gage[j].coGage = i;
+                project->Gage[j].coGage = i;
 
                 // --- check that both gages record same type of data
-                if ( Gage[j].rainType != Gage[i].rainType )
+                if ( project->Gage[j].rainType != Gage[i].rainType )
                 {
-                    report_writeErrorMsg(ERR_RAIN_GAGE_FORMAT, Gage[j].ID);
+                    report_writeErrorMsg(ERR_RAIN_GAGE_FORMAT, project->Gage[j].ID);
                 }
                 return;
             }
@@ -259,46 +259,46 @@ void  gage_initState(int j)
 {
     // --- assume gage not used by any subcatchment
     //     (will be updated in subcatch_initState)
-    Gage[j].isUsed = FALSE;
-    Gage[j].rainfall = 0.0;
-    Gage[j].reportRainfall = 0.0;
-    if ( IgnoreRainfall ) return;
+    project->Gage[j].isUsed = FALSE;
+    project->Gage[j].rainfall = 0.0;
+    project->Gage[j].reportRainfall = 0.0;
+    if ( project->IgnoreRainfall ) return;
 
     // --- for gage with file data:
-    if ( Gage[j].dataSource == RAIN_FILE )
+    if ( project->Gage[j].dataSource == RAIN_FILE )
     {
         // --- set current file position to start of period of record
-        Gage[j].currentFilePos = Gage[j].startFilePos;
+        project->Gage[j].currentFilePos = Gage[j].startFilePos;
 
         // --- assign units conversion factor
         //     (rain depths on interface file are in inches)
-        if ( UnitSystem == SI ) Gage[j].unitsFactor = MMperINCH;
+        if ( project->UnitSystem == SI ) project->Gage[j].unitsFactor = MMperINCH;
     }
 
     // --- get first & next rainfall values
     if ( getFirstRainfall(j) )
     {
         // --- find date at end of starting rain interval
-        Gage[j].endDate = datetime_addSeconds(
-                          Gage[j].startDate, Gage[j].rainInterval);
+        project->Gage[j].endDate = datetime_addSeconds(
+                          project->Gage[j].startDate, Gage[j].rainInterval);
 
         // --- if rainfall record begins after start of simulation,
-        if ( Gage[j].startDate > StartDateTime )
+        if ( project->Gage[j].startDate > project->StartDateTime )
         {
             // --- make next rainfall date the start of the rain record
-            Gage[j].nextDate = Gage[j].startDate;
-            Gage[j].nextRainfall = Gage[j].rainfall;
+            project->Gage[j].nextDate = Gage[j].startDate;
+            project->Gage[j].nextRainfall = Gage[j].rainfall;
 
             // --- make start of current rain interval the simulation start
-            Gage[j].startDate = StartDateTime;
-            Gage[j].endDate = Gage[j].nextDate;
-            Gage[j].rainfall = 0.0;
+            project->Gage[j].startDate = project->StartDateTime;
+            project->Gage[j].endDate = Gage[j].nextDate;
+            project->Gage[j].rainfall = 0.0;
         }
 
         // --- otherwise find next recorded rainfall
-        else if ( !getNextRainfall(j) ) Gage[j].nextDate = NO_DATE;
+        else if ( !getNextRainfall(j) ) project->Gage[j].nextDate = NO_DATE;
     }
-    else Gage[j].startDate = NO_DATE;
+    else project->Gage[j].startDate = NO_DATE;
 }
 
 //=============================================================================
@@ -312,20 +312,20 @@ void gage_setState(int j, DateTime t)
 //
 {
     // --- return if gage not used by any subcatchment
-    if ( Gage[j].isUsed == FALSE ) return;
+    if ( project->Gage[j].isUsed == FALSE ) return;
 
     // --- set rainfall to zero if disabled
-    if ( IgnoreRainfall )
+    if ( project->IgnoreRainfall )
     {
-        Gage[j].rainfall = 0.0;
+        project->Gage[j].rainfall = 0.0;
         return;
     }
 
     // --- use rainfall from co-gage (gage with lower index that uses
     //     same rainfall time series or file) if it exists
-    if ( Gage[j].coGage >= 0)
+    if ( project->Gage[j].coGage >= 0)
     {
-        Gage[j].rainfall = Gage[Gage[j].coGage].rainfall;
+        project->Gage[j].rainfall = Gage[Gage[j].coGage].rainfall;
         return;
     }
 
@@ -334,45 +334,45 @@ void gage_setState(int j, DateTime t)
     for (;;)
     {
         // --- no rainfall if no interval start date
-        if ( Gage[j].startDate == NO_DATE )
+        if ( project->Gage[j].startDate == NO_DATE )
         {
-            Gage[j].rainfall = 0.0;
+            project->Gage[j].rainfall = 0.0;
             return;
         }
 
         // --- no rainfall if time is before interval start date
-        if ( t < Gage[j].startDate )
+        if ( t < project->Gage[j].startDate )
         {
-            Gage[j].rainfall = 0.0;
+            project->Gage[j].rainfall = 0.0;
             return;
         }
 
         // --- use current rainfall if time is before interval end date
-        if ( t < Gage[j].endDate )
+        if ( t < project->Gage[j].endDate )
         {
             return;
         }
 
         // --- no rainfall if t >= interval end date & no next interval exists
-        if ( Gage[j].nextDate == NO_DATE )
+        if ( project->Gage[j].nextDate == NO_DATE )
         {
-            Gage[j].rainfall = 0.0;
+            project->Gage[j].rainfall = 0.0;
             return;
         }
 
         // --- no rainfall if t > interval end date & <  next interval date
-        if ( t < Gage[j].nextDate )
+        if ( t < project->Gage[j].nextDate )
         {
-            Gage[j].rainfall = 0.0;
+            project->Gage[j].rainfall = 0.0;
             return;
         }
 
         // --- otherwise update next rainfall interval date
-        Gage[j].startDate = Gage[j].nextDate;
-        Gage[j].endDate = datetime_addSeconds(Gage[j].startDate,
-                          Gage[j].rainInterval);
-        Gage[j].rainfall = Gage[j].nextRainfall;
-        if ( !getNextRainfall(j) ) Gage[j].nextDate = NO_DATE;
+        project->Gage[j].startDate = Gage[j].nextDate;
+        project->Gage[j].endDate = datetime_addSeconds(Gage[j].startDate,
+                          project->Gage[j].rainInterval);
+        project->Gage[j].rainfall = Gage[j].nextRainfall;
+        if ( !getNextRainfall(j) ) project->Gage[j].nextDate = NO_DATE;
     }
 }
 
@@ -386,11 +386,11 @@ DateTime gage_getNextRainDate(int j, DateTime aDate)
 //  Purpose: finds the next date from  specified date when rainfall occurs.
 //
 {
-    if ( Gage[j].isUsed == FALSE ) return aDate;
+    if ( project->Gage[j].isUsed == FALSE ) return aDate;
     aDate += OneSecond;
-    if ( aDate < Gage[j].startDate ) return Gage[j].startDate;
-    if ( aDate < Gage[j].endDate   ) return Gage[j].endDate;
-    return Gage[j].nextDate;
+    if ( aDate < project->Gage[j].startDate ) return Gage[j].startDate;
+    if ( aDate < project->Gage[j].endDate   ) return Gage[j].endDate;
+    return project->Gage[j].nextDate;
 }
 
 //=============================================================================
@@ -406,11 +406,11 @@ double gage_getPrecip(int j, double *rainfall, double *snowfall)
 {
     *rainfall = 0.0;
     *snowfall = 0.0;
-    if ( !IgnoreSnowmelt && Temp.ta <= Snow.snotmp )
+    if ( !project->IgnoreSnowmelt && project->Temp.ta <= project->Snow.snotmp )
     {
-       *snowfall = Gage[j].rainfall * Gage[j].snowFactor / UCF(RAINFALL);
+       *snowfall = project->Gage[j].rainfall * Gage[j].snowFactor / UCF(RAINFALL);
     }
-    else *rainfall = Gage[j].rainfall / UCF(RAINFALL);
+    else *rainfall = project->Gage[j].rainfall / UCF(RAINFALL);
     return (*rainfall) + (*snowfall);
 } 
 
@@ -427,9 +427,9 @@ void gage_setReportRainfall(int j, DateTime reportDate)
     double result;
 
     // --- use value from co-gage if it exists
-    if ( Gage[j].coGage >= 0)
+    if ( project->Gage[j].coGage >= 0)
     {
-        Gage[j].reportRainfall = Gage[Gage[j].coGage].reportRainfall;
+        project->Gage[j].reportRainfall = Gage[Gage[j].coGage].reportRainfall;
         return;
     }
 
@@ -439,15 +439,15 @@ void gage_setReportRainfall(int j, DateTime reportDate)
 
     // --- use current rainfall if report date/time is before end
     //     of current rain interval
-    if ( reportDate < Gage[j].endDate ) result = Gage[j].rainfall;
+    if ( reportDate < project->Gage[j].endDate ) result = Gage[j].rainfall;
 
     // --- use 0.0 if report date/time is before start of next rain interval
-    else if ( reportDate < Gage[j].nextDate ) result = 0.0;
+    else if ( reportDate < project->Gage[j].nextDate ) result = 0.0;
 
     // --- otherwise report date/time falls right on end of current rain
     //     interval and start of next interval so use next interval's rainfall
-    else result = Gage[j].nextRainfall;
-    Gage[j].reportRainfall = result;
+    else result = project->Gage[j].nextRainfall;
+    project->Gage[j].reportRainfall = result;
 }
 
 //=============================================================================
@@ -464,25 +464,25 @@ int getFirstRainfall(int j)
     double rFirst;                     // first rain intensity (in/hr or mm/hr)
 
     // --- assign default values to date & rainfall
-    Gage[j].startDate = NO_DATE;
-    Gage[j].rainfall = 0.0;
+    project->Gage[j].startDate = NO_DATE;
+    project->Gage[j].rainfall = 0.0;
 
     // --- initialize internal cumulative rainfall value
-    Gage[j].rainAccum = 0;
+    project->Gage[j].rainAccum = 0;
 
     // --- use rain interface file if applicable
-    if ( Gage[j].dataSource == RAIN_FILE )
+    if ( project->Gage[j].dataSource == RAIN_FILE )
     {
-        if ( Frain.file && Gage[j].endFilePos > Gage[j].startFilePos )
+        if ( project->Frain.file && project->Gage[j].endFilePos > Gage[j].startFilePos )
         {
             // --- retrieve 1st date & rainfall volume from file
-            fseek(Frain.file, Gage[j].startFilePos, SEEK_SET);
-            fread(&Gage[j].startDate, sizeof(DateTime), 1, Frain.file);
-            fread(&vFirst, sizeof(float), 1, Frain.file);
-            Gage[j].currentFilePos = ftell(Frain.file);
+            fseek(project->Frain.file, project->Gage[j].startFilePos, SEEK_SET);
+            fread(&project->Gage[j].startDate, sizeof(DateTime), 1, project->Frain.file);
+            fread(&vFirst, sizeof(float), 1, project->Frain.file);
+            project->Gage[j].currentFilePos = ftell(project->Frain.file);
 
             // --- convert rainfall to intensity
-            Gage[j].rainfall = convertRainfall(j, (double)vFirst);
+            project->Gage[j].rainfall = convertRainfall(j, (double)vFirst);
             return 1;
         }
         return 0;
@@ -491,15 +491,15 @@ int getFirstRainfall(int j)
     // --- otherwise access user-supplied rainfall time series
     else
     {
-        k = Gage[j].tSeries;
+        k = project->Gage[j].tSeries;
         if ( k >= 0 )
         {
             // --- retrieve first rainfall value from time series
-            if ( table_getFirstEntry(&Tseries[k], &Gage[j].startDate,
+            if ( table_getFirstEntry(&project->Tseries[k], &project->Gage[j].startDate,
                                      &rFirst) )
             {
                 // --- convert rainfall to intensity
-                Gage[j].rainfall = convertRainfall(j, rFirst);
+                project->Gage[j].rainfall = convertRainfall(j, rFirst);
                 return 1;
             }
         }
@@ -525,17 +525,17 @@ int getNextRainfall(int j)
     float  vNext;                      // next rain volume (ft or m)
     double rNext;                      // next rain intensity (in/hr or mm/hr)
 
-    Gage[j].nextRainfall = 0.0;
+    project->Gage[j].nextRainfall = 0.0;
     do
     {
-        if ( Gage[j].dataSource == RAIN_FILE )
+        if ( project->Gage[j].dataSource == RAIN_FILE )
         {
-            if ( Frain.file && Gage[j].currentFilePos < Gage[j].endFilePos )
+            if ( project->Frain.file && project->Gage[j].currentFilePos < Gage[j].endFilePos )
             {
-                fseek(Frain.file, Gage[j].currentFilePos, SEEK_SET);
-                fread(&Gage[j].nextDate, sizeof(DateTime), 1, Frain.file);
-                fread(&vNext, sizeof(float), 1, Frain.file);
-                Gage[j].currentFilePos = ftell(Frain.file);
+                fseek(project->Frain.file, project->Gage[j].currentFilePos, SEEK_SET);
+                fread(&project->Gage[j].nextDate, sizeof(DateTime), 1, project->Frain.file);
+                fread(&vNext, sizeof(float), 1, project->Frain.file);
+                project->Gage[j].currentFilePos = ftell(project->Frain.file);
                 rNext = convertRainfall(j, (double)vNext);
             }
             else return 0;
@@ -543,17 +543,17 @@ int getNextRainfall(int j)
 
         else
         {
-            k = Gage[j].tSeries;
+            k = project->Gage[j].tSeries;
             if ( k >= 0 )
             {
-                if ( !table_getNextEntry(&Tseries[k],
-                        &Gage[j].nextDate, &rNext) ) return 0;
+                if ( !table_getNextEntry(&project->Tseries[k],
+                        &project->Gage[j].nextDate, &rNext) ) return 0;
                 rNext = convertRainfall(j, rNext);
             }
             else return 0;
         }
     } while (rNext == 0.0);
-    Gage[j].nextRainfall = rNext;
+    project->Gage[j].nextRainfall = rNext;
     return 1;
 }
 
@@ -568,26 +568,26 @@ double convertRainfall(int j, double r)
 //
 {
     double r1;
-    switch ( Gage[j].rainType )
+    switch ( project->Gage[j].rainType )
     {
       case RAINFALL_INTENSITY:
         r1 = r;
         break;
 
       case RAINFALL_VOLUME:
-        r1 = r / Gage[j].rainInterval * 3600.0;
+        r1 = r / project->Gage[j].rainInterval * 3600.0;
         break;
 
       case CUMULATIVE_RAINFALL:
-        if ( r  < Gage[j].rainAccum )
-             r1 = r / Gage[j].rainInterval * 3600.0;
-        else r1 = (r - Gage[j].rainAccum) / Gage[j].rainInterval * 3600.0;
-        Gage[j].rainAccum = r;
+        if ( r  < project->Gage[j].rainAccum )
+             r1 = r / project->Gage[j].rainInterval * 3600.0;
+        else r1 = (r - project->Gage[j].rainAccum) / Gage[j].rainInterval * 3600.0;
+        project->Gage[j].rainAccum = r;
         break;
 
       default: r1 = r;
     }
-    return r1 * Gage[j].unitsFactor;
+    return r1 * project->Gage[j].unitsFactor;
 }
 
 //=============================================================================

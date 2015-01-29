@@ -75,31 +75,31 @@ int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
 
     // --- no routing for non-conduit link
     (*qoutflow) = (*qinflow); 
-    if ( Link[j].type != CONDUIT ) return result;
+    if ( project->Link[j].type != CONDUIT ) return result;
 
     // --- no routing for dummy xsection
-    if ( Link[j].xsect.type == DUMMY ) return result;
+    if ( project->Link[j].xsect.type == DUMMY ) return result;
 
     // --- assign module-level variables
-    pXsect = &Link[j].xsect;
-    Qfull = Link[j].qFull;
-    Afull = Link[j].xsect.aFull;
-    k = Link[j].subIndex;
-    Beta1 = Conduit[k].beta / Qfull;
+    pXsect = &project->Link[j].xsect;
+    Qfull = project->Link[j].qFull;
+    Afull = project->Link[j].xsect.aFull;
+    k = project->Link[j].subIndex;
+    Beta1 = project->Conduit[k].beta / Qfull;
  
     // --- normalize previous flows
-    q1 = Conduit[k].q1 / Qfull;
-    q2 = Conduit[k].q2 / Qfull;
+    q1 = project->Conduit[k].q1 / Qfull;
+    q2 = project->Conduit[k].q2 / Qfull;
 
     // --- compute evaporation and infiltration loss rate
 	q3 = link_getLossRate(j, tStep) / Qfull;
 
     // --- normalize previous areas
-    a1 = Conduit[k].a1 / Afull;
-    a2 = Conduit[k].a2 / Afull;
+    a1 = project->Conduit[k].a1 / Afull;
+    a2 = project->Conduit[k].a2 / Afull;
 
     // --- normalize inflow 
-    qin = (*qinflow) / Conduit[k].barrels / Qfull;
+    qin = (*qinflow) / project->Conduit[k].barrels / Qfull;
 
     // --- use full area when inlet flow >= full flow
     if ( qin >= 1.0 ) ain = 1.0;
@@ -136,7 +136,7 @@ int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
         // --- report error if continuity eqn. not solved
         if ( result == -1 )
         {
-            report_writeErrorMsg(ERR_KINWAVE, Link[j].ID);
+            report_writeErrorMsg(ERR_KINWAVE, project->Link[j].ID);
             return 1;
         }
         if ( result <= 0 ) result = 1;
@@ -147,12 +147,12 @@ int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
     }
 
     // --- save new flows and areas
-    Conduit[k].q1 = qin * Qfull;
-    Conduit[k].a1 = ain * Afull;
-    Conduit[k].q2 = qout * Qfull;
-    Conduit[k].a2 = aout * Afull;
-    (*qinflow)  = Conduit[k].q1 * Conduit[k].barrels;
-    (*qoutflow) = Conduit[k].q2 * Conduit[k].barrels;
+    project->Conduit[k].q1 = qin * Qfull;
+    project->Conduit[k].a1 = ain * Afull;
+    project->Conduit[k].q2 = qout * Qfull;
+    project->Conduit[k].a2 = aout * Afull;
+    (*qinflow)  = project->Conduit[k].q1 * Conduit[k].barrels;
+    (*qoutflow) = project->Conduit[k].q2 * Conduit[k].barrels;
     return result;
 }
 

@@ -70,15 +70,15 @@ int input_countObjects()
     long  lineCount = 0;
 
     // --- initialize number of objects & set default values
-    if ( ErrorCode ) return ErrorCode;
+    if ( project->ErrorCode ) return ErrorCode;
     error_setInpError(0, "");
     for (i = 0; i < MAX_OBJ_TYPES; i++)
-		Nobjects[i] = 0;
-    for (i = 0; i < MAX_NODE_TYPES; i++) Nnodes[i] = 0;
-    for (i = 0; i < MAX_LINK_TYPES; i++) Nlinks[i] = 0;
+		project->Nobjects[i] = 0;
+    for (i = 0; i < MAX_NODE_TYPES; i++) project->Nnodes[i] = 0;
+    for (i = 0; i < MAX_LINK_TYPES; i++) project->Nlinks[i] = 0;
 
     // --- make pass through data file counting number of each object
-    while ( fgets(line, MAXLINE, Finp.file) != NULL )
+    while ( fgets(line, MAXLINE, project->Finp.file) != NULL )
     {
         // --- skip blank lines & those beginning with a comment
         lineCount++;
@@ -121,8 +121,8 @@ int input_countObjects()
     }
 
     // --- set global error code if input errors were found
-    if ( errsum > 0 ) ErrorCode = ERR_INPUT;
-    return ErrorCode;
+    if ( errsum > 0 ) project->ErrorCode = ERR_INPUT;
+    return project->ErrorCode;
 }
 
 //=============================================================================
@@ -145,24 +145,24 @@ int input_readData()
 
     // --- initialize working item count arrays
     //     (final counts in Mobjects, Mnodes & Mlinks should
-    //      match those in Nobjects, Nnodes and Nlinks).
-    if ( ErrorCode ) return ErrorCode;
+    //      match those in project->Nobjects, project->Nnodes and project->Nlinks).
+    if ( project->ErrorCode ) return ErrorCode;
     error_setInpError(0, "");
     for (i = 0; i < MAX_OBJ_TYPES; i++)  Mobjects[i] = 0;
     for (i = 0; i < MAX_NODE_TYPES; i++) Mnodes[i] = 0;
     for (i = 0; i < MAX_LINK_TYPES; i++) Mlinks[i] = 0;
 
     // --- initialize starting date for all time series
-    for ( i = 0; i < Nobjects[TSERIES]; i++ )
+    for ( i = 0; i < project->Nobjects[TSERIES]; i++ )
     {
-        Tseries[i].lastDate = StartDate + StartTime;
+        project->Tseries[i].lastDate = project->StartDate + project->StartTime;
     }
 
     // --- read each line from input file
     sect = 0;
     errsum = 0;
-    rewind(Finp.file);
-    while ( fgets(line, MAXLINE, Finp.file) != NULL )
+    rewind(project->Finp.file);
+    while ( fgets(line, MAXLINE, project->Finp.file) != NULL )
     {
         // --- make copy of line and scan for tokens
         lineCount++;
@@ -198,7 +198,7 @@ int input_readData()
                 // --- SPECIAL CASE FOR TRANSECTS
                 //     finish processing the last set of transect data
                 if ( sect == s_TRANSECT )
-                    transect_validate(Nobjects[TRANSECT]-1);
+                    transect_validate(project->Nobjects[TRANSECT]-1);
 
                 // --- begin a new input section
                 sect = newsect;
@@ -230,8 +230,8 @@ int input_readData()
     }   /* End of while */
 
     // --- check for errors
-    if (errsum > 0)  ErrorCode = ERR_INPUT;
-    return ErrorCode;
+    if (errsum > 0)  project->ErrorCode = ERR_INPUT;
+    return project->ErrorCode;
 }
 
 //=============================================================================
@@ -248,140 +248,140 @@ int  addObject(int objType, char* id)
     switch( objType )
     {
       case s_RAINGAGE:
-        if ( !project_addObject(GAGE, id, Nobjects[GAGE]) )
+        if ( !project_addObject(GAGE, id, project->Nobjects[GAGE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[GAGE]++;
+        project->Nobjects[GAGE]++;
         break;
 
       case s_SUBCATCH:
-        if ( !project_addObject(SUBCATCH, id, Nobjects[SUBCATCH]) )
+        if ( !project_addObject(SUBCATCH, id, project->Nobjects[SUBCATCH]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[SUBCATCH]++;
+        project->Nobjects[SUBCATCH]++;
         break;
 
       case s_AQUIFER:
-        if ( !project_addObject(AQUIFER, id, Nobjects[AQUIFER]) )
+        if ( !project_addObject(AQUIFER, id, project->Nobjects[AQUIFER]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[AQUIFER]++;
+        project->Nobjects[AQUIFER]++;
         break;
 
       case s_UNITHYD:
         // --- the same Unit Hydrograph can span several lines
         if ( project_findObject(UNITHYD, id) < 0 )
         {
-            if ( !project_addObject(UNITHYD, id, Nobjects[UNITHYD]) )
+            if ( !project_addObject(UNITHYD, id, project->Nobjects[UNITHYD]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
-            Nobjects[UNITHYD]++;
+            project->Nobjects[UNITHYD]++;
         }
         break;
 
       case s_SNOWMELT:
-        // --- the same Snowmelt object can appear on several lines
+        // --- the same project->Snowmelt object can appear on several lines
         if ( project_findObject(SNOWMELT, id) < 0 )
         {
-            if ( !project_addObject(SNOWMELT, id, Nobjects[SNOWMELT]) )
+            if ( !project_addObject(SNOWMELT, id, project->Nobjects[SNOWMELT]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
-            Nobjects[SNOWMELT]++;
+            project->Nobjects[SNOWMELT]++;
         }
         break;
 
       case s_JUNCTION:
-        if ( !project_addObject(NODE, id, Nobjects[NODE]) )
+        if ( !project_addObject(NODE, id, project->Nobjects[NODE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[NODE]++;
-        Nnodes[JUNCTION]++;
+        project->Nobjects[NODE]++;
+        project->Nnodes[JUNCTION]++;
         break;
 
       case s_OUTFALL:
-        if ( !project_addObject(NODE, id, Nobjects[NODE]) )
+        if ( !project_addObject(NODE, id, project->Nobjects[NODE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[NODE]++;
-        Nnodes[OUTFALL]++;
+        project->Nobjects[NODE]++;
+        project->Nnodes[OUTFALL]++;
         break;
 
       case s_STORAGE:
-        if ( !project_addObject(NODE, id, Nobjects[NODE]) )
+        if ( !project_addObject(NODE, id, project->Nobjects[NODE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[NODE]++;
-        Nnodes[STORAGE]++;
+        project->Nobjects[NODE]++;
+        project->Nnodes[STORAGE]++;
         break;
 
       case s_DIVIDER:
-        if ( !project_addObject(NODE, id, Nobjects[NODE]) )
+        if ( !project_addObject(NODE, id, project->Nobjects[NODE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[NODE]++;
-        Nnodes[DIVIDER]++;
+        project->Nobjects[NODE]++;
+        project->Nnodes[DIVIDER]++;
         break;
 
       case s_CONDUIT:
-        if ( !project_addObject(LINK, id, Nobjects[LINK]) )
+        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[LINK]++;
-        Nlinks[CONDUIT]++;
+        project->Nobjects[LINK]++;
+        project->Nlinks[CONDUIT]++;
         break;
 
       case s_PUMP:
-        if ( !project_addObject(LINK, id, Nobjects[LINK]) ) 
+        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[LINK]++;
-        Nlinks[PUMP]++;
+        project->Nobjects[LINK]++;
+        project->Nlinks[PUMP]++;
         break;
 
       case s_ORIFICE:
-        if ( !project_addObject(LINK, id, Nobjects[LINK]) ) 
+        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[LINK]++;
-        Nlinks[ORIFICE]++;
+        project->Nobjects[LINK]++;
+        project->Nlinks[ORIFICE]++;
         break;
 
       case s_WEIR:
-        if ( !project_addObject(LINK, id, Nobjects[LINK]) ) 
+        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[LINK]++;
-        Nlinks[WEIR]++;
+        project->Nobjects[LINK]++;
+        project->Nlinks[WEIR]++;
         break;
 
       case s_OUTLET:
-        if ( !project_addObject(LINK, id, Nobjects[LINK]) )
+        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[LINK]++;
-        Nlinks[OUTLET]++;
+        project->Nobjects[LINK]++;
+        project->Nlinks[OUTLET]++;
         break;
 
       case s_POLLUTANT:
-        if ( !project_addObject(POLLUT, id, Nobjects[POLLUT]) ) 
+        if ( !project_addObject(POLLUT, id, project->Nobjects[POLLUT]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[POLLUT]++;
+        project->Nobjects[POLLUT]++;
         break;
 
       case s_LANDUSE:
-        if ( !project_addObject(LANDUSE, id, Nobjects[LANDUSE]) ) 
+        if ( !project_addObject(LANDUSE, id, project->Nobjects[LANDUSE]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
-        Nobjects[LANDUSE]++;
+        project->Nobjects[LANDUSE]++;
         break;
 
       case s_PATTERN:
         // --- a time pattern can span several lines
         if ( project_findObject(TIMEPATTERN, id) < 0 )
         {
-            if ( !project_addObject(TIMEPATTERN, id, Nobjects[TIMEPATTERN]) )
+            if ( !project_addObject(TIMEPATTERN, id, project->Nobjects[TIMEPATTERN]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
-            Nobjects[TIMEPATTERN]++;
+            project->Nobjects[TIMEPATTERN]++;
         }
         break;
 
       case s_CURVE:
-        // --- a Curve can span several lines
+        // --- a project->Curve can span several lines
         if ( project_findObject(CURVE, id) < 0 )
         {
-            if ( !project_addObject(CURVE, id, Nobjects[CURVE]) )
+            if ( !project_addObject(CURVE, id, project->Nobjects[CURVE]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
-            Nobjects[CURVE]++;
+            project->Nobjects[CURVE]++;
 
             // --- check for a conduit shape curve
             id = strtok(NULL, SEPSTR);
             if ( findmatch(id, CurveTypeWords) == SHAPE_CURVE )
-                Nobjects[SHAPE]++;
+                project->Nobjects[SHAPE]++;
         }
         break;
 
@@ -389,14 +389,14 @@ int  addObject(int objType, char* id)
         // --- a Time Series can span several lines
         if ( project_findObject(TSERIES, id) < 0 )
         {
-            if ( !project_addObject(TSERIES, id, Nobjects[TSERIES]) )
+            if ( !project_addObject(TSERIES, id, project->Nobjects[TSERIES]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
-            Nobjects[TSERIES]++;
+            project->Nobjects[TSERIES]++;
         }
         break;
 
       case s_CONTROL:
-        if ( match(id, w_RULE) ) Nobjects[CONTROL]++;
+        if ( match(id, w_RULE) ) project->Nobjects[CONTROL]++;
         break;
 
       case s_TRANSECT:
@@ -406,9 +406,9 @@ int  addObject(int objType, char* id)
             id = strtok(NULL, SEPSTR);
             if ( id ) 
             {
-                if ( !project_addObject(TRANSECT, id, Nobjects[TRANSECT]) )
+                if ( !project_addObject(TRANSECT, id, project->Nobjects[TRANSECT]) )
                     errcode = error_setInpError(ERR_DUP_NAME, id);
-                Nobjects[TRANSECT]++;
+                project->Nobjects[TRANSECT]++;
             }
         }
         break;
@@ -417,11 +417,11 @@ int  addObject(int objType, char* id)
         // --- an LID object can span several lines
         if ( project_findObject(LID, id) < 0 )
         {
-            if ( !project_addObject(LID, id, Nobjects[LID]) )
+            if ( !project_addObject(LID, id, project->Nobjects[LID]) )
             {
                 errcode = error_setInpError(ERR_DUP_NAME, id);
             }
-            Nobjects[LID]++;
+            project->Nobjects[LID]++;
         }
         break;
     }
@@ -466,7 +466,7 @@ int  parseLine(int sect, char *line)
         return subcatch_readSubareaParams(Tok, Ntokens);
 
       case s_INFIL:
-        return infil_readParams(InfilModel, Tok, Ntokens);
+        return infil_readParams(project->InfilModel, Tok, Ntokens);
 
       case s_AQUIFER:
         j = Mobjects[AQUIFER];
@@ -650,15 +650,15 @@ int readTitle(char* line)
     int i, n;
     for (i = 0; i < MAXTITLE; i++)
     {
-        // --- find next empty Title entry
-        if ( strlen(Title[i]) == 0 )
+        // --- find next empty project->Title entry
+        if ( strlen(project->Title[i]) == 0 )
         {
             // --- strip line feed character from input line
             n = strlen(line);
             if (line[n-1] == 10) line[n-1] = ' ';
 
-            // --- copy input line into Title entry
-            sstrncpy(Title[i], line, MAXMSG);
+            // --- copy input line into project->Title entry
+            sstrncpy(project->Title[i], line, MAXMSG);
             break;
         }
     }

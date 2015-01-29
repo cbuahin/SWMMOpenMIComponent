@@ -49,27 +49,27 @@ void    qualrout_init()
     int     i, p, isWet;
     double  c;
 
-    for (i = 0; i < Nobjects[NODE]; i++)
+    for (i = 0; i < project->Nobjects[NODE]; i++)
     {
-	    isWet = ( Node[i].newDepth > FUDGE );
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+	    isWet = ( project->Node[i].newDepth > FUDGE );
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
             c = 0.0;
-            if ( isWet ) c = Pollut[p].initConcen;
-            Node[i].oldQual[p] = c;
-            Node[i].newQual[p] = c;
+            if ( isWet ) c = project->Pollut[p].initConcen;
+            project->Node[i].oldQual[p] = c;
+            project->Node[i].newQual[p] = c;
         }
     }
 
-    for (i = 0; i < Nobjects[LINK]; i++)
+    for (i = 0; i < project->Nobjects[LINK]; i++)
     {
-        isWet = ( Link[i].newDepth > FUDGE );
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        isWet = ( project->Link[i].newDepth > FUDGE );
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
             c = 0.0;
-            if ( isWet ) c = Pollut[p].initConcen;
-            Link[i].oldQual[p] = c;
-            Link[i].newQual[p] = c;
+            if ( isWet ) c = project->Pollut[p].initConcen;
+            project->Link[i].oldQual[p] = c;
+            project->Link[i].newQual[p] = c;
         }
     }
 }
@@ -88,35 +88,35 @@ void qualrout_execute(double tStep)
     double qIn, vAvg;
 
     // --- find mass flow each link contributes to its downstream node
-    for ( i = 0; i < Nobjects[LINK]; i++ ) findLinkMassFlow(i, tStep);
+    for ( i = 0; i < project->Nobjects[LINK]; i++ ) findLinkMassFlow(i, tStep);
 
     // --- find new water quality concentration at each node  
-    for (j = 0; j < Nobjects[NODE]; j++)
+    for (j = 0; j < project->Nobjects[NODE]; j++)
     {
         // --- get node inflow and average volume
-        qIn = Node[j].inflow;
-        vAvg = (Node[j].oldVolume + Node[j].newVolume) / 2.0;
+        qIn = project->Node[j].inflow;
+        vAvg = (project->Node[j].oldVolume + Node[j].newVolume) / 2.0;
         
         // --- save inflow concentrations if treatment applied
-        if ( Node[j].treatment )
+        if ( project->Node[j].treatment )
         {
             if ( qIn < ZERO ) qIn = 0.0;
-            treatmnt_setInflow(qIn, Node[j].newQual);
+            treatmnt_setInflow(qIn, project->Node[j].newQual);
         }
        
         // --- find new quality at the node 
-        if ( Node[j].type == STORAGE || Node[j].oldVolume > FUDGE )
+        if ( project->Node[j].type == STORAGE || Node[j].oldVolume > FUDGE )
         {
             findStorageQual(j, tStep);
         }
         else findNodeQual(j);
 
         // --- apply treatment to new quality values
-        if ( Node[j].treatment ) treatmnt_treat(j, qIn, vAvg, tStep);
+        if ( project->Node[j].treatment ) treatmnt_treat(j, qIn, vAvg, tStep);
     }
 
     // --- find new water quality in each link
-    for ( i=0; i<Nobjects[LINK]; i++ ) findLinkQual(i, tStep);
+    for ( i=0; i<project->Nobjects[LINK]; i++ ) findLinkQual(i, tStep);
 }
 
 //=============================================================================
@@ -160,7 +160,7 @@ void findLinkMassFlow(int i, double tStep)
 //  Purpose: adds constituent mass flow out of link to the total
 //           accumulation at the link's downstream node.
 //
-//  Note:    Node[].newQual[], the accumulator variable, already contains
+//  Note:    project->Node[].newQual[], the accumulator variable, already contains
 //           contributions from runoff and other external inflows from
 //           calculations made in routing_execute().
 {
@@ -168,19 +168,19 @@ void findLinkMassFlow(int i, double tStep)
     double qLink, w;
 
     // --- find inflow to downstream node
-    qLink = Link[i].newFlow;
+    qLink = project->Link[i].newFlow;
 
     // --- identify index of downstream node
-    j = Link[i].node2;
-    if ( qLink < 0.0 ) j = Link[i].node1;
+    j = project->Link[i].node2;
+    if ( qLink < 0.0 ) j = project->Link[i].node1;
     qLink = fabs(qLink);
 
     // --- add mass inflow from link to total at downstream node
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
-	    w = qLink * Link[i].oldQual[p];
-        Node[j].newQual[p] += w;
-	    Link[i].totalLoad[p] += w * tStep;
+	    w = qLink * project->Link[i].oldQual[p];
+        project->Node[j].newQual[p] += w;
+	    project->Link[i].totalLoad[p] += w * tStep;
     }
 }
 
@@ -197,17 +197,17 @@ void findNodeQual(int j)
     double qNode;
 
     // --- if there is flow into node then concen. = mass inflow/node flow
-    qNode = Node[j].inflow;
+    qNode = project->Node[j].inflow;
     if ( qNode > ZERO )
     {
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
-            Node[j].newQual[p] /= qNode;
+            project->Node[j].newQual[p] /= qNode;
         }
     }
 
     // --- otherwise concen. is 0
-    else for (p = 0; p < Nobjects[POLLUT]; p++) Node[j].newQual[p] = 0.0;
+    else for (p = 0; p < project->Nobjects[POLLUT]; p++) project->Node[j].newQual[p] = 0.0;
 }
 
 //=============================================================================
@@ -232,45 +232,45 @@ void findLinkQual(int i, double tStep)
            c2;               // new concentration within link (mass/ft3)
 
     // --- identify index of upstream node
-    j = Link[i].node1;
-    if ( Link[i].newFlow < 0.0 ) j = Link[i].node2;
+    j = project->Link[i].node1;
+    if ( project->Link[i].newFlow < 0.0 ) j = Link[i].node2;
 
     // --- link concentration equals that of upstream node when
     //     link is not a conduit or is a dummy link
-    if ( Link[i].type != CONDUIT || Link[i].xsect.type == DUMMY )
+    if ( project->Link[i].type != CONDUIT || Link[i].xsect.type == DUMMY )
     {
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
-            Link[i].newQual[p] = Node[j].newQual[p];
+            project->Link[i].newQual[p] = project->Node[j].newQual[p];
         }
         return;
     }
 
     // --- concentrations are zero in an empty conduit
-    if ( Link[i].newDepth <= FUDGE )
+    if ( project->Link[i].newDepth <= FUDGE )
     {
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
-            Link[i].newQual[p] = 0.0;
+            project->Link[i].newQual[p] = 0.0;
         }
         return;
     }
 
     // --- Steady Flow routing requires special treatment
-    if ( RouteModel == SF )
+    if ( project->RouteModel == SF )
     {
         findSFLinkQual(i, tStep);
         return;
     }
 
     // --- get inlet & outlet flow
-    k = Link[i].subIndex;
-    qIn  = fabs(Conduit[k].q1) * (double)Conduit[k].barrels;
-    qOut = fabs(Conduit[k].q2) * (double)Conduit[k].barrels;
+    k = project->Link[i].subIndex;
+    qIn  = fabs(project->Conduit[k].q1) * (double)Conduit[k].barrels;
+    qOut = fabs(project->Conduit[k].q2) * (double)Conduit[k].barrels;
 
     // --- get starting and ending volumes
-    v1 = Link[i].oldVolume;
-    v2 = Link[i].newVolume;
+    v1 = project->Link[i].oldVolume;
+    v2 = project->Link[i].newVolume;
 
     // --- adjust inflow to compensate for volume change when inflow = outflow
     if (qIn == qOut)                                        
@@ -280,18 +280,18 @@ void findLinkQual(int i, double tStep)
     }
 
     // --- for each pollutant
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- determine mass lost to first order decay
-        c1 = Link[i].oldQual[p];
+        c1 = project->Link[i].oldQual[p];
         c2 = getReactedQual(p, c1, v1, tStep);
 
         // --- mix inflow to conduit with previous contents
-        wIn = Node[j].newQual[p]*qIn;
+        wIn = project->Node[j].newQual[p]*qIn;
         c2 = getMixedQual(c2, v1, wIn, qIn, tStep);
 
         // --- assign new concen. to link
-        Link[i].newQual[p] = c2;
+        project->Link[i].newQual[p] = c2;
     }
 }
 
@@ -306,28 +306,28 @@ void  findSFLinkQual(int i, double tStep)
 //           Steady Flow routing.
 //
 {
-    int j = Link[i].node1;
+    int j = project->Link[i].node1;
     int p;
     double c1, c2;
     double lossRate;
     double t = tStep;
 
     // --- for each pollutant
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- conduit's quality equals upstream node quality
-        c1 = Node[j].newQual[p];
+        c1 = project->Node[j].newQual[p];
         c2 = c1;
 
         // --- apply first-order decay over travel time
-        if ( Pollut[p].kDecay > 0.0 )
+        if ( project->Pollut[p].kDecay > 0.0 )
         {
-            c2 = c1 * exp(-Pollut[p].kDecay * t);
+            c2 = c1 * exp(-project->Pollut[p].kDecay * t);
             c2 = MAX(0.0, c2);
-            lossRate = (c1 - c2) * Link[i].newFlow;
+            lossRate = (c1 - c2) * project->Link[i].newFlow;
             massbal_addReactedMass(p, lossRate);
         }
-        Link[i].newQual[p] = c2;
+        project->Link[i].newQual[p] = c2;
     }
 }
 
@@ -349,36 +349,36 @@ void  findStorageQual(int j, double tStep)
            c2;               // final pollutant concentration (mass/ft3)
 
     // --- get inflow rate & initial volume
-    qIn = Node[j].inflow;
-    v1 = Node[j].oldVolume;
+    qIn = project->Node[j].inflow;
+    v1 = project->Node[j].oldVolume;
 
     // --- update hydraulic residence time for storage nodes
     //     (HRT can be used in treatment functions)
-    if ( Node[j].type == STORAGE )
+    if ( project->Node[j].type == STORAGE )
     {    
-        updateHRT(j, Node[j].oldVolume, qIn, tStep);
+        updateHRT(j, project->Node[j].oldVolume, qIn, tStep);
     }
 
     // --- for each pollutant
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- get current concentration 
-        c1 = Node[j].oldQual[p];
+        c1 = project->Node[j].oldQual[p];
 
         // --- apply first order decay only if no separate treatment function
-        if ( Node[j].treatment == NULL ||
-             Node[j].treatment[p].equation == NULL )
+        if ( project->Node[j].treatment == NULL ||
+             project->Node[j].treatment[p].equation == NULL )
         {
             c1 = getReactedQual(p, c1, v1, tStep);
         }
 
         // --- mix inflow with current contents (mass inflow rate was
-        //     temporarily saved in Node[j].newQual)
-        wIn = Node[j].newQual[p];
+        //     temporarily saved in project->Node[j].newQual)
+        wIn = project->Node[j].newQual[p];
         c2 = getMixedQual(c1, v1, wIn, qIn, tStep);
 
         // --- assign new concen. to node
-        Node[j].newQual[p] = c2;
+        project->Node[j].newQual[p] = c2;
     }
 }
 
@@ -395,11 +395,11 @@ void updateHRT(int j, double v, double q, double tStep)
 //           storage node.
 //
 {
-    int    k = Node[j].subIndex;
-    double hrt = Storage[k].hrt;
+    int    k = project->Node[j].subIndex;
+    double hrt = project->Storage[k].hrt;
     if ( v < ZERO ) hrt = 0.0;
     else hrt = (hrt + tStep) * v / (v + q*tStep);
-    Storage[k].hrt = MAX(hrt, 0.0);
+    project->Storage[k].hrt = MAX(hrt, 0.0);
 }
 
 //=============================================================================
@@ -416,7 +416,7 @@ double getReactedQual(int p, double c, double v1, double tStep)
 //
 {
     double c2, lossRate;
-    double kDecay = Pollut[p].kDecay;
+    double kDecay = project->Pollut[p].kDecay;
 
     if ( kDecay == 0.0 ) return c;
     c2 = c * (1.0 - kDecay * tStep);

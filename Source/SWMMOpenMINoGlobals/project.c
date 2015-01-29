@@ -109,20 +109,20 @@ void project_readInput()
     input_readData();
 
 
-    if ( ErrorCode ) return;
+    if ( project->ErrorCode ) return;
 
     // --- establish starting & ending date/time
-    StartDateTime = StartDate + StartTime;
-    EndDateTime   = EndDate + EndTime;
-    ReportStart   = ReportStartDate + ReportStartTime;
-    ReportStart   = MAX(ReportStart, StartDateTime);
+    project->StartDateTime = project->StartDate + project->StartTime;
+    project->EndDateTime   = project->EndDate + project->EndTime;
+    project->ReportStart   = project->ReportStartDate + project->ReportStartTime;
+    project->ReportStart   = MAX(ReportStart, project->StartDateTime);
 
     // --- check for valid starting & ending date/times
-    if ( EndDateTime <= StartDateTime )
+    if ( project->EndDateTime <= project->StartDateTime )
     {
         report_writeErrorMsg(ERR_START_DATE, "");
     }
-    else if ( EndDateTime <= ReportStart )
+    else if ( project->EndDateTime <= project->ReportStart )
     {
         report_writeErrorMsg(ERR_REPORT_DATE, "");
     }
@@ -130,15 +130,15 @@ void project_readInput()
     {
         // --- compute total duration of simulation in milliseconds
         //     (add on 1 msec to account for any roundoff)
-        TotalDuration = (EndDateTime - StartDateTime) * MSECperDAY;
-        TotalDuration += 1.0;
+        project->TotalDuration = (project->EndDateTime - project->StartDateTime) * MSECperDAY;
+        project->TotalDuration += 1.0;
 
         // --- reporting step must be <= total duration
-        if ( (double)ReportStep > TotalDuration/1000.0 )
+        if ( (double)project->ReportStep > project->TotalDuration/1000.0 )
         {
-            ReportStep = (int)(TotalDuration/1000.0);
+            project->ReportStep = (int)(project->TotalDuration/1000.0);
         }
-        if ( (float)ReportStep < RouteStep )
+        if ( (float)project->ReportStep < project->RouteStep )
         {
             report_writeErrorMsg(ERR_REPORT_STEP, "");
         }
@@ -159,74 +159,74 @@ void project_validate()
     int err;
 
     // --- validate Curves and TimeSeries
-    for ( i=0; i<Nobjects[CURVE]; i++ )
+    for ( i=0; i<project->Nobjects[CURVE]; i++ )
     {
-         err = table_validate(&Curve[i]);
-         if ( err ) report_writeErrorMsg(ERR_CURVE_SEQUENCE, Curve[i].ID);
+         err = table_validate(&project->Curve[i]);
+         if ( err ) report_writeErrorMsg(ERR_CURVE_SEQUENCE, project->Curve[i].ID);
     }
-    for ( i=0; i<Nobjects[TSERIES]; i++ )
+    for ( i=0; i<project->Nobjects[TSERIES]; i++ )
     {
-        err = table_validate(&Tseries[i]);
-        if ( err ) report_writeTseriesErrorMsg(err, &Tseries[i]);
+        err = table_validate(&project->Tseries[i]);
+        if ( err ) report_writeTseriesErrorMsg(err, &project->Tseries[i]);
     }
 
     // --- validate hydrology objects
     //     (NOTE: order is important !!!!)
     climate_validate();
     lid_validate();
-    if ( Nobjects[SNOWMELT] == 0 ) IgnoreSnowmelt = TRUE;
-    if ( Nobjects[AQUIFER]  == 0 ) IgnoreGwater   = TRUE;
-    for ( i=0; i<Nobjects[GAGE]; i++ )     gage_validate(i);
-    for ( i=0; i<Nobjects[AQUIFER]; i++ )  gwater_validateAquifer(i);
-    for ( i=0; i<Nobjects[SUBCATCH]; i++ ) subcatch_validate(i);
-    for ( i=0; i<Nobjects[SNOWMELT]; i++ ) snow_validateSnowmelt(i);
+    if ( project->Nobjects[SNOWMELT] == 0 ) project->IgnoreSnowmelt = TRUE;
+    if ( project->Nobjects[AQUIFER]  == 0 ) project->IgnoreGwater   = TRUE;
+    for ( i=0; i<project->Nobjects[GAGE]; i++ )     gage_validate(i);
+    for ( i=0; i<project->Nobjects[AQUIFER]; i++ )  gwater_validateAquifer(i);
+    for ( i=0; i<project->Nobjects[SUBCATCH]; i++ ) subcatch_validate(i);
+    for ( i=0; i<project->Nobjects[SNOWMELT]; i++ ) snow_validateSnowmelt(i);
 
     // --- compute geometry tables for each shape curve
     j = 0;
-    for ( i=0; i<Nobjects[CURVE]; i++ )
+    for ( i=0; i<project->Nobjects[CURVE]; i++ )
     {
-        if ( Curve[i].curveType == SHAPE_CURVE )
+        if ( project->Curve[i].curveType == SHAPE_CURVE )
         {
-            Curve[i].refersTo = j;
-            Shape[j].curve = i;
-            if ( !shape_validate(&Shape[j], &Curve[i]) )
-                report_writeErrorMsg(ERR_CURVE_SEQUENCE, Curve[i].ID);
+            project->Curve[i].refersTo = j;
+            project->Shape[j].curve = i;
+            if ( !shape_validate(&project->Shape[j], &project->Curve[i]) )
+                report_writeErrorMsg(ERR_CURVE_SEQUENCE, project->Curve[i].ID);
             j++;
         }
     }
 
     // --- validate links before nodes, since the latter can
     //     result in adjustment of node depths
-    for ( i=0; i<Nobjects[NODE]; i++) Node[i].oldDepth = Node[i].fullDepth;
-    for ( i=0; i<Nobjects[LINK]; i++) link_validate(i);
-    for ( i=0; i<Nobjects[NODE]; i++) node_validate(i);
+    for ( i=0; i<project->Nobjects[NODE]; i++) project->Node[i].oldDepth = Node[i].fullDepth;
+    for ( i=0; i<project->Nobjects[LINK]; i++) link_validate(i);
+    for ( i=0; i<project->Nobjects[NODE]; i++) node_validate(i);
 
     // --- adjust time steps if necessary
-    if ( DryStep < WetStep )
+    if ( project->DryStep < project->WetStep )
     {
         report_writeWarningMsg(WARN06, "");
-        DryStep = WetStep;
+        project->DryStep = project->WetStep;
     }
-    if ( RouteStep > (double)WetStep )
+    if ( project->RouteStep > (double)project->WetStep )
     {
         report_writeWarningMsg(WARN07, "");
-        RouteStep = WetStep;
+        project->RouteStep = project->WetStep;
     }
 
     // --- adjust individual reporting flags to match global reporting flag
-    if ( RptFlags.subcatchments == ALL )
-        for (i=0; i<Nobjects[SUBCATCH]; i++) Subcatch[i].rptFlag = TRUE;
-    if ( RptFlags.nodes == ALL )
-        for (i=0; i<Nobjects[NODE]; i++) Node[i].rptFlag = TRUE;
-    if ( RptFlags.links == ALL )
-        for (i=0; i<Nobjects[LINK]; i++) Link[i].rptFlag = TRUE;
+    if ( project->RptFlags.subcatchments == ALL )
+        for (i=0; i<project->Nobjects[SUBCATCH]; i++) project->Subcatch[i].rptFlag = TRUE;
+    if ( project->RptFlags.nodes == ALL )
+        for (i=0; i<project->Nobjects[NODE]; i++) project->Node[i].rptFlag = TRUE;
+    if ( project->RptFlags.links == ALL )
+        for (i=0; i<project->Nobjects[LINK]; i++) project->Link[i].rptFlag = TRUE;
 
     // --- adjust DYNWAVE options
-	if ( MinSurfArea == 0.0 ) MinSurfArea = DEFAULT_SURFAREA;
-	else                      MinSurfArea /= UCF(LENGTH) * UCF(LENGTH);
-    if ( HeadTol == 0.0 ) HeadTol = DEFAULT_HEADTOL;
-	else                  HeadTol /= UCF(LENGTH);
-	if ( MaxTrials == 0 ) MaxTrials = DEFAULT_MAXTRIALS;
+	if ( project->MinSurfArea == 0.0 ) MinSurfArea = DEFAULT_SURFAREA;
+	else                      project->MinSurfArea /= UCF(LENGTH) * UCF(LENGTH);
+    if ( project->HeadTol == 0.0 ) HeadTol = DEFAULT_HEADTOL;
+	else                  project->HeadTol /= UCF(LENGTH);
+	if ( project->MaxTrials == 0 ) MaxTrials = DEFAULT_MAXTRIALS;
 }
 
 //=============================================================================
@@ -254,12 +254,12 @@ int  project_init(void)
     int j;
     climate_initState();
     lid_initState();
-    for (j=0; j<Nobjects[TSERIES]; j++)  table_tseriesInit(&Tseries[j]);
-    for (j=0; j<Nobjects[GAGE]; j++)     gage_initState(j);
-    for (j=0; j<Nobjects[SUBCATCH]; j++) subcatch_initState(j);
-    for (j=0; j<Nobjects[NODE]; j++)     node_initState(j);
-    for (j=0; j<Nobjects[LINK]; j++)     link_initState(j);
-    return ErrorCode;
+    for (j=0; j<project->Nobjects[TSERIES]; j++)  table_tseriesInit(&project->Tseries[j]);
+    for (j=0; j<project->Nobjects[GAGE]; j++)     gage_initState(j);
+    for (j=0; j<project->Nobjects[SUBCATCH]; j++) subcatch_initState(j);
+    for (j=0; j<project->Nobjects[NODE]; j++)     node_initState(j);
+    for (j=0; j<project->Nobjects[LINK]; j++)     link_initState(j);
+    return project->ErrorCode;
 }
 
 //=============================================================================
@@ -392,16 +392,16 @@ int project_readOption(char* s1, char* s2)
       case FLOW_UNITS:
         m = findmatch(s2, FlowUnitWords);
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, s2);
-        FlowUnits = m;
-        if ( FlowUnits <= MGD ) UnitSystem = US;
-        else                    UnitSystem = SI;
+        project->FlowUnits = m;
+        if ( project->FlowUnits <= MGD ) project->UnitSystem = US;
+        else                    project->UnitSystem = SI;
         break;
 
       // --- choice of infiltration modeling method
       case INFIL_MODEL:
         m = findmatch(s2, InfilModelWords);
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, s2);
-        InfilModel = m;
+        project->InfilModel = m;
         break;
 
       // --- choice of flow routing method
@@ -409,14 +409,14 @@ int project_readOption(char* s1, char* s2)
         m = findmatch(s2, RouteModelWords);
         if ( m < 0 ) m = findmatch(s2, OldRouteModelWords);
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, s2);
-        if ( m == NO_ROUTING ) IgnoreRouting = TRUE;
-        else RouteModel = m;
-        if ( RouteModel == EKW ) RouteModel = KW;
+        if ( m == NO_ROUTING ) project->IgnoreRouting = TRUE;
+        else project->RouteModel = m;
+        if ( project->RouteModel == EKW ) RouteModel = KW;
         break;
 
       // --- simulation start date
       case START_DATE:
-        if ( !datetime_strToDate(s2, &StartDate) )
+        if ( !datetime_strToDate(s2, &project->StartDate) )
         {
             return error_setInpError(ERR_DATETIME, s2);
         }
@@ -424,7 +424,7 @@ int project_readOption(char* s1, char* s2)
 
       // --- simulation start time of day
       case START_TIME:
-        if ( !datetime_strToTime(s2, &StartTime) )
+        if ( !datetime_strToTime(s2, &project->StartTime) )
         {
             return error_setInpError(ERR_DATETIME, s2);
         }
@@ -432,7 +432,7 @@ int project_readOption(char* s1, char* s2)
 
       // --- simulation ending date
       case END_DATE:
-        if ( !datetime_strToDate(s2, &EndDate) ) 
+        if ( !datetime_strToDate(s2, &project->EndDate) ) 
         {
             return error_setInpError(ERR_DATETIME, s2);
         }
@@ -440,7 +440,7 @@ int project_readOption(char* s1, char* s2)
 
       // --- simulation ending time of day
       case END_TIME:
-        if ( !datetime_strToTime(s2, &EndTime) )
+        if ( !datetime_strToTime(s2, &project->EndTime) )
         {
             return error_setInpError(ERR_DATETIME, s2);
         }
@@ -448,7 +448,7 @@ int project_readOption(char* s1, char* s2)
 
       // --- reporting start date
       case REPORT_START_DATE:
-        if ( !datetime_strToDate(s2, &ReportStartDate) )
+        if ( !datetime_strToDate(s2, &project->ReportStartDate) )
         {
             return error_setInpError(ERR_DATETIME, s2);
         }
@@ -456,7 +456,7 @@ int project_readOption(char* s1, char* s2)
 
       // --- reporting start time of day
       case REPORT_START_TIME:
-        if ( !datetime_strToTime(s2, &ReportStartTime) )
+        if ( !datetime_strToTime(s2, &project->ReportStartTime) )
         {
             return error_setInpError(ERR_DATETIME, s2);
         }
@@ -474,14 +474,14 @@ int project_readOption(char* s1, char* s2)
             return error_setInpError(ERR_DATETIME, s2);
         }
         m = datetime_dayOfYear(aDate);
-        if ( k == SWEEP_START ) SweepStart = m;
-        else SweepEnd = m;
+        if ( k == SWEEP_START ) project->SweepStart = m;
+        else project->SweepEnd = m;
         break;
 
       // --- number of antecedent dry days
       case START_DRY_DAYS:
-        StartDryDays = atof(s2);
-        if ( StartDryDays < 0.0 )
+        project->StartDryDays = atof(s2);
+        if ( project->StartDryDays < 0.0 )
         {
             return error_setInpError(ERR_NUMBER, s2);
         }
@@ -502,9 +502,9 @@ int project_readOption(char* s1, char* s2)
         if ( s <= 0 ) return error_setInpError(ERR_NUMBER, s2);
         switch ( k )
         {
-          case WET_STEP:     WetStep = s;     break;
-          case DRY_STEP:     DryStep = s;     break;
-          case REPORT_STEP:  ReportStep = s;  break;
+          case WET_STEP:     project->WetStep = s;     break;
+          case DRY_STEP:     project->DryStep = s;     break;
+          case REPORT_STEP:  project->ReportStep = s;  break;
         }
         break;
 
@@ -512,7 +512,7 @@ int project_readOption(char* s1, char* s2)
       case INERT_DAMPING:
         m = findmatch(s2, InertDampingWords);
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, s2);
-        else InertDamping = m;
+        else project->InertDamping = m;
         break;
 
       // --- Yes/No options (NO = 0, YES = 1)
@@ -529,15 +529,15 @@ int project_readOption(char* s1, char* s2)
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, s2);
         switch ( k )
         {
-          case ALLOW_PONDING:     AllowPonding    = m;  break;
-          case SLOPE_WEIGHTING:   SlopeWeighting  = m;  break;
-          case SKIP_STEADY_STATE: SkipSteadyState = m;  break;
-          case IGNORE_RAINFALL:   IgnoreRainfall  = m;  break;
-          case IGNORE_SNOWMELT:   IgnoreSnowmelt  = m;  break;
-          case IGNORE_GWATER:     IgnoreGwater    = m;  break;
-          case IGNORE_ROUTING:    IgnoreRouting   = m;  break;
-          case IGNORE_QUALITY:    IgnoreQuality   = m;  break;
-          case IGNORE_RDII:       IgnoreRDII      = m;  break;                 //(5.1.004)
+          case ALLOW_PONDING:     project->AllowPonding    = m;  break;
+          case SLOPE_WEIGHTING:   project->SlopeWeighting  = m;  break;
+          case SKIP_STEADY_STATE: project->SkipSteadyState = m;  break;
+          case IGNORE_RAINFALL:   project->IgnoreRainfall  = m;  break;
+          case IGNORE_SNOWMELT:   project->IgnoreSnowmelt  = m;  break;
+          case IGNORE_GWATER:     project->IgnoreGwater    = m;  break;
+          case IGNORE_ROUTING:    project->IgnoreRouting   = m;  break;
+          case IGNORE_QUALITY:    project->IgnoreQuality   = m;  break;
+          case IGNORE_RDII:       project->IgnoreRDII      = m;  break;                 //(5.1.004)
         }
         break;
 
@@ -545,27 +545,27 @@ int project_readOption(char* s1, char* s2)
         m = findmatch(s2, NormalFlowWords); 
         if ( m < 0 ) m = findmatch(s2, NoYesWords);
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, s2);
-        NormalFlowLtd = m;
+        project->NormalFlowLtd = m;
         break;
 
       case FORCE_MAIN_EQN:
         m = findmatch(s2, ForceMainEqnWords);
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, s2);
-        ForceMainEqn = m;
+        project->ForceMainEqn = m;
         break;
 
       case LINK_OFFSETS:
         m = findmatch(s2, LinkOffsetWords);
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, s2);
-        LinkOffsets = m;
+        project->LinkOffsets = m;
         break;
 
       // --- compatibility option for selecting solution method for
       //     dynamic wave flow routing (NOT CURRENTLY USED)
       case COMPATIBILITY:
-        if      ( strcomp(s2, "3") ) Compatibility = SWMM3;
-        else if ( strcomp(s2, "4") ) Compatibility = SWMM4;
-        else if ( strcomp(s2, "5") ) Compatibility = SWMM5;
+        if      ( strcomp(s2, "3") ) project->Compatibility = SWMM3;
+        else if ( strcomp(s2, "4") ) project->Compatibility = SWMM4;
+        else if ( strcomp(s2, "5") ) project->Compatibility = SWMM5;
         else return error_setInpError(ERR_KEYWORD, s2);
         break;
 
@@ -592,46 +592,46 @@ int project_readOption(char* s1, char* s2)
         if ( k == ROUTE_STEP )
         {
             if ( tStep <= 0.0 ) return error_setInpError(ERR_NUMBER, s2);
-            RouteStep = tStep;
+            project->RouteStep = tStep;
         }
-        else LengtheningStep = MAX(0.0, tStep);
+        else project->LengtheningStep = MAX(0.0, tStep);
         break;
 
       // --- safety factor applied to variable time step estimates under
       //     dynamic wave flow routing (value of 0 indicates that variable
       //     time step option not used)
       case VARIABLE_STEP:
-        if ( !getDouble(s2, &CourantFactor) )
+        if ( !getDouble(s2, &project->CourantFactor) )
             return error_setInpError(ERR_NUMBER, s2);
-        if ( CourantFactor < 0.0 || CourantFactor > 2.0 )
+        if ( project->CourantFactor < 0.0 || CourantFactor > 2.0 )
             return error_setInpError(ERR_NUMBER, s2);
         break;
 
       // --- minimum surface area (ft2 or sq. meters) associated with nodes
       //     under dynamic wave flow routing 
       case MIN_SURFAREA:
-        MinSurfArea = atof(s2);
+        project->MinSurfArea = atof(s2);
         break;
 
       // --- minimum conduit slope (%)
       case MIN_SLOPE:
-        if ( !getDouble(s2, &MinSlope) )
+        if ( !getDouble(s2, &project->MinSlope) )
             return error_setInpError(ERR_NUMBER, s2);
-        if ( MinSlope < 0.0 || MinSlope >= 100 )
+        if ( project->MinSlope < 0.0 || MinSlope >= 100 )
             return error_setInpError(ERR_NUMBER, s2);
-        MinSlope /= 100.0;
+        project->MinSlope /= 100.0;
         break;
 
       // --- maximum trials / time step for dynamic wave routing
       case MAX_TRIALS:
         m = atoi(s2);
         if ( m < 0 ) return error_setInpError(ERR_NUMBER, s2);
-        MaxTrials = m;
+        project->MaxTrials = m;
         break;
 
       // --- head convergence tolerance for dynamic wave routing
       case HEAD_TOL:
-        if ( !getDouble(s2, &HeadTol) )
+        if ( !getDouble(s2, &project->HeadTol) )
         {
             return error_setInpError(ERR_NUMBER, s2);
         }
@@ -639,24 +639,24 @@ int project_readOption(char* s1, char* s2)
 
       // --- steady state tolerance on system inflow - outflow
       case SYS_FLOW_TOL:
-        if ( !getDouble(s2, &SysFlowTol) )
+        if ( !getDouble(s2, &project->SysFlowTol) )
         {
             return error_setInpError(ERR_NUMBER, s2);
         }
-        SysFlowTol /= 100.0;
+        project->SysFlowTol /= 100.0;
         break;
 
       // --- steady state tolerance on nodal lateral inflow
       case LAT_FLOW_TOL:
-        if ( !getDouble(s2, &LatFlowTol) )
+        if ( !getDouble(s2, &project->LatFlowTol) )
         {
             return error_setInpError(ERR_NUMBER, s2);
         }
-        LatFlowTol /= 100.0;
+        project->LatFlowTol /= 100.0;
         break;
 
       case TEMPDIR: // Temporary Directory
-        sstrncpy(TempDir, s2, MAXFNAME);
+        sstrncpy(project->TempDir, s2, MAXFNAME);
         break;
 
     }
@@ -672,28 +672,28 @@ void initPointers()
 //  Purpose: assigns NULL to all dynamic arrays for a new project.
 //
 {
-    Gage     = NULL;
-    Subcatch = NULL;
-    Node     = NULL;
-    Outfall  = NULL;
-    Divider  = NULL;
-    Storage  = NULL;
-    Link     = NULL;
-    Conduit  = NULL;
-    Pump     = NULL;
-    Orifice  = NULL;
-    Weir     = NULL;
-    Outlet   = NULL;
-    Pollut   = NULL;
-    Landuse  = NULL;
-    Pattern  = NULL;
-    Curve    = NULL;
-    Tseries  = NULL;
-    Transect = NULL;
-    Shape    = NULL;
-    Aquifer    = NULL;
-    UnitHyd    = NULL;
-    Snowmelt   = NULL;
+    project->Gage     = NULL;
+    project->Subcatch = NULL;
+    project->Node     = NULL;
+    project->Outfall  = NULL;
+    project->Divider  = NULL;
+    project->Storage  = NULL;
+    project->Link     = NULL;
+    project->Conduit  = NULL;
+    project->Pump     = NULL;
+    project->Orifice  = NULL;
+    project->Weir     = NULL;
+    project->Outlet   = NULL;
+    project->Pollut   = NULL;
+    project->Landuse  = NULL;
+    project->Pattern  = NULL;
+    project->Curve    = NULL;
+    project->Tseries  = NULL;
+    project->Transect = NULL;
+    project->Shape    = NULL;
+    project->Aquifer    = NULL;
+    project->UnitHyd    = NULL;
+    project->Snowmelt   = NULL;
     MemPoolAllocated = FALSE;
 }
 
@@ -709,119 +709,119 @@ void setDefaults()
    int i, j;
 
    // Project title & temp. file path
-   for (i = 0; i < MAXTITLE; i++) strcpy(Title[i], "");
-   strcpy(TempDir, "");
+   for (i = 0; i < MAXTITLE; i++) strcpy(project->Title[i], "");
+   strcpy(project->TempDir, "");
 
    // Interface files
-   Frain.mode      = SCRATCH_FILE;     // Use scratch rainfall file
-   Fclimate.mode   = NO_FILE; 
-   Frunoff.mode    = NO_FILE;
-   Frdii.mode      = NO_FILE;
-   Fhotstart1.mode = NO_FILE;
-   Fhotstart2.mode = NO_FILE;
-   Finflows.mode   = NO_FILE;
-   Foutflows.mode  = NO_FILE;
-   Frain.file      = NULL;
-   Fclimate.file   = NULL;
-   Frunoff.file    = NULL;
-   Frdii.file      = NULL;
-   Fhotstart1.file = NULL;
-   Fhotstart2.file = NULL;
-   Finflows.file   = NULL;
-   Foutflows.file  = NULL;
-   Fout.file       = NULL;
-   Fout.mode       = NO_FILE;
+   project->Frain.mode      = SCRATCH_FILE;     // Use scratch rainfall file
+   project->Fclimate.mode   = NO_FILE; 
+   project->Frunoff.mode    = NO_FILE;
+   project->Frdii.mode      = NO_FILE;
+   project->Fhotstart1.mode = NO_FILE;
+   project->Fhotstart2.mode = NO_FILE;
+   project->Finflows.mode   = NO_FILE;
+   project->Foutflows.mode  = NO_FILE;
+   project->Frain.file      = NULL;
+   project->Fclimate.file   = NULL;
+   project->Frunoff.file    = NULL;
+   project->Frdii.file      = NULL;
+   project->Fhotstart1.file = NULL;
+   project->Fhotstart2.file = NULL;
+   project->Finflows.file   = NULL;
+   project->Foutflows.file  = NULL;
+   project->Fout.file       = NULL;
+   project->Fout.mode       = NO_FILE;
 
    // Analysis options
-   UnitSystem      = US;               // US unit system
-   FlowUnits       = CFS;              // CFS flow units
-   InfilModel      = HORTON;           // Horton infiltration method
-   RouteModel      = KW;               // Kin. wave flow routing method
-   AllowPonding    = FALSE;            // No ponding at nodes
-   InertDamping    = SOME;             // Partial inertial damping
-   NormalFlowLtd   = BOTH;             // Default normal flow limitation
-   ForceMainEqn    = H_W;              // Hazen-Williams eqn. for force mains
-   LinkOffsets     = DEPTH_OFFSET;     // Use depth for link offsets
-   LengtheningStep = 0;                // No lengthening of conduits
-   CourantFactor   = 0.0;              // No variable time step 
-   MinSurfArea     = 0.0;              // Force use of default min. surface area
-   SkipSteadyState = FALSE;            // Do flow routing in steady state periods 
-   IgnoreRainfall  = FALSE;            // Analyze rainfall/runoff
-   IgnoreRDII      = FALSE;            // Analyze RDII                         //(5.1.004)
-   IgnoreSnowmelt  = FALSE;            // Analyze snowmelt 
-   IgnoreGwater    = FALSE;            // Analyze groundwater 
-   IgnoreRouting   = FALSE;            // Analyze flow routing
-   IgnoreQuality   = FALSE;            // Analyze water quality
-   WetStep         = 300;              // Runoff wet time step (secs)
-   DryStep         = 3600;             // Runoff dry time step (secs)
-   RouteStep       = 300.0;            // Routing time step (secs)
-   ReportStep      = 900;              // Reporting time step (secs)
-   StartDryDays    = 0.0;              // Antecedent dry days
-   MaxTrials       = 0;                // Force use of default max. trials 
-   HeadTol         = 0.0;              // Force use of default head tolerance
-   SysFlowTol      = 0.05;             // System flow tolerance for steady state
-   LatFlowTol      = 0.05;             // Lateral flow tolerance for steady state
+   project->UnitSystem      = US;               // US unit system
+   project->FlowUnits       = CFS;              // CFS flow units
+   project->InfilModel      = HORTON;           // Horton infiltration method
+   project->RouteModel      = KW;               // Kin. wave flow routing method
+   project->AllowPonding    = FALSE;            // No ponding at nodes
+   project->InertDamping    = SOME;             // Partial inertial damping
+   project->NormalFlowLtd   = BOTH;             // Default normal flow limitation
+   project->ForceMainEqn    = H_W;              // Hazen-Williams eqn. for force mains
+   project->LinkOffsets     = DEPTH_OFFSET;     // Use depth for link offsets
+   project->LengtheningStep = 0;                // No lengthening of conduits
+   project->CourantFactor   = 0.0;              // No variable time step 
+   project->MinSurfArea     = 0.0;              // Force use of default min. surface area
+   project->SkipSteadyState = FALSE;            // Do flow routing in steady state periods 
+   project->IgnoreRainfall  = FALSE;            // Analyze rainfall/runoff
+   project->IgnoreRDII      = FALSE;            // Analyze RDII                         //(5.1.004)
+   project->IgnoreSnowmelt  = FALSE;            // Analyze snowmelt 
+   project->IgnoreGwater    = FALSE;            // Analyze groundwater 
+   project->IgnoreRouting   = FALSE;            // Analyze flow routing
+   project->IgnoreQuality   = FALSE;            // Analyze water quality
+   project->WetStep         = 300;              // Runoff wet time step (secs)
+   project->DryStep         = 3600;             // Runoff dry time step (secs)
+   project->RouteStep       = 300.0;            // Routing time step (secs)
+   project->ReportStep      = 900;              // Reporting time step (secs)
+   project->StartDryDays    = 0.0;              // Antecedent dry days
+   project->MaxTrials       = 0;                // Force use of default max. trials 
+   project->HeadTol         = 0.0;              // Force use of default head tolerance
+   project->SysFlowTol      = 0.05;             // System flow tolerance for steady state
+   project->LatFlowTol      = 0.05;             // Lateral flow tolerance for steady state
 
    // Deprecated options
-   SlopeWeighting  = TRUE;             // Use slope weighting 
-   Compatibility   = SWMM4;            // Use SWMM 4 up/dn weighting method
+   project->SlopeWeighting  = TRUE;             // Use slope weighting 
+   project->Compatibility   = SWMM4;            // Use SWMM 4 up/dn weighting method
 
    // Starting & ending date/time
-   StartDate       = datetime_encodeDate(2004, 1, 1);
-   StartTime       = datetime_encodeTime(0,0,0);
-   StartDateTime   = StartDate + StartTime;
-   EndDate         = StartDate;
-   EndTime         = 0.0;
-   ReportStartDate = NO_DATE;
-   ReportStartTime = NO_DATE;
-   SweepStart      = 1;
-   SweepEnd        = 365;
+   project->StartDate       = datetime_encodeDate(2004, 1, 1);
+   project->StartTime       = datetime_encodeTime(0,0,0);
+   project->StartDateTime   = project->StartDate + project->StartTime;
+   project->EndDate         = project->StartDate;
+   project->EndTime         = 0.0;
+   project->ReportStartDate = NO_DATE;
+   project->ReportStartTime = NO_DATE;
+   project->SweepStart      = 1;
+   project->SweepEnd        = 365;
 
    // Reporting options
-   RptFlags.input         = FALSE;
-   RptFlags.continuity    = TRUE;
-   RptFlags.flowStats     = TRUE;
-   RptFlags.controls      = FALSE;
-   RptFlags.subcatchments = FALSE;
-   RptFlags.nodes         = FALSE;
-   RptFlags.links         = FALSE;
-   RptFlags.nodeStats     = FALSE;
+   project->RptFlags.input         = FALSE;
+   project->RptFlags.continuity    = TRUE;
+   project->RptFlags.flowStats     = TRUE;
+   project->RptFlags.controls      = FALSE;
+   project->RptFlags.subcatchments = FALSE;
+   project->RptFlags.nodes         = FALSE;
+   project->RptFlags.links         = FALSE;
+   project->RptFlags.nodeStats     = FALSE;
 
    // Temperature data
-   Temp.dataSource  = NO_TEMP;
-   Temp.tSeries     = -1;
-   Temp.ta          = 70.0;
-   Temp.elev        = 0.0;
-   Temp.anglat      = 40.0;
-   Temp.dtlong      = 0.0;
-   Temp.tmax        = MISSING;
+   project->Temp.dataSource  = NO_TEMP;
+   project->Temp.tSeries     = -1;
+   project->Temp.ta          = 70.0;
+   project->Temp.elev        = 0.0;
+   project->Temp.anglat      = 40.0;
+   project->Temp.dtlong      = 0.0;
+   project->Temp.tmax        = MISSING;
 
-   // Wind speed data
-   Wind.type = MONTHLY_WIND;
-   for ( i=0; i<12; i++ ) Wind.aws[i] = 0.0;
+   // project->Wind speed data
+   project->Wind.type = MONTHLY_WIND;
+   for ( i=0; i<12; i++ ) project->Wind.aws[i] = 0.0;
 
-   // Snowmelt parameters
-   Snow.snotmp      = 34.0;
-   Snow.tipm        = 0.5;
-   Snow.rnm         = 0.6;
+   // project->Snowmelt parameters
+   project->Snow.snotmp      = 34.0;
+   project->Snow.tipm        = 0.5;
+   project->Snow.rnm         = 0.6;
 
-   // Snow areal depletion curves for pervious and impervious surfaces
+   // project->Snow areal depletion curves for pervious and impervious surfaces
    for ( i=0; i<2; i++ )
    {
-       for ( j=0; j<10; j++) Snow.adc[i][j] = 1.0;
+       for ( j=0; j<10; j++) project->Snow.adc[i][j] = 1.0;
    }
 
    // Evaporation rates
-   Evap.type = CONSTANT_EVAP;
+   project->Evap.type = CONSTANT_EVAP;
    for (i=0; i<12; i++)
    {
-       Evap.monthlyEvap[i] = 0.0;
-       Evap.panCoeff[i]    = 1.0;
+       project->Evap.monthlyEvap[i] = 0.0;
+       project->Evap.panCoeff[i]    = 1.0;
    }
-   Evap.recoveryPattern = -1;
-   Evap.recoveryFactor  = 1.0; 
-   Evap.tSeries = -1;
-   Evap.dryOnly = FALSE;
+   project->Evap.recoveryPattern = -1;
+   project->Evap.recoveryFactor  = 1.0; 
+   project->Evap.tSeries = -1;
+   project->Evap.dryOnly = FALSE;
 }
 
 //=============================================================================
@@ -836,36 +836,36 @@ void openFiles(char *f1, char *f2, char *f3)
 //
 {
     // --- initialize file pointers to NULL
-    Finp.file = NULL;
-    Frpt.file = NULL;
-    Fout.file = NULL;
+    project->Finp.file = NULL;
+    project->Frpt.file = NULL;
+    project->Fout.file = NULL;
 
     // --- save file names
-    sstrncpy(Finp.name, f1, MAXFNAME);
-    sstrncpy(Frpt.name, f2, MAXFNAME);
-    sstrncpy(Fout.name, f3, MAXFNAME);
+    sstrncpy(project->Finp.name, f1, MAXFNAME);
+    sstrncpy(project->Frpt.name, f2, MAXFNAME);
+    sstrncpy(project->Fout.name, f3, MAXFNAME);
 
     // --- check that file names are not identical
     if (strcomp(f1, f2) || strcomp(f1, f3) || strcomp(f2, f3))
     {
         writecon(FMT11);
-        ErrorCode = ERR_FILE_NAME;
+        project->ErrorCode = ERR_FILE_NAME;
         return;
     }
 
     // --- open input and report files
-    if ((Finp.file = fopen(f1,"rt")) == NULL)
+    if ((project->Finp.file = fopen(f1,"rt")) == NULL)
     {
         writecon(FMT12);
         writecon(f1);
-        ErrorCode = ERR_INP_FILE;
+        project->ErrorCode = ERR_INP_FILE;
         return;
     }
 
-    if ((Frpt.file = fopen(f2,"wt")) == NULL)
+    if ((project->Frpt.file = fopen(f2,"wt")) == NULL)
     {
        writecon(FMT13);
-       ErrorCode = ERR_RPT_FILE;
+       project->ErrorCode = ERR_RPT_FILE;
        return;
     }
 }
@@ -885,156 +885,156 @@ void createObjects()
     int j, k;
 
     // --- allocate memory for each category of object
-	if (ErrorCode)
+	if (project->ErrorCode)
 	{
 		return;
 	}
 
-    Gage     = (TGage *)     calloc(Nobjects[GAGE],     sizeof(TGage));
-    Subcatch = (TSubcatch *) calloc(Nobjects[SUBCATCH], sizeof(TSubcatch));
-    Node     = (TNode *)     calloc(Nobjects[NODE],     sizeof(TNode));
-    Outfall  = (TOutfall *)  calloc(Nnodes[OUTFALL],    sizeof(TOutfall));
-    Divider  = (TDivider *)  calloc(Nnodes[DIVIDER],    sizeof(TDivider));
-    Storage  = (TStorage *)  calloc(Nnodes[STORAGE],    sizeof(TStorage));
-    Link     = (TLink *)     calloc(Nobjects[LINK],     sizeof(TLink));
-    Conduit  = (TConduit *)  calloc(Nlinks[CONDUIT],    sizeof(TConduit));
-    Pump     = (TPump *)     calloc(Nlinks[PUMP],       sizeof(TPump));
-    Orifice  = (TOrifice *)  calloc(Nlinks[ORIFICE],    sizeof(TOrifice));
-    Weir     = (TWeir *)     calloc(Nlinks[WEIR],       sizeof(TWeir));
-    Outlet   = (TOutlet *)   calloc(Nlinks[OUTLET],     sizeof(TOutlet));
-    Pollut   = (TPollut *)   calloc(Nobjects[POLLUT],   sizeof(TPollut));
-    Landuse  = (TLanduse *)  calloc(Nobjects[LANDUSE],  sizeof(TLanduse));
-    Pattern  = (TPattern *)  calloc(Nobjects[TIMEPATTERN],  sizeof(TPattern));
-    Curve    = (TTable *)    calloc(Nobjects[CURVE],    sizeof(TTable));
-    Tseries  = (TTable *)    calloc(Nobjects[TSERIES],  sizeof(TTable));
-    Aquifer  = (TAquifer *)  calloc(Nobjects[AQUIFER],  sizeof(TAquifer));
-    UnitHyd  = (TUnitHyd *)  calloc(Nobjects[UNITHYD],  sizeof(TUnitHyd));
-    Snowmelt = (TSnowmelt *) calloc(Nobjects[SNOWMELT], sizeof(TSnowmelt));
-    Shape    = (TShape *)    calloc(Nobjects[SHAPE],    sizeof(TShape));
+    project->Gage     = (TGage *)     calloc(project->Nobjects[GAGE],     sizeof(TGage));
+    project->Subcatch = (TSubcatch *) calloc(project->Nobjects[SUBCATCH], sizeof(TSubcatch));
+    project->Node     = (TNode *)     calloc(project->Nobjects[NODE],     sizeof(TNode));
+    project->Outfall  = (TOutfall *)  calloc(project->Nnodes[OUTFALL],    sizeof(TOutfall));
+    project->Divider  = (TDivider *)  calloc(project->Nnodes[DIVIDER],    sizeof(TDivider));
+    project->Storage  = (TStorage *)  calloc(project->Nnodes[STORAGE],    sizeof(TStorage));
+    project->Link     = (TLink *)     calloc(project->Nobjects[LINK],     sizeof(TLink));
+    project->Conduit  = (TConduit *)  calloc(project->Nlinks[CONDUIT],    sizeof(TConduit));
+    project->Pump     = (TPump *)     calloc(project->Nlinks[PUMP],       sizeof(TPump));
+    project->Orifice  = (TOrifice *)  calloc(project->Nlinks[ORIFICE],    sizeof(TOrifice));
+    project->Weir     = (TWeir *)     calloc(project->Nlinks[WEIR],       sizeof(TWeir));
+    project->Outlet   = (TOutlet *)   calloc(project->Nlinks[OUTLET],     sizeof(TOutlet));
+    project->Pollut   = (TPollut *)   calloc(project->Nobjects[POLLUT],   sizeof(TPollut));
+    project->Landuse  = (TLanduse *)  calloc(project->Nobjects[LANDUSE],  sizeof(TLanduse));
+    project->Pattern  = (TPattern *)  calloc(project->Nobjects[TIMEPATTERN],  sizeof(TPattern));
+    project->Curve    = (TTable *)    calloc(project->Nobjects[CURVE],    sizeof(TTable));
+    project->Tseries  = (TTable *)    calloc(project->Nobjects[TSERIES],  sizeof(TTable));
+    project->Aquifer  = (TAquifer *)  calloc(project->Nobjects[AQUIFER],  sizeof(TAquifer));
+    project->UnitHyd  = (TUnitHyd *)  calloc(project->Nobjects[UNITHYD],  sizeof(TUnitHyd));
+    project->Snowmelt = (TSnowmelt *) calloc(project->Nobjects[SNOWMELT], sizeof(TSnowmelt));
+    project->Shape    = (TShape *)    calloc(project->Nobjects[SHAPE],    sizeof(TShape));
 
     // --- create LID objects
-    lid_create(Nobjects[LID], Nobjects[SUBCATCH]);
+    lid_create(project->Nobjects[LID], Nobjects[SUBCATCH]);
 
     // --- create control rules
-    ErrorCode = controls_create(Nobjects[CONTROL]);
-    if ( ErrorCode ) return;
+    project->ErrorCode = controls_create(project->Nobjects[CONTROL]);
+    if ( project->ErrorCode ) return;
 
     // --- create cross section transects
-    ErrorCode = transect_create(Nobjects[TRANSECT]);
-    if ( ErrorCode ) return;
+    project->ErrorCode = transect_create(project->Nobjects[TRANSECT]);
+    if ( project->ErrorCode ) return;
 
     // --- allocate memory for infiltration data
-    infil_create(Nobjects[SUBCATCH], InfilModel);
+    infil_create(project->Nobjects[SUBCATCH], project->InfilModel);
 
     // --- allocate memory for water quality state variables
-    for (j = 0; j < Nobjects[SUBCATCH]; j++)
+    for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        Subcatch[j].initBuildup =
-                              (double *) calloc(Nobjects[POLLUT], sizeof(double));
-        Subcatch[j].oldQual = (double *) calloc(Nobjects[POLLUT], sizeof(double));
-        Subcatch[j].newQual = (double *) calloc(Nobjects[POLLUT], sizeof(double));
-        Subcatch[j].pondedQual = (double *) calloc(Nobjects[POLLUT], sizeof(double));
-        Subcatch[j].totalLoad  = (double *) calloc(Nobjects[POLLUT], sizeof(double));
+        project->Subcatch[j].initBuildup =
+                              (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+        project->Subcatch[j].oldQual = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+        project->Subcatch[j].newQual = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+        project->Subcatch[j].pondedQual = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+        project->Subcatch[j].totalLoad  = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
     }
-    for (j = 0; j < Nobjects[NODE]; j++)
+    for (j = 0; j < project->Nobjects[NODE]; j++)
     {
-        Node[j].oldQual = (double *) calloc(Nobjects[POLLUT], sizeof(double));
-        Node[j].newQual = (double *) calloc(Nobjects[POLLUT], sizeof(double));
-        Node[j].extInflow = NULL;
-        Node[j].dwfInflow = NULL;
-        Node[j].rdiiInflow = NULL;
-        Node[j].treatment = NULL;
+        project->Node[j].oldQual = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+        project->Node[j].newQual = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+        project->Node[j].extInflow = NULL;
+        project->Node[j].dwfInflow = NULL;
+        project->Node[j].rdiiInflow = NULL;
+        project->Node[j].treatment = NULL;
     }
-    for (j = 0; j < Nobjects[LINK]; j++)
+    for (j = 0; j < project->Nobjects[LINK]; j++)
     {
-        Link[j].oldQual = (double *) calloc(Nobjects[POLLUT], sizeof(double));
-        Link[j].newQual = (double *) calloc(Nobjects[POLLUT], sizeof(double));
-	    Link[j].totalLoad = (double *) calloc(Nobjects[POLLUT], sizeof(double));
+        project->Link[j].oldQual = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+        project->Link[j].newQual = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
+	    project->Link[j].totalLoad = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
     }
 
     // --- allocate memory for land use buildup/washoff functions
-    for (j = 0; j < Nobjects[LANDUSE]; j++)
+    for (j = 0; j < project->Nobjects[LANDUSE]; j++)
     {
-        Landuse[j].buildupFunc =
-            (TBuildup *) calloc(Nobjects[POLLUT], sizeof(TBuildup));
-        Landuse[j].washoffFunc =
-            (TWashoff *) calloc(Nobjects[POLLUT], sizeof(TWashoff));
+        project->Landuse[j].buildupFunc =
+            (TBuildup *) calloc(project->Nobjects[POLLUT], sizeof(TBuildup));
+        project->Landuse[j].washoffFunc =
+            (TWashoff *) calloc(project->Nobjects[POLLUT], sizeof(TWashoff));
     }
 
     // --- allocate memory for subcatchment landuse factors
-    for (j = 0; j < Nobjects[SUBCATCH]; j++)
+    for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        Subcatch[j].landFactor =
-            (TLandFactor *) calloc(Nobjects[LANDUSE], sizeof(TLandFactor));
-        for (k = 0; k < Nobjects[LANDUSE]; k++)
+        project->Subcatch[j].landFactor =
+            (TLandFactor *) calloc(project->Nobjects[LANDUSE], sizeof(TLandFactor));
+        for (k = 0; k < project->Nobjects[LANDUSE]; k++)
         {
-            Subcatch[j].landFactor[k].buildup =
-                (double *) calloc(Nobjects[POLLUT], sizeof(double));
+            project->Subcatch[j].landFactor[k].buildup =
+                (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
         }
     }
 
     // --- initialize buildup & washoff functions
-    for (j = 0; j < Nobjects[LANDUSE]; j++)
+    for (j = 0; j < project->Nobjects[LANDUSE]; j++)
     {
-        for (k = 0; k < Nobjects[POLLUT]; k++)
+        for (k = 0; k < project->Nobjects[POLLUT]; k++)
         {
-            Landuse[j].buildupFunc[k].funcType = NO_BUILDUP;
-            Landuse[j].buildupFunc[k].normalizer = PER_AREA;
-            Landuse[j].washoffFunc[k].funcType = NO_WASHOFF;
+            project->Landuse[j].buildupFunc[k].funcType = NO_BUILDUP;
+            project->Landuse[j].buildupFunc[k].normalizer = PER_AREA;
+            project->Landuse[j].washoffFunc[k].funcType = NO_WASHOFF;
         }
     }
 
     // --- initialize rain gage properties
-    for (j = 0; j < Nobjects[GAGE]; j++)
+    for (j = 0; j < project->Nobjects[GAGE]; j++)
     {
-        Gage[j].tSeries = -1;
-        strcpy(Gage[j].fname, "");
+        project->Gage[j].tSeries = -1;
+        strcpy(project->Gage[j].fname, "");
     }
 
     // --- initialize subcatchment properties
-    for (j = 0; j < Nobjects[SUBCATCH]; j++)
+    for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        Subcatch[j].outSubcatch = -1;
-        Subcatch[j].outNode     = -1;
-        Subcatch[j].infil       = -1;
-        Subcatch[j].groundwater = NULL;
-	    Subcatch[j].gwFlowExpr  = NULL;
-        Subcatch[j].snowpack    = NULL;
-        Subcatch[j].lidArea     = 0.0;
-        for (k = 0; k < Nobjects[POLLUT]; k++)
+        project->Subcatch[j].outSubcatch = -1;
+        project->Subcatch[j].outNode     = -1;
+        project->Subcatch[j].infil       = -1;
+        project->Subcatch[j].groundwater = NULL;
+	    project->Subcatch[j].gwFlowExpr  = NULL;
+        project->Subcatch[j].snowpack    = NULL;
+        project->Subcatch[j].lidArea     = 0.0;
+        for (k = 0; k < project->Nobjects[POLLUT]; k++)
         {
-            Subcatch[j].initBuildup[k] = 0.0;
+            project->Subcatch[j].initBuildup[k] = 0.0;
         }
     }
 
     // --- initialize RDII unit hydrograph properties
-    for ( j = 0; j < Nobjects[UNITHYD]; j++ ) rdii_initUnitHyd(j);
+    for ( j = 0; j < project->Nobjects[UNITHYD]; j++ ) rdii_initUnitHyd(j);
 
     // --- initialize snowmelt properties
-    for ( j = 0; j < Nobjects[SNOWMELT]; j++ ) snow_initSnowmelt(j);
+    for ( j = 0; j < project->Nobjects[SNOWMELT]; j++ ) snow_initSnowmelt(j);
 
     // --- initialize link properties
-    for (j = 0; j < Nobjects[LINK]; j++)
+    for (j = 0; j < project->Nobjects[LINK]; j++)
     {
-        Link[j].xsect.type   = -1;
-        Link[j].cLossInlet   = 0.0;
-        Link[j].cLossOutlet  = 0.0;
-        Link[j].cLossAvg     = 0.0;
-        Link[j].hasFlapGate  = FALSE;
+        project->Link[j].xsect.type   = -1;
+        project->Link[j].cLossInlet   = 0.0;
+        project->Link[j].cLossOutlet  = 0.0;
+        project->Link[j].cLossAvg     = 0.0;
+        project->Link[j].hasFlapGate  = FALSE;
     }
 
-    for (j = 0; j < Nlinks[PUMP]; j++) 
-		Pump[j].pumpCurve  = -1;
+    for (j = 0; j < project->Nlinks[PUMP]; j++) 
+		project->Pump[j].pumpCurve  = -1;
 
     // --- initialize reporting flags
-    for (j = 0; j < Nobjects[SUBCATCH]; j++) Subcatch[j].rptFlag = FALSE;
-    for (j = 0; j < Nobjects[NODE]; j++) Node[j].rptFlag = FALSE;
-    for (j = 0; j < Nobjects[LINK]; j++) Link[j].rptFlag = FALSE;
+    for (j = 0; j < project->Nobjects[SUBCATCH]; j++) project->Subcatch[j].rptFlag = FALSE;
+    for (j = 0; j < project->Nobjects[NODE]; j++) project->Node[j].rptFlag = FALSE;
+    for (j = 0; j < project->Nobjects[LINK]; j++) project->Link[j].rptFlag = FALSE;
 
     //  --- initialize curves, time series, and time patterns
-    for (j = 0; j < Nobjects[CURVE]; j++)   table_init(&Curve[j]);
-    for (j = 0; j < Nobjects[TSERIES]; j++) table_init(&Tseries[j]);
-    for (j = 0; j < Nobjects[TIMEPATTERN]; j++) inflow_initDwfPattern(j);
+    for (j = 0; j < project->Nobjects[CURVE]; j++)   table_init(&project->Curve[j]);
+    for (j = 0; j < project->Nobjects[TSERIES]; j++) table_init(&project->Tseries[j]);
+    for (j = 0; j < project->Nobjects[TIMEPATTERN]; j++) inflow_initDwfPattern(j);
 }
 
 //=============================================================================
@@ -1053,51 +1053,51 @@ void deleteObjects()
     int j, k;
 
     // --- free memory for landuse factors & groundwater
-    if ( Subcatch ) for (j = 0; j < Nobjects[SUBCATCH]; j++)
+    if ( project->Subcatch ) for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        for (k = 0; k < Nobjects[LANDUSE]; k++)
+        for (k = 0; k < project->Nobjects[LANDUSE]; k++)
         {
-            FREE(Subcatch[j].landFactor[k].buildup);
+            FREE(project->Subcatch[j].landFactor[k].buildup);
         }
-        FREE(Subcatch[j].landFactor);
-        FREE(Subcatch[j].groundwater);
+        FREE(project->Subcatch[j].landFactor);
+        FREE(project->Subcatch[j].groundwater);
 		gwater_deleteFlowExpression(j);
-        FREE(Subcatch[j].snowpack);
+        FREE(project->Subcatch[j].snowpack);
     }
 
     // --- free memory for buildup/washoff functions
-    if ( Landuse ) for (j = 0; j < Nobjects[LANDUSE]; j++)
+    if ( project->Landuse ) for (j = 0; j < project->Nobjects[LANDUSE]; j++)
     {
-        FREE(Landuse[j].buildupFunc);
-        FREE(Landuse[j].washoffFunc)
+        FREE(project->Landuse[j].buildupFunc);
+        FREE(project->Landuse[j].washoffFunc)
     }
 
     // --- free memory for water quality state variables
-    if ( Subcatch ) for (j = 0; j < Nobjects[SUBCATCH]; j++)
+    if ( project->Subcatch ) for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        FREE(Subcatch[j].initBuildup);
-        FREE(Subcatch[j].oldQual);
-        FREE(Subcatch[j].newQual);
-        FREE(Subcatch[j].pondedQual);
-        FREE(Subcatch[j].totalLoad);
+        FREE(project->Subcatch[j].initBuildup);
+        FREE(project->Subcatch[j].oldQual);
+        FREE(project->Subcatch[j].newQual);
+        FREE(project->Subcatch[j].pondedQual);
+        FREE(project->Subcatch[j].totalLoad);
     }
-    if ( Node ) for (j = 0; j < Nobjects[NODE]; j++)
+    if ( project->Node ) for (j = 0; j < project->Nobjects[NODE]; j++)
     {
-        FREE(Node[j].oldQual);
-        FREE(Node[j].newQual);
+        FREE(project->Node[j].oldQual);
+        FREE(project->Node[j].newQual);
     }
-    if ( Link ) for (j = 0; j < Nobjects[LINK]; j++)
+    if ( project->Link ) for (j = 0; j < project->Nobjects[LINK]; j++)
     {
-        FREE(Link[j].oldQual);
-        FREE(Link[j].newQual);
-	    FREE(Link[j].totalLoad);
+        FREE(project->Link[j].oldQual);
+        FREE(project->Link[j].newQual);
+	    FREE(project->Link[j].totalLoad);
     }
 
     // --- free memory used for infiltration
     infil_delete();
 
     // --- free memory used for nodal inflows & treatment functions
-    if ( Node ) for (j = 0; j < Nobjects[NODE]; j++)
+    if ( project->Node ) for (j = 0; j < project->Nobjects[NODE]; j++)
     {
         inflow_deleteExtInflows(j);
         inflow_deleteDwfInflows(j);
@@ -1106,10 +1106,10 @@ void deleteObjects()
     }
 
     // --- delete table entries for curves and time series
-    if ( Tseries ) for (j = 0; j < Nobjects[TSERIES]; j++)
-        table_deleteEntries(&Tseries[j]);
-    if ( Curve ) for (j = 0; j < Nobjects[CURVE]; j++)
-        table_deleteEntries(&Curve[j]);
+    if ( project->Tseries ) for (j = 0; j < project->Nobjects[TSERIES]; j++)
+        table_deleteEntries(&project->Tseries[j]);
+    if ( project->Curve ) for (j = 0; j < project->Nobjects[CURVE]; j++)
+        table_deleteEntries(&project->Curve[j]);
 
     // --- delete cross section transects
     transect_delete();
@@ -1121,27 +1121,27 @@ void deleteObjects()
     lid_delete();
 
     // --- now free each major category of object
-    FREE(Gage);
-    FREE(Subcatch);
-    FREE(Node);
-    FREE(Outfall);
-    FREE(Divider);
-    FREE(Storage);
-    FREE(Link);
-    FREE(Conduit);
-    FREE(Pump);
-    FREE(Orifice);
-    FREE(Weir);
-    FREE(Outlet);
-    FREE(Pollut);
-    FREE(Landuse);
-    FREE(Pattern);
-    FREE(Curve);
-    FREE(Tseries);
-    FREE(Aquifer);
-    FREE(UnitHyd);
-    FREE(Snowmelt);
-    FREE(Shape);
+    FREE(project->Gage);
+    FREE(project->Subcatch);
+    FREE(project->Node);
+    FREE(project->Outfall);
+    FREE(project->Divider);
+    FREE(project->Storage);
+    FREE(project->Link);
+    FREE(project->Conduit);
+    FREE(project->Pump);
+    FREE(project->Orifice);
+    FREE(project->Weir);
+    FREE(project->Outlet);
+    FREE(project->Pollut);
+    FREE(project->Landuse);
+    FREE(project->Pattern);
+    FREE(project->Curve);
+    FREE(project->Tseries);
+    FREE(project->Aquifer);
+    FREE(project->UnitHyd);
+    FREE(project->Snowmelt);
+    FREE(project->Shape);
 
 }
 

@@ -35,4 +35,4 @@
 //-------------------------------------------------
 // Macro to evaluate function x with error checking
 //-------------------------------------------------
-#define CALL(x) (ErrorCode = ((ErrorCode>0) ? (ErrorCode) : (x)))
+#define CALL(x) (project->ErrorCode = ((ErrorCode>0) ? (ErrorCode) : (x)))

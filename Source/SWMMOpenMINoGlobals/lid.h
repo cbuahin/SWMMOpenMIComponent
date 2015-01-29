@@ -69,7 +69,7 @@ typedef struct
     double    kSlope;             // slope of log(K) v. moisture content curve
 }  TSoilLayer;
 
-// LID Storage Layer
+// LID project->Storage Layer
 typedef struct
 {
     double    thickness;          // layer thickness (ft)
@@ -78,7 +78,7 @@ typedef struct
     double    clogFactor;         // clogging factor
 }  TStorageLayer;
 
-// Underdrain System (part of Storage Layer)
+// Underdrain System (part of project->Storage Layer)
 typedef struct
 {
     double    coeff;              // underdrain flow coeff. (in/hr or mm/hr)

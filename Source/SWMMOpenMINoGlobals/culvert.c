@@ -187,13 +187,13 @@ double culvert_getInflow(int j, double q0, double h)
 	TCulvert culvert;                   //intermediate results
 
     // --- check that we have a culvert conduit    
-    if ( Link[j].type != CONDUIT ) return q0;
-    culvert.xsect = &Link[j].xsect;
+    if ( project->Link[j].type != CONDUIT ) return q0;
+    culvert.xsect = &project->Link[j].xsect;
     code = culvert.xsect->culvertCode;
     if ( code <= 0 || code > MAX_CULVERT_CODE ) return q0;
 
     // --- compute often-used variables 
-    k = Link[j].subIndex;
+    k = project->Link[j].subIndex;
     culvert.yFull = culvert.xsect->yFull;
     culvert.ad = culvert.xsect->aFull * sqrt(culvert.yFull);
 
@@ -202,13 +202,13 @@ double culvert_getInflow(int j, double q0, double h)
     {
     case 5:
     case 37:
-    case 46: culvert.scf = -7.0 * Conduit[k].slope; break;    
-    default: culvert.scf = 0.5 * Conduit[k].slope;
+    case 46: culvert.scf = -7.0 * project->Conduit[k].slope; break;    
+    default: culvert.scf = 0.5 * project->Conduit[k].slope;
     }
 
     // --- find head relative to culvert's upstream invert
     //     (can be greater than yFull when inlet is submerged) 
-    y = h - (Node[Link[j].node1].invertElev + Link[j].offset1);
+    y = h - (project->Node[project->Link[j].node1].invertElev + Link[j].offset1);
 
     // --- check for submerged flow (based on FHWA criteria of Q/AD > 4)
     y2 = culvert.yFull * (16.0 * Params[code][C] + Params[code][Y] - culvert.scf);
@@ -238,11 +238,11 @@ double culvert_getInflow(int j, double q0, double h)
     if ( q < q0 )
     {
         // --- for debugging only
-        //if ( RptFlags.controls ) report_CulvertControl(j, q0, q, condition,
+        //if ( project->RptFlags.controls ) report_CulvertControl(j, q0, q, condition,
 		//                                               y / culvert.yFull);
 
-        Link[j].inletControl = TRUE;
-        Link[j].dqdh = culvert.dQdH;
+        project->Link[j].inletControl = TRUE;
+        project->Link[j].dqdh = culvert.dQdH;
         return q;
     }
     else return q0;
@@ -399,10 +399,10 @@ void report_CulvertControl(int j, double q0, double q, int condition, double yRa
     static   char* conditionTxt[] = {"transition", "unsubmerged", "submerged"};
     char     theDate[12];
     char     theTime[9];
-	DateTime aDate = getDateTime(NewRoutingTime);
+	DateTime aDate = getDateTime(project->NewRoutingTime);
     datetime_dateToStr(aDate, theDate);
     datetime_timeToStr(aDate, theTime);
-    fprintf(Frpt.file,
+    fprintf(project->Frpt.file,
             "\n  %11s: %8s Culvert %s flow reduced from %.3f to %.3f cfs for %s flow (%.2f).",
-            theDate, theTime, Link[j].ID, q0, q, conditionTxt[condition], yRatio);
+            theDate, theTime, project->Link[j].ID, q0, q, conditionTxt[condition], yRatio);
 }

@@ -73,26 +73,26 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 	double denom;                      // denominator of flow update formula
 	double q;                          // new flow value (cfs)
 	double barrels;                    // number of barrels in conduit
-	TXsect* xsect = &Link[j].xsect;    // ptr. to conduit's cross section data
+	TXsect* xsect = &project->Link[j].xsect;    // ptr. to conduit's cross section data
 	char   isFull = FALSE;             // TRUE if conduit flowing full
 	char   isClosed = FALSE;           // TRUE if conduit closed
 
 	// --- adjust isClosed status by any control action
-	if (Link[j].setting == 0) isClosed = TRUE;
+	if (project->Link[j].setting == 0) isClosed = TRUE;
 
 	// --- get flow from last time step & previous iteration 
-	k = Link[j].subIndex;
-	barrels = Conduit[k].barrels;
-	qOld = Link[j].oldFlow / barrels;
-	qLast = Conduit[k].q1;
+	k = project->Link[j].subIndex;
+	barrels = project->Conduit[k].barrels;
+	qOld = project->Link[j].oldFlow / barrels;
+	qLast = project->Conduit[k].q1;
 
 	// --- get most current heads at upstream and downstream ends of conduit
-	n1 = Link[j].node1;
-	n2 = Link[j].node2;
-	z1 = Node[n1].invertElev + Link[j].offset1;
-	z2 = Node[n2].invertElev + Link[j].offset2;
-	h1 = Node[n1].newDepth + Node[n1].invertElev;
-	h2 = Node[n2].newDepth + Node[n2].invertElev;
+	n1 = project->Link[j].node1;
+	n2 = project->Link[j].node2;
+	z1 = project->Node[n1].invertElev + project->Link[j].offset1;
+	z2 = project->Node[n2].invertElev + project->Link[j].offset2;
+	h1 = project->Node[n1].newDepth + Node[n1].invertElev;
+	h2 = project->Node[n2].newDepth + Node[n2].invertElev;
 	h1 = MAX(h1, z1);
 	h2 = MAX(h2, z2);
 
@@ -108,11 +108,11 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 	y2 = MIN(y2, xsect->yFull);
 
 	// -- get area from solution at previous time step
-	aOld = Conduit[k].a2;
+	aOld = project->Conduit[k].a2;
 	aOld = MAX(aOld, FUDGE);
 
 	// --- use Courant-modified length instead of conduit's actual length
-	length = Conduit[k].modLength;
+	length = project->Conduit[k].modLength;
 
 	// --- find surface area contributions to upstream and downstream nodes
 	//     based on previous iteration's flow estimate
@@ -138,20 +138,20 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 		y2 >= xsect->yFull) isFull = TRUE;
 
 	// --- set new flow to zero if conduit is dry or if flap gate is closed
-	if (Link[j].flowClass == DRY ||
-		Link[j].flowClass == UP_DRY ||
-		Link[j].flowClass == DN_DRY ||
+	if (project->Link[j].flowClass == DRY ||
+		project->Link[j].flowClass == UP_DRY ||
+		project->Link[j].flowClass == DN_DRY ||
 		isClosed ||
 		aMid <= FUDGE)
 	{
-		Conduit[k].a1 = 0.5 * (a1 + a2);
-		Conduit[k].q1 = 0.0;;
-		Conduit[k].q2 = 0.0;
-		Link[j].dqdh = GRAVITY * dt * aMid / length * barrels;
-		Link[j].froude = 0.0;
-		Link[j].newDepth = MIN(yMid, Link[j].xsect.yFull);
-		Link[j].newVolume = Conduit[k].a1 * link_getLength(j) * barrels;
-		Link[j].newFlow = 0.0;
+		project->Conduit[k].a1 = 0.5 * (a1 + a2);
+		project->Conduit[k].q1 = 0.0;;
+		project->Conduit[k].q2 = 0.0;
+		project->Link[j].dqdh = GRAVITY * dt * aMid / length * barrels;
+		project->Link[j].froude = 0.0;
+		project->Link[j].newDepth = MIN(yMid, Link[j].xsect.yFull);
+		project->Link[j].newVolume = project->Conduit[k].a1 * link_getLength(j) * barrels;
+		project->Link[j].newFlow = 0.0;
 		return;
 	}
 
@@ -160,17 +160,17 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 	if (fabs(v) > MAXVELOCITY)  v = MAXVELOCITY * SGN(qLast);
 
 	// --- compute Froude No.
-	Link[j].froude = link_getFroude(j, v, yMid);
-	if (Link[j].flowClass == SUBCRITICAL &&
-		Link[j].froude > 1.0) Link[j].flowClass = SUPCRITICAL;
+	project->Link[j].froude = link_getFroude(j, v, yMid);
+	if (project->Link[j].flowClass == SUBCRITICAL &&
+		project->Link[j].froude > 1.0) Link[j].flowClass = SUPCRITICAL;
 
 	// --- find inertial damping factor (sigma)
-	if (Link[j].froude <= 0.5)
+	if (project->Link[j].froude <= 0.5)
 		sigma = 1.0;
-	else if (Link[j].froude >= 1.0)
+	else if (project->Link[j].froude >= 1.0)
 		sigma = 0.0;
 	else    
-		sigma = 2.0 * (1.0 - Link[j].froude);
+		sigma = 2.0 * (1.0 - project->Link[j].froude);
 
 	// --- get upstream-weighted area & hyd. radius based on damping factor
 	//     (modified version of R. Dickinson's slope weighting)
@@ -180,10 +180,10 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 	rWtd = r1 + (rMid - r1) * rho;
 
 	// --- determine how much inertial damping to apply
-	if (InertDamping == NO_DAMPING) 
+	if (project->InertDamping == NO_DAMPING) 
 		sigma = 1.0;
 	else if 
-		(InertDamping == FULL_DAMPING) 
+		(project->InertDamping == FULL_DAMPING) 
 		sigma = 0.0;
 
 	// --- use full inertial damping if closed conduit is surcharged
@@ -195,7 +195,7 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 	if (xsect->type == FORCE_MAIN && isFull)
 		dq1 = dt * forcemain_getFricSlope(j, fabs(v), rMid);
 	else
-		dq1 = dt * Conduit[k].roughFactor / pow(rWtd, 1.33333) * fabs(v);
+		dq1 = dt * project->Conduit[k].roughFactor / pow(rWtd, 1.33333) * fabs(v);
 
 	// --- 2. energy slope term
 	dq2 = dt * GRAVITY * aWtd * (h2 - h1) / length;
@@ -211,7 +211,7 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 
 	// --- 5. local losses term
 	dq5 = 0.0;
-	if (Conduit[k].hasLosses)
+	if (project->Conduit[k].hasLosses)
 	{
 		dq5 = findLocalLosses(j, a1, a2, aMid, qLast) / 2.0 / length * dt;
 	}
@@ -224,11 +224,11 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 	q = (qOld - dq2 + dq3 + dq4 - dq6) / denom;
 
 	// --- compute derivative of flow w.r.t. head
-	Link[j].dqdh = 1.0 / denom  * GRAVITY * dt * aWtd / length * barrels;
+	project->Link[j].dqdh = 1.0 / denom  * GRAVITY * dt * aWtd / length * barrels;
 
 	// --- check if any flow limitation applies
-	Link[j].inletControl = FALSE;
-	Link[j].normalFlow = FALSE;
+	project->Link[j].inletControl = FALSE;
+	project->Link[j].normalFlow = FALSE;
 
 	//Override flow here
 
@@ -240,9 +240,9 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 
 		// --- check for normal flow limitation based on surface slope & Fr
 		else
-		if (y1 < Link[j].xsect.yFull &&
-			(Link[j].flowClass == SUBCRITICAL ||
-			Link[j].flowClass == SUPCRITICAL)
+		if (y1 < project->Link[j].xsect.yFull &&
+			(project->Link[j].flowClass == SUBCRITICAL ||
+			project->Link[j].flowClass == SUPCRITICAL)
 			) q = checkNormalFlow(j, q, y1, y2, a1, r1);
 	}
 	
@@ -258,9 +258,9 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 	}
 
 	// --- check if user-supplied flow limit applies
-	if (Link[j].qLimit > 0.0)
+	if (project->Link[j].qLimit > 0.0)
 	{
-		if (fabs(q) > Link[j].qLimit) q = SGN(q) * Link[j].qLimit;
+		if (fabs(q) > project->Link[j].qLimit) q = SGN(q) * Link[j].qLimit;
 	}
 
 	// --- check for reverse flow with closed flap gate
@@ -268,18 +268,18 @@ void  dwflow_findConduitFlow(int j, int steps, double omega, double dt)
 
 	// --- do not allow flow out of a dry node
 	//     (as suggested by R. Dickinson)
-	if (q > FUDGE && Node[n1].newDepth <= FUDGE) q = FUDGE;
-	if (q < -FUDGE && Node[n2].newDepth <= FUDGE) q = -FUDGE;
+	if (q > FUDGE && project->Node[n1].newDepth <= FUDGE) q = FUDGE;
+	if (q < -FUDGE && project->Node[n2].newDepth <= FUDGE) q = -FUDGE;
 
 	// --- save new values of area, flow, depth, & volume
-	Conduit[k].a1 = aMid;
-	Conduit[k].q1 = q;
-	Conduit[k].q2 = q;
-	Link[j].newDepth = MIN(yMid, xsect->yFull);
+	project->Conduit[k].a1 = aMid;
+	project->Conduit[k].q1 = q;
+	project->Conduit[k].q2 = q;
+	project->Link[j].newDepth = MIN(yMid, xsect->yFull);
 	aMid = (a1 + a2) / 2.0;
 	aMid = MIN(aMid, xsect->aFull);
-	Link[j].newVolume = aMid * link_getLength(j) * barrels;
-	Link[j].newFlow = q * barrels;
+	project->Link[j].newVolume = aMid * link_getLength(j) * barrels;
+	project->Link[j].newFlow = q * barrels;
 }
 
 //=============================================================================
@@ -306,16 +306,16 @@ int getFlowClass(int j, double q, double h1, double h2, double y1, double y2,
 	double z1, z2;                     // offsets of conduit inverts (ft)
 
 	// --- get upstream & downstream node indexes
-	n1 = Link[j].node1;
-	n2 = Link[j].node2;
+	n1 = project->Link[j].node1;
+	n2 = project->Link[j].node2;
 
 	// --- get upstream & downstream conduit invert offsets
-	z1 = Link[j].offset1;
-	z2 = Link[j].offset2;
+	z1 = project->Link[j].offset1;
+	z2 = project->Link[j].offset2;
 
 	// --- base offset of an outfall conduit on outfall's depth
-	if (Node[n1].type == OUTFALL) z1 = MAX(0.0, (z1 - Node[n1].newDepth));
-	if (Node[n2].type == OUTFALL) z2 = MAX(0.0, (z2 - Node[n2].newDepth));
+	if (project->Node[n1].type == OUTFALL) z1 = MAX(0.0, (z1 - Node[n1].newDepth));
+	if (project->Node[n2].type == OUTFALL) z2 = MAX(0.0, (z2 - Node[n2].newDepth));
 
 	// --- default class is SUBCRITICAL
 	flowClass = SUBCRITICAL;
@@ -368,7 +368,7 @@ int getFlowClass(int j, double q, double h1, double h2, double y1, double y2,
 	{
 		// --- flow classification is UP_DRY if downstream head <
 		//     invert of upstream end of conduit
-		if (h2 < Node[n1].invertElev + Link[j].offset1) flowClass = UP_DRY;
+		if (h2 < project->Node[n1].invertElev + project->Link[j].offset1) flowClass = UP_DRY;
 
 		// --- otherwise, the downstream head will be >= upstream
 		//     conduit invert creating a flow reversal and upstream end
@@ -387,7 +387,7 @@ int getFlowClass(int j, double q, double h1, double h2, double y1, double y2,
 	{
 		// --- flow classification is DN_DRY if upstream head <
 		//     invert of downstream end of conduit
-		if (h1 < Node[n2].invertElev + Link[j].offset2) flowClass = DN_DRY;
+		if (h1 < project->Node[n2].invertElev + project->Link[j].offset2) flowClass = DN_DRY;
 
 		// --- otherwise flow at downstream end should be at critical depth
 		//     providing that a downstream offset exists (otherwise
@@ -430,20 +430,20 @@ void findSurfArea(int j, double q, double length, double* h1, double* h2,
 	double  criticalDepth;             // critical flow depth (ft)
 	double  normalDepth;               // normal flow depth (ft)
 	double  fasnh;                     // fraction between norm. & crit. depth
-	TXsect* xsect = &Link[j].xsect;    // pointer to cross-section data
+	TXsect* xsect = &project->Link[j].xsect;    // pointer to cross-section data
 
 	// --- get node indexes & current flow depths
-	n1 = Link[j].node1;
-	n2 = Link[j].node2;
+	n1 = project->Link[j].node1;
+	n2 = project->Link[j].node2;
 	flowDepth1 = *y1;
 	flowDepth2 = *y2;
 
 	// --- find conduit's flow classification
-	Link[j].flowClass = getFlowClass(j, q, *h1, *h2, *y1, *y2,
+	project->Link[j].flowClass = getFlowClass(j, q, *h1, *h2, *y1, *y2,
 		&criticalDepth, &normalDepth, &fasnh);
 
 	// --- add conduit's surface area to its end nodes depending on flow class
-	switch (Link[j].flowClass)
+	switch (project->Link[j].flowClass)
 	{
 	case SUBCRITICAL:
 		flowDepthMid = 0.5 * (flowDepth1 + flowDepth2);
@@ -459,7 +459,7 @@ void findSurfArea(int j, double q, double length, double* h1, double* h2,
 		flowDepth1 = criticalDepth;
 		if (normalDepth < criticalDepth) flowDepth1 = normalDepth;
 		flowDepth1 = MAX(flowDepth1, FUDGE);
-		*h1 = Node[n1].invertElev + Link[j].offset1 + flowDepth1;
+		*h1 = project->Node[n1].invertElev + project->Link[j].offset1 + flowDepth1;
 		flowDepthMid = 0.5 * (flowDepth1 + flowDepth2);
 		if (flowDepthMid < FUDGE) flowDepthMid = FUDGE;
 		width2 = getWidth(xsect, flowDepth2);
@@ -471,7 +471,7 @@ void findSurfArea(int j, double q, double length, double* h1, double* h2,
 		flowDepth2 = criticalDepth;
 		if (normalDepth < criticalDepth) flowDepth2 = normalDepth;
 		flowDepth2 = MAX(flowDepth2, FUDGE);
-		*h2 = Node[n2].invertElev + Link[j].offset2 + flowDepth2;
+		*h2 = project->Node[n2].invertElev + project->Link[j].offset2 + flowDepth2;
 		width1 = getWidth(xsect, flowDepth1);
 		flowDepthMid = 0.5 * (flowDepth1 + flowDepth2);
 		if (flowDepthMid < FUDGE) flowDepthMid = FUDGE;
@@ -493,7 +493,7 @@ void findSurfArea(int j, double q, double length, double* h1, double* h2,
 
 		// --- if there is no free-fall at upstream end, assign the
 		//     upstream node the avg. surface area of the upstream half
-		if (Link[j].offset1 <= 0.0)
+		if (project->Link[j].offset1 <= 0.0)
 		{
 			surfArea1 = (width1 + widthMid) * length / 4.;
 		}
@@ -513,7 +513,7 @@ void findSurfArea(int j, double q, double length, double* h1, double* h2,
 
 		// --- if there is no free-fall at downstream end, assign the
 		//     downstream node the avg. surface area of the downstream half
-		if (Link[j].offset2 <= 0.0)
+		if (project->Link[j].offset2 <= 0.0)
 		{
 			surfArea2 = (width2 + widthMid) * length / 4.;
 		}
@@ -524,8 +524,8 @@ void findSurfArea(int j, double q, double length, double* h1, double* h2,
 		surfArea2 = surfArea1;
 		break;
 	}
-	Link[j].surfArea1 = surfArea1;
-	Link[j].surfArea2 = surfArea2;
+	project->Link[j].surfArea1 = surfArea1;
+	project->Link[j].surfArea2 = surfArea2;
 	*y1 = flowDepth1;
 	*y2 = flowDepth2;
 }
@@ -545,9 +545,9 @@ double findLocalLosses(int j, double a1, double a2, double aMid, double q)
 {
 	double losses = 0.0;
 	q = fabs(q);
-	if (a1 > FUDGE) losses += Link[j].cLossInlet  * (q / a1);
-	if (a2 > FUDGE) losses += Link[j].cLossOutlet * (q / a2);
-	if (aMid > FUDGE) losses += Link[j].cLossAvg * (q / aMid);
+	if (a1 > FUDGE) losses += project->Link[j].cLossInlet  * (q / a1);
+	if (a2 > FUDGE) losses += project->Link[j].cLossOutlet * (q / a2);
+	if (aMid > FUDGE) losses += project->Link[j].cLossAvg * (q / aMid);
 	return losses;
 }
 
@@ -615,21 +615,21 @@ double checkNormalFlow(int j, double q, double y1, double y2, double a1,
 	//
 {
 	int    check = FALSE;
-	int    k = Link[j].subIndex;
-	int    n1 = Link[j].node1;
-	int    n2 = Link[j].node2;
-	int    hasOutfall = (Node[n1].type == OUTFALL || Node[n2].type == OUTFALL);
+	int    k = project->Link[j].subIndex;
+	int    n1 = project->Link[j].node1;
+	int    n2 = project->Link[j].node2;
+	int    hasOutfall = (project->Node[n1].type == OUTFALL || Node[n2].type == OUTFALL);
 	double qNorm;
 	double f1;
 
 	// --- check if water surface slope < conduit slope
-	if (NormalFlowLtd == SLOPE || NormalFlowLtd == BOTH || hasOutfall)
+	if (project->NormalFlowLtd == SLOPE || NormalFlowLtd == BOTH || hasOutfall)
 	{
 		if (y1 < y2) check = TRUE;
 	}
 
 	// --- check if Fr >= 1.0 at upstream end of conduit
-	if (!check && (NormalFlowLtd == FROUDE || NormalFlowLtd == BOTH) &&
+	if (!check && (project->NormalFlowLtd == FROUDE || NormalFlowLtd == BOTH) &&
 		!hasOutfall)
 	{
 		if (y1 > FUDGE && y2 > FUDGE)
@@ -642,10 +642,10 @@ double checkNormalFlow(int j, double q, double y1, double y2, double a1,
 	// --- check if normal flow < dynamic flow
 	if (check)
 	{
-		qNorm = Conduit[k].beta * a1 * pow(r1, 2. / 3.);
+		qNorm = project->Conduit[k].beta * a1 * pow(r1, 2. / 3.);
 		if (qNorm < q)
 		{
-			Link[j].normalFlow = TRUE;
+			project->Link[j].normalFlow = TRUE;
 			return qNorm;
 		}
 	}

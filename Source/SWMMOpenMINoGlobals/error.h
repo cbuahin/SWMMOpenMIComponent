@@ -21,12 +21,12 @@ enum  ErrorType {
 	ERR_ODE_SOLVER,           //105  3
 	ERR_TIMESTEP,             //107  4
 
-	//... Subcatchment/Aquifer Errors
+	//... Subcatchment/project->Aquifer Errors
 	ERR_SUBCATCH_OUTLET,      //108  5
 	ERR_AQUIFER_PARAMS,       //109  6
 	ERR_GROUND_ELEV,          //110  7
 
-	//... Conduit/Pump Errors
+	//... project->Conduit/project->Pump Errors
 	ERR_LENGTH,               //111  8
 	ERR_ELEV_DROP,            //112  9
 	ERR_ROUGHNESS,            //113  10
@@ -42,7 +42,7 @@ enum  ErrorType {
 	ERR_MULTI_OUTLET,         //133  18
 	ERR_DUMMY_LINK,           //134  19
 
-	//... Node Errors
+	//... project->Node Errors
 	ERR_DIVIDER,              //135  20
 	ERR_DIVIDER_LINK,         //136  21
 	ERR_WEIR_DIVIDER,         //137  22
@@ -57,7 +57,7 @@ enum  ErrorType {
 	ERR_UNITHYD_RATIOS,       //153  29
 	ERR_RDII_AREA,            //155  30
 
-	//... Rain Gage Errors
+	//... Rain project->Gage Errors
 	ERR_RAIN_FILE_CONFLICT,   //156  31
 	ERR_RAIN_GAGE_FORMAT,     //157  32
 	ERR_RAIN_GAGE_TSERIES,    //158  33
@@ -66,11 +66,11 @@ enum  ErrorType {
 	//... Treatment Function Error
 	ERR_CYCLIC_TREATMENT,     //161  35
 
-	//... Curve/Time Series Errors
+	//... project->Curve/Time Series Errors
 	ERR_CURVE_SEQUENCE,       //171  36
 	ERR_TIMESERIES_SEQUENCE,  //173  37
 
-	//... Snowmelt Errors
+	//... project->Snowmelt Errors
 	ERR_SNOWMELT_PARAMS,      //181  38
 	ERR_SNOWPACK_PARAMS,      //182  39
 

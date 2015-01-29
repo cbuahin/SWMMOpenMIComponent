@@ -46,18 +46,18 @@ double forcemain_getEquivN(int j, int k)
 //           flow equations.
 //
 {
-    TXsect xsect = Link[j].xsect;
+    TXsect xsect = project->Link[j].xsect;
     double f;
     double d = xsect.yFull;
-    switch ( ForceMainEqn )
+    switch ( project->ForceMainEqn )
     {
       case H_W:
-        return 1.067 / xsect.rBot * pow(d/Conduit[k].slope, 0.04);
+        return 1.067 / xsect.rBot * pow(d/project->Conduit[k].slope, 0.04);
       case D_W:
         f = forcemain_getFricFactor(xsect.rBot, d/4.0, 1.0e12);
         return sqrt(f/185.0) * pow(d, (1./6.));
     }
-    return Conduit[k].roughness;
+    return project->Conduit[k].roughness;
 }
 
 //=============================================================================
@@ -71,9 +71,9 @@ double forcemain_getRoughFactor(int j, double lengthFactor)
 //           any artificial lengthening the pipe may have received.
 //
 {
-    TXsect xsect = Link[j].xsect;
+    TXsect xsect = project->Link[j].xsect;
     double r;
-    switch ( ForceMainEqn )
+    switch ( project->ForceMainEqn )
     {
       case H_W:
         r = 1.318*xsect.rBot*pow(lengthFactor, 0.54);
@@ -100,8 +100,8 @@ double forcemain_getFricSlope(int j, double v, double hrad)
 //
 {
     double re, f;
-    TXsect xsect = Link[j].xsect;
-    switch ( ForceMainEqn )
+    TXsect xsect = project->Link[j].xsect;
+    switch ( project->ForceMainEqn )
     {
       case H_W:
         return xsect.sBot * pow(v, 0.852) / pow(hrad, 1.1667);

@@ -101,7 +101,7 @@ int  subcatch_readParams(int j, char* tok[], int ntoks)
 //  Purpose: reads subcatchment parameters from a tokenized  line of input data.
 //
 //  Data has format:
-//    Name  RainGage  Outlet  Area  %Imperv  Width  Slope CurbLength  Snowmelt  
+//    Name  RainGage  project->Outlet  Area  %Imperv  Width  Slope CurbLength  project->Snowmelt  
 //
 {
     int    i, k, m;
@@ -145,15 +145,15 @@ int  subcatch_readParams(int j, char* tok[], int ntoks)
     }
 
     // --- assign input values to subcatch's properties
-    Subcatch[j].ID = id;
-    Subcatch[j].gage        = (int)x[0];
-    Subcatch[j].outNode     = (int)x[1];
-    Subcatch[j].outSubcatch = (int)x[2];
-    Subcatch[j].area        = x[3] / UCF(LANDAREA);
-    Subcatch[j].fracImperv  = x[4] / 100.0;
-    Subcatch[j].width       = x[5] / UCF(LENGTH);
-    Subcatch[j].slope       = x[6] / 100.0;
-    Subcatch[j].curbLength  = x[7];
+    project->Subcatch[j].ID = id;
+    project->Subcatch[j].gage        = (int)x[0];
+    project->Subcatch[j].outNode     = (int)x[1];
+    project->Subcatch[j].outSubcatch = (int)x[2];
+    project->Subcatch[j].area        = x[3] / UCF(LANDAREA);
+    project->Subcatch[j].fracImperv  = x[4] / 100.0;
+    project->Subcatch[j].width       = x[5] / UCF(LENGTH);
+    project->Subcatch[j].slope       = x[6] / 100.0;
+    project->Subcatch[j].curbLength  = x[7];
 
     // --- create the snow pack object if it hasn't already been created
     if ( x[8] >= 0 )
@@ -175,7 +175,7 @@ int subcatch_readSubareaParams(char* tok[], int ntoks)
 //           line of input data.
 //
 //  Data has format:
-//    Subcatch  Imperv_N  Perv_N  Imperv_S  Perv_S  PctZero  RouteTo (PctRouted)
+//    project->Subcatch  Imperv_N  Perv_N  Imperv_S  Perv_S  PctZero  RouteTo (PctRouted)
 //
 {
     int    i, j, k, m;
@@ -210,44 +210,44 @@ int subcatch_readSubareaParams(char* tok[], int ntoks)
     }
 
     // --- assign input values to each type of subarea
-    Subcatch[j].subArea[IMPERV0].N = x[0];
-    Subcatch[j].subArea[IMPERV1].N = x[0];
-    Subcatch[j].subArea[PERV].N    = x[1];
+    project->Subcatch[j].subArea[IMPERV0].N = x[0];
+    project->Subcatch[j].subArea[IMPERV1].N = x[0];
+    project->Subcatch[j].subArea[PERV].N    = x[1];
 
-    Subcatch[j].subArea[IMPERV0].dStore = 0.0;
-    Subcatch[j].subArea[IMPERV1].dStore = x[2] / UCF(RAINDEPTH);
-    Subcatch[j].subArea[PERV].dStore    = x[3] / UCF(RAINDEPTH);
+    project->Subcatch[j].subArea[IMPERV0].dStore = 0.0;
+    project->Subcatch[j].subArea[IMPERV1].dStore = x[2] / UCF(RAINDEPTH);
+    project->Subcatch[j].subArea[PERV].dStore    = x[3] / UCF(RAINDEPTH);
 
-    Subcatch[j].subArea[IMPERV0].fArea  = Subcatch[j].fracImperv * x[4] / 100.0;
-    Subcatch[j].subArea[IMPERV1].fArea  = Subcatch[j].fracImperv * (1.0 - x[4] / 100.0);
-    Subcatch[j].subArea[PERV].fArea     = (1.0 - Subcatch[j].fracImperv);
+    project->Subcatch[j].subArea[IMPERV0].fArea  = Subcatch[j].fracImperv * x[4] / 100.0;
+    project->Subcatch[j].subArea[IMPERV1].fArea  = Subcatch[j].fracImperv * (1.0 - x[4] / 100.0);
+    project->Subcatch[j].subArea[PERV].fArea     = (1.0 - Subcatch[j].fracImperv);
 
     // --- assume that all runoff from each subarea goes to subcatch outlet
     for (i = IMPERV0; i <= PERV; i++)
     {
-        Subcatch[j].subArea[i].routeTo = TO_OUTLET;
-        Subcatch[j].subArea[i].fOutlet = 1.0;
+        project->Subcatch[j].subArea[i].routeTo = TO_OUTLET;
+        project->Subcatch[j].subArea[i].fOutlet = 1.0;
     }
 
     // --- modify routing if pervious runoff routed to impervious area
     //     (fOutlet is the fraction of runoff not routed)
     
     k = (int)x[5];
-    if ( Subcatch[j].fracImperv == 0.0
-    ||   Subcatch[j].fracImperv == 1.0 ) k = TO_OUTLET;
-    if ( k == TO_IMPERV && Subcatch[j].fracImperv )
+    if ( project->Subcatch[j].fracImperv == 0.0
+    ||   project->Subcatch[j].fracImperv == 1.0 ) k = TO_OUTLET;
+    if ( k == TO_IMPERV && project->Subcatch[j].fracImperv )
     {
-        Subcatch[j].subArea[PERV].routeTo = k;
-        Subcatch[j].subArea[PERV].fOutlet = 1.0 - x[6];
+        project->Subcatch[j].subArea[PERV].routeTo = k;
+        project->Subcatch[j].subArea[PERV].fOutlet = 1.0 - x[6];
     }
 
     // --- modify routing if impervious runoff routed to pervious area
     if ( k == TO_PERV )
     {
-        Subcatch[j].subArea[IMPERV0].routeTo = k;
-        Subcatch[j].subArea[IMPERV1].routeTo = k;
-        Subcatch[j].subArea[IMPERV0].fOutlet = 1.0 - x[6];
-        Subcatch[j].subArea[IMPERV1].fOutlet = 1.0 - x[6];
+        project->Subcatch[j].subArea[IMPERV0].routeTo = k;
+        project->Subcatch[j].subArea[IMPERV1].routeTo = k;
+        project->Subcatch[j].subArea[IMPERV0].fOutlet = 1.0 - x[6];
+        project->Subcatch[j].subArea[IMPERV1].fOutlet = 1.0 - x[6];
     }
     return 0;
 }
@@ -263,7 +263,7 @@ int subcatch_readLanduseParams(char* tok[], int ntoks)
 //           line of input data.
 //
 //  Data has format:
-//    Subcatch  landuse  percent .... landuse  percent
+//    project->Subcatch  landuse  percent .... landuse  percent
 //
 {
     int     j, k, m;
@@ -287,7 +287,7 @@ int subcatch_readLanduseParams(char* tok[], int ntoks)
             return error_setInpError(ERR_NUMBER, tok[k]);
 
         // --- store land use fraction in subcatch's landFactor property
-        Subcatch[j].landFactor[m].fraction = f/100.0;
+        project->Subcatch[j].landFactor[m].fraction = f/100.0;
     }
     return 0;
 }
@@ -303,7 +303,7 @@ int subcatch_readInitBuildup(char* tok[], int ntoks)
 //           tokenized line of input data.
 //
 //  Data has format:
-//    Subcatch  pollut  initLoad .... pollut  initLoad
+//    project->Subcatch  pollut  initLoad .... pollut  initLoad
 //
 {
     int     j, k, m;
@@ -327,7 +327,7 @@ int subcatch_readInitBuildup(char* tok[], int ntoks)
             return error_setInpError(ERR_NUMBER, tok[k]);
 
         // --- store loading in subcatch's initBuildup property
-        Subcatch[j].initBuildup[m] = x;
+        project->Subcatch[j].initBuildup[m] = x;
     }
     return 0;
 }
@@ -343,17 +343,17 @@ void  subcatch_validate(int j)
 {
     int     i;
     double  area;
-    double  nonLidArea = Subcatch[j].area;
+    double  nonLidArea = project->Subcatch[j].area;
 
     // --- check for ambiguous outlet name
-    if ( Subcatch[j].outNode >= 0 && Subcatch[j].outSubcatch >= 0 )
-        report_writeErrorMsg(ERR_SUBCATCH_OUTLET, Subcatch[j].ID);
+    if ( project->Subcatch[j].outNode >= 0 && Subcatch[j].outSubcatch >= 0 )
+        report_writeErrorMsg(ERR_SUBCATCH_OUTLET, project->Subcatch[j].ID);
 
     // --- validate subcatchment's groundwater component 
     gwater_validate(j);
 
     // --- validate placement of LIDs in the subcatchment
-    nonLidArea -= Subcatch[j].lidArea;
+    nonLidArea -= project->Subcatch[j].lidArea;
 
     // --- compute alpha (i.e. WCON in old SWMM) for overland flow
     //     NOTE: the area which contributes to alpha for both imperv
@@ -362,17 +362,17 @@ void  subcatch_validate(int j)
     {
         if ( i == PERV )
         {
-            area = (1.0 - Subcatch[j].fracImperv) * nonLidArea;
+            area = (1.0 - project->Subcatch[j].fracImperv) * nonLidArea;
         }
         else
         {
-             area = Subcatch[j].fracImperv * nonLidArea;
+             area = project->Subcatch[j].fracImperv * nonLidArea;
         }
-        Subcatch[j].subArea[i].alpha = 0.0;
-        if ( area > 0.0 && Subcatch[j].subArea[i].N > 0.0 )
+        project->Subcatch[j].subArea[i].alpha = 0.0;
+        if ( area > 0.0 && project->Subcatch[j].subArea[i].N > 0.0 )
         {
-            Subcatch[j].subArea[i].alpha = MCOEFF * Subcatch[j].width / area *
-                sqrt(Subcatch[j].slope) / Subcatch[j].subArea[i].N;
+            project->Subcatch[j].subArea[i].alpha = MCOEFF * Subcatch[j].width / area *
+                sqrt(project->Subcatch[j].slope) / Subcatch[j].subArea[i].N;
         }
     }
 }
@@ -390,45 +390,45 @@ void  subcatch_initState(int j)
     int    p;                          // pollutant index
 
     // --- initialize rainfall, runoff, & snow depth
-    Subcatch[j].rainfall = 0.0;
-    Subcatch[j].oldRunoff = 0.0;
-    Subcatch[j].newRunoff = 0.0;
-    Subcatch[j].oldSnowDepth = 0.0;
-    Subcatch[j].newSnowDepth = 0.0;
-    Subcatch[j].runon = 0.0;
+    project->Subcatch[j].rainfall = 0.0;
+    project->Subcatch[j].oldRunoff = 0.0;
+    project->Subcatch[j].newRunoff = 0.0;
+    project->Subcatch[j].oldSnowDepth = 0.0;
+    project->Subcatch[j].newSnowDepth = 0.0;
+    project->Subcatch[j].runon = 0.0;
 
     // --- set isUsed property of subcatchment's rain gage
-    i = Subcatch[j].gage;
+    i = project->Subcatch[j].gage;
     if ( i >= 0 )
     {
-        Gage[i].isUsed = TRUE;
-        if ( Gage[i].coGage >= 0 ) Gage[Gage[i].coGage].isUsed = TRUE;
+        project->Gage[i].isUsed = TRUE;
+        if ( project->Gage[i].coGage >= 0 ) Gage[Gage[i].coGage].isUsed = TRUE;
     }
 
     // --- initialize state of infiltration, groundwater, & snow pack objects
-    if ( Subcatch[j].infil == j )  infil_initState(j, InfilModel);
-    if ( Subcatch[j].groundwater ) gwater_initState(j);
-    if ( Subcatch[j].snowpack )    snow_initSnowpack(j);
+    if ( project->Subcatch[j].infil == j )  infil_initState(j, project->InfilModel);
+    if ( project->Subcatch[j].groundwater ) gwater_initState(j);
+    if ( project->Subcatch[j].snowpack )    snow_initSnowpack(j);
 
     // --- initialize state of sub-areas
     for (i = IMPERV0; i <= PERV; i++)
     {
-        Subcatch[j].subArea[i].depth  = 0.0;
-        Subcatch[j].subArea[i].inflow = 0.0;
-        Subcatch[j].subArea[i].runoff = 0.0;
+        project->Subcatch[j].subArea[i].depth  = 0.0;
+        project->Subcatch[j].subArea[i].inflow = 0.0;
+        project->Subcatch[j].subArea[i].runoff = 0.0;
     }
 
     // --- initialize runoff quality
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
-        Subcatch[j].oldQual[p] = 0.0;
-        Subcatch[j].newQual[p] = 0.0;
-        Subcatch[j].pondedQual[p] = 0.0;
+        project->Subcatch[j].oldQual[p] = 0.0;
+        project->Subcatch[j].newQual[p] = 0.0;
+        project->Subcatch[j].pondedQual[p] = 0.0;
     }
 
     // --- initialize pollutant buildup
-	landuse_getInitBuildup(Subcatch[j].landFactor,  Subcatch[j].initBuildup,
-		Subcatch[j].area, Subcatch[j].curbLength);
+	landuse_getInitBuildup(project->Subcatch[j].landFactor,  Subcatch[j].initBuildup,
+		project->Subcatch[j].area, Subcatch[j].curbLength);
 }
 
 //=============================================================================
@@ -441,17 +441,17 @@ void subcatch_setOldState(int j)
 //
 {
     int i;
-    Subcatch[j].oldRunoff = Subcatch[j].newRunoff;
-    Subcatch[j].oldSnowDepth = Subcatch[j].newSnowDepth;
+    project->Subcatch[j].oldRunoff = Subcatch[j].newRunoff;
+    project->Subcatch[j].oldSnowDepth = Subcatch[j].newSnowDepth;
     for (i = IMPERV0; i <= PERV; i++)
     {
-        Subcatch[j].subArea[i].inflow = 0.0;
+        project->Subcatch[j].subArea[i].inflow = 0.0;
     }
 
-    for (i = 0; i < Nobjects[POLLUT]; i++)
+    for (i = 0; i < project->Nobjects[POLLUT]; i++)
     {
-        Subcatch[j].oldQual[i] = Subcatch[j].newQual[i];
-        Subcatch[j].newQual[i] = 0.0;
+        project->Subcatch[j].oldQual[i] = Subcatch[j].newQual[i];
+        project->Subcatch[j].newQual[i] = 0.0;
     }
 }
 
@@ -465,12 +465,12 @@ double subcatch_getFracPerv(int j)
 //  Output:  returns fraction of area with pervious cover
 //
 {
-    double fracPerv = 1.0 - Subcatch[j].fracImperv;
+    double fracPerv = 1.0 - project->Subcatch[j].fracImperv;
 
-    if ( Subcatch[j].lidArea > 0.0 )
+    if ( project->Subcatch[j].lidArea > 0.0 )
     {
-        fracPerv = (fracPerv * (Subcatch[j].area - Subcatch[j].lidArea) + 
-                    lid_getPervArea(j)) / Subcatch[j].area;
+        fracPerv = (fracPerv * (project->Subcatch[j].area - Subcatch[j].lidArea) + 
+                    lid_getPervArea(j)) / project->Subcatch[j].area;
         fracPerv = MIN(fracPerv, 1.0);
     }
     return fracPerv;
@@ -491,9 +491,9 @@ double subcatch_getStorage(int j)
 
     for ( i = IMPERV0; i <= PERV; i++)
     {
-        v += Subcatch[j].subArea[i].depth * Subcatch[j].subArea[i].fArea;
+        v += project->Subcatch[j].subArea[i].depth * Subcatch[j].subArea[i].fArea;
     }
-    return v * (Subcatch[j].area - Subcatch[j].lidArea) +
+    return v * (project->Subcatch[j].area - Subcatch[j].lidArea) +
            lid_getStoredVolume(j);
 }
 
@@ -515,27 +515,27 @@ void subcatch_getRunon(int j)
 
     // --- add previous period's runoff from this subcatchment to the
     //     runon of the outflow subcatchment, if it exists
-    k = Subcatch[j].outSubcatch;
+    k = project->Subcatch[j].outSubcatch;
 
-    if ( k >= 0 && k != j && Subcatch[k].area > 0.0 )
+    if ( k >= 0 && k != j && project->Subcatch[k].area > 0.0 )
     {
         // --- distribute previous runoff from subcatch j (in cfs)
         //     uniformly over area of subcatch k (ft/sec)
-        q = Subcatch[j].oldRunoff / Subcatch[k].area;
-        Subcatch[k].runon += q;
+        q = project->Subcatch[j].oldRunoff / Subcatch[k].area;
+        project->Subcatch[k].runon += q;
 
         // --- assign this flow to the 3 types of subareas
         for (i = IMPERV0; i <= PERV; i++)
         {
-            Subcatch[k].subArea[i].inflow += q;
+            project->Subcatch[k].subArea[i].inflow += q;
         }
 
         // --- add runoff mass load (in mass/sec) to receiving subcatch,
-        //     storing it in Subcatch[].newQual for now
-        for (i = 0; i < Nobjects[POLLUT]; i++)
+        //     storing it in project->Subcatch[].newQual for now
+        for (i = 0; i < project->Nobjects[POLLUT]; i++)
         {
-            Subcatch[k].newQual[i] += (Subcatch[j].oldRunoff *
-                                       Subcatch[j].oldQual[i] * LperFT3);
+            project->Subcatch[k].newQual[i] += (Subcatch[j].oldRunoff *
+                                       project->Subcatch[j].oldQual[i] * LperFT3);
         }
     }
 
@@ -544,38 +544,38 @@ void subcatch_getRunon(int j)
     //     based on runoff flow from entire subcatchment.)
 
     // --- Case 1: imperv --> perv
-    if ( Subcatch[j].fracImperv < 1.0 &&
-         Subcatch[j].subArea[IMPERV0].routeTo == TO_PERV )
+    if ( project->Subcatch[j].fracImperv < 1.0 &&
+         project->Subcatch[j].subArea[IMPERV0].routeTo == TO_PERV )
     {
         // --- add area-wtd. outflow from imperv1 subarea to perv area inflow
-        q1 = Subcatch[j].subArea[IMPERV0].runoff *
-             Subcatch[j].subArea[IMPERV0].fArea;
-        q2 = Subcatch[j].subArea[IMPERV1].runoff *
-             Subcatch[j].subArea[IMPERV1].fArea;
+        q1 = project->Subcatch[j].subArea[IMPERV0].runoff *
+             project->Subcatch[j].subArea[IMPERV0].fArea;
+        q2 = project->Subcatch[j].subArea[IMPERV1].runoff *
+             project->Subcatch[j].subArea[IMPERV1].fArea;
         q = q1 + q2;
-        Subcatch[j].subArea[PERV].inflow += q *
-             (1.0 - Subcatch[j].subArea[IMPERV0].fOutlet) /
-             Subcatch[j].subArea[PERV].fArea;
+        project->Subcatch[j].subArea[PERV].inflow += q *
+             (1.0 - project->Subcatch[j].subArea[IMPERV0].fOutlet) /
+             project->Subcatch[j].subArea[PERV].fArea;
     }
 
     // --- Case 2: perv --> imperv
-    if ( Subcatch[j].fracImperv > 0.0 &&
-         Subcatch[j].subArea[PERV].routeTo == TO_IMPERV &&
-         Subcatch[j].subArea[IMPERV1].fArea > 0.0 )
+    if ( project->Subcatch[j].fracImperv > 0.0 &&
+         project->Subcatch[j].subArea[PERV].routeTo == TO_IMPERV &&
+         project->Subcatch[j].subArea[IMPERV1].fArea > 0.0 )
     {
-        q = Subcatch[j].subArea[PERV].runoff;
-        Subcatch[j].subArea[IMPERV1].inflow +=
-            q * (1.0 - Subcatch[j].subArea[PERV].fOutlet) *
-            Subcatch[j].subArea[PERV].fArea /
-            Subcatch[j].subArea[IMPERV1].fArea;
+        q = project->Subcatch[j].subArea[PERV].runoff;
+        project->Subcatch[j].subArea[IMPERV1].inflow +=
+            q * (1.0 - project->Subcatch[j].subArea[PERV].fOutlet) *
+            project->Subcatch[j].subArea[PERV].fArea /
+            project->Subcatch[j].subArea[IMPERV1].fArea;
     }
 
     // --- Add any return flow from LID units to pervious subarea
-    if ( Subcatch[j].lidArea > 0.0 && Subcatch[j].fracImperv < 1.0 )
+    if ( project->Subcatch[j].lidArea > 0.0 && Subcatch[j].fracImperv < 1.0 )
     {
-        pervArea = Subcatch[j].subArea[PERV].fArea *
-            (Subcatch[j].area - Subcatch[j].lidArea);
-        if ( pervArea > 0.0 ) Subcatch[j].subArea[PERV].inflow +=
+        pervArea = project->Subcatch[j].subArea[PERV].fArea *
+            (project->Subcatch[j].area - Subcatch[j].lidArea);
+        if ( pervArea > 0.0 ) project->Subcatch[j].subArea[PERV].inflow +=
             lid_getFlowToPerv(j) / pervArea;
     }
 }
@@ -608,18 +608,18 @@ double subcatch_getRunoff(int j, double tStep)
     //       function to compute pollutant washoff. The 'outflow' value
     //       computed here (in cfs) is the runoff that actually leaves the
     //       subcatchment (which can be reduced by internal re-routing and
-    //       LID controls) and is saved to Subcatch[j].newRunoff.
+    //       LID controls) and is saved to project->Subcatch[j].newRunoff.
 
     // --- save current depth of ponded water over entire subcatchment
-	Vponded = subcatch_getDepth(j) * Subcatch[j].area;
+	Vponded = subcatch_getDepth(j) * project->Subcatch[j].area;
 
     // --- get net precipitation (rainfall + snowmelt) on subcatchment
     getNetPrecip(j, netPrecip, tStep);
 
-    if ( Evap.dryOnly && Subcatch[j].rainfall > 0.0 ) 
+    if ( project->Evap.dryOnly && project->Subcatch[j].rainfall > 0.0 ) 
 		evapRate = 0.0;
     else 
-		evapRate = Evap.rate;
+		evapRate = project->Evap.rate;
 
     // --- initialize runoff rates
     outflow = 0.0;
@@ -629,15 +629,15 @@ double subcatch_getRunoff(int j, double tStep)
     for (i = IMPERV0; i <= PERV; i++)
     {
         // --- check that sub-area type exists
-        area = (Subcatch[j].area - Subcatch[j].lidArea) * Subcatch[j].subArea[i].fArea;
+        area = (project->Subcatch[j].area - Subcatch[j].lidArea) * Subcatch[j].subArea[i].fArea;
         if ( area > 0.0 )
         {
             // --- get runoff rate from sub-area
             getSubareaRunoff(j, i, netPrecip[i], evapRate, tStep);
-            runoff += Subcatch[j].subArea[i].runoff * area;
+            runoff += project->Subcatch[j].subArea[i].runoff * area;
 
             // --- update components of volumetric water balance (in ft3)
-            //Subcatch[j].losses += Losses * area;
+            //project->Subcatch[j].losses += Losses * area;
             rainVol    += netPrecip[i] * tStep * area;
             outflow    += Outflow * area;
             evapVol    += Vevap * area;
@@ -651,36 +651,36 @@ double subcatch_getRunoff(int j, double tStep)
 
     // --- evaluate LID treatment as if it were another type of sub-area
     //     while updating outflow, evap volumes, & infil volumes
-    if ( Subcatch[j].lidArea > 0.0 )
+    if ( project->Subcatch[j].lidArea > 0.0 )
         runoff += lid_getRunoff(j, &outflow, &evapVol, &pervEvapVol,
                                 &infilVol, tStep);
 
     // --- update groundwater levels & flows if applicable
-    if (!IgnoreGwater && Subcatch[j].groundwater )
+    if (!project->IgnoreGwater && project->Subcatch[j].groundwater )
         gwater_getGroundwater(j, pervEvapVol, infilVol, tStep);
 
     // --- save subcatchment's outflow (cfs) & total loss rates (ft/s)
-    area = Subcatch[j].area;
-    Subcatch[j].newRunoff = outflow;
-    Subcatch[j].evapLoss = evapVol / tStep / area;
-    Subcatch[j].infilLoss = infilVol / tStep / area;
+    area = project->Subcatch[j].area;
+    project->Subcatch[j].newRunoff = outflow;
+    project->Subcatch[j].evapLoss = evapVol / tStep / area;
+    project->Subcatch[j].infilLoss = infilVol / tStep / area;
 
     // --- save volumes (ft3) for use in pollutant washoff calculation
     Vrain = rainVol;
     Vevap = evapVol;
     Vinfil = infilVol;
 	Voutflow = outflow * tStep;
-	Vrunon = Subcatch[j].runon * tStep * area;
+	Vrunon = project->Subcatch[j].runon * tStep * area;
 
     // --- compute water flux volumes over the time step
-    rainVol = Subcatch[j].rainfall * tStep * area;
+    rainVol = project->Subcatch[j].rainfall * tStep * area;
     stats_updateSubcatchStats(j, rainVol, Vrunon, Vevap, Vinfil,
                               Voutflow, outflow);
 
     // --- update system flow balance
     //     (system outflow is 0 if outlet is another subcatch)
     outflowVol = Voutflow;
-    if ( Subcatch[j].outNode == -1 && Subcatch[j].outSubcatch != j )
+    if ( project->Subcatch[j].outNode == -1 && Subcatch[j].outSubcatch != j )
     {
         outflowVol = 0.0;
     }
@@ -705,7 +705,7 @@ void getNetPrecip(int j, double* netPrecip, double tStep)
     double snowfall = 0.0;             // snowfall (ft/sec)
 
     // --- get current rainfall or snowfall from rain gage (in ft/sec)
-    k = Subcatch[j].gage;
+    k = project->Subcatch[j].gage;
     if ( k >= 0 )
     {
         gage_getPrecip(k, &rainfall, &snowfall);
@@ -718,14 +718,14 @@ void getNetPrecip(int j, double* netPrecip, double tStep)
 	}
 
     // --- assign total precip. rate to subcatch's rainfall property
-    Subcatch[j].rainfall = rainfall + snowfall;
+    project->Subcatch[j].rainfall = rainfall + snowfall;
 
     // --- determine net precipitation input (netPrecip) to each sub-area
 
     // --- if subcatch has a snowpack, then base netPrecip on possible snow melt
-    if ( Subcatch[j].snowpack && !IgnoreSnowmelt )
+    if ( project->Subcatch[j].snowpack && !project->IgnoreSnowmelt )
     {
-        Subcatch[j].newSnowDepth = 
+        project->Subcatch[j].newSnowDepth = 
             snow_getSnowMelt(j, rainfall, snowfall, tStep, netPrecip);
     }
 
@@ -751,14 +751,14 @@ double subcatch_getDepth(int j)
 
     for (i = IMPERV0; i <= PERV; i++)
     {
-        fArea = Subcatch[j].subArea[i].fArea;
-        if ( fArea > 0.0 ) depth += Subcatch[j].subArea[i].depth * fArea;
+        fArea = project->Subcatch[j].subArea[i].fArea;
+        if ( fArea > 0.0 ) depth += project->Subcatch[j].subArea[i].depth * fArea;
     }
 
-    if ( Subcatch[j].lidArea > 0.0 ) 
+    if ( project->Subcatch[j].lidArea > 0.0 ) 
     {
-        depth = (depth * (Subcatch[j].area - Subcatch[j].lidArea) +
-            lid_getSurfaceDepth(j) * Subcatch[j].lidArea) / Subcatch[j].area;
+        depth = (depth * (project->Subcatch[j].area - Subcatch[j].lidArea) +
+            lid_getSurfaceDepth(j) * project->Subcatch[j].lidArea) / Subcatch[j].area;
     }
     return depth;
 }
@@ -782,29 +782,29 @@ void subcatch_getBuildup(int j, double tStep)
     double  newBuildup;                // buildup at end of time step
 
     // --- consider each landuse
-    for (i = 0; i < Nobjects[LANDUSE]; i++)
+    for (i = 0; i < project->Nobjects[LANDUSE]; i++)
     {
         // --- skip landuse if not in subcatch
-        f = Subcatch[j].landFactor[i].fraction;
+        f = project->Subcatch[j].landFactor[i].fraction;
         if ( f == 0.0 ) continue;
 
         // --- get land area (in acres or hectares) & curb length
-        area = f * Subcatch[j].area * UCF(LANDAREA);
-        curb = f * Subcatch[j].curbLength;
+        area = f * project->Subcatch[j].area * UCF(LANDAREA);
+        curb = f * project->Subcatch[j].curbLength;
 
         // --- examine each pollutant
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
             // --- see if snow-only buildup is in effect
-            if (Pollut[p].snowOnly 
-            && Subcatch[j].newSnowDepth < 0.001/12.0) continue;
+            if (project->Pollut[p].snowOnly 
+            && project->Subcatch[j].newSnowDepth < 0.001/12.0) continue;
 
             // --- use land use's buildup function to update buildup amount
-            oldBuildup = Subcatch[j].landFactor[i].buildup[p];        
+            oldBuildup = project->Subcatch[j].landFactor[i].buildup[p];        
             newBuildup = landuse_getBuildup(i, p, area, curb, oldBuildup,
                          tStep);
             newBuildup = MAX(newBuildup, oldBuildup);
-            Subcatch[j].landFactor[i].buildup[p] = newBuildup;
+            project->Subcatch[j].landFactor[i].buildup[p] = newBuildup;
             massbal_updateLoadingTotals(BUILDUP_LOAD, p, 
                                        (newBuildup - oldBuildup));
        }
@@ -826,37 +826,37 @@ void subcatch_sweepBuildup(int j, DateTime aDate)
     double  newBuildup;                // buildup after sweeping (lbs or kg)
 
     // --- no sweeping if there is snow on plowable impervious area
-    if ( Subcatch[j].snowpack != NULL &&
-         Subcatch[j].snowpack->wsnow[IMPERV0] > MIN_TOTAL_DEPTH ) return;
+    if ( project->Subcatch[j].snowpack != NULL &&
+         project->Subcatch[j].snowpack->wsnow[IMPERV0] > MIN_TOTAL_DEPTH ) return;
 
     // --- consider each land use
-    for (i = 0; i < Nobjects[LANDUSE]; i++)
+    for (i = 0; i < project->Nobjects[LANDUSE]; i++)
     {
         // --- skip land use if not in subcatchment 
-        if ( Subcatch[j].landFactor[i].fraction == 0.0 ) continue;
+        if ( project->Subcatch[j].landFactor[i].fraction == 0.0 ) continue;
 
         // --- see if land use is subject to sweeping
-        if ( Landuse[i].sweepInterval == 0.0 ) continue;
+        if ( project->Landuse[i].sweepInterval == 0.0 ) continue;
 
         // --- see if sweep interval has been reached
-        if ( aDate - Subcatch[j].landFactor[i].lastSwept >=
-            Landuse[i].sweepInterval )
+        if ( aDate - project->Subcatch[j].landFactor[i].lastSwept >=
+            project->Landuse[i].sweepInterval )
         {
         
             // --- update time when last swept
-            Subcatch[j].landFactor[i].lastSwept = aDate;
+            project->Subcatch[j].landFactor[i].lastSwept = aDate;
 
             // --- examine each pollutant
-            for (p = 0; p < Nobjects[POLLUT]; p++)
+            for (p = 0; p < project->Nobjects[POLLUT]; p++)
             {
                 // --- reduce buildup by the fraction available
                 //     times the sweeping effic.
-                oldBuildup = Subcatch[j].landFactor[i].buildup[p];
-                newBuildup = oldBuildup * (1.0 - Landuse[i].sweepRemoval *
-                             Landuse[i].washoffFunc[p].sweepEffic);
+                oldBuildup = project->Subcatch[j].landFactor[i].buildup[p];
+                newBuildup = oldBuildup * (1.0 - project->Landuse[i].sweepRemoval *
+                             project->Landuse[i].washoffFunc[p].sweepEffic);
                 newBuildup = MIN(oldBuildup, newBuildup);
                 newBuildup = MAX(0.0, newBuildup);
-                Subcatch[j].landFactor[i].buildup[p] = newBuildup;
+                project->Subcatch[j].landFactor[i].buildup[p] = newBuildup;
 
                 // --- update mass balance totals
                 massbal_updateLoadingTotals(SWEEPING_LOAD, p,
@@ -888,34 +888,34 @@ void  subcatch_getWashoff(int j, double runoff, double tStep)
     double massLoad;
 
     // --- return if there is no area or no pollutants
-    if ( Nobjects[POLLUT] == 0 || Subcatch[j].area == 0.0 ) return;
+    if ( project->Nobjects[POLLUT] == 0 || project->Subcatch[j].area == 0.0 ) return;
 
     // --- intialize outflow loads to zero
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         WashoffLoad[p] = 0.0;      // load just from washoff function
         OutflowLoad[p] = 0.0;      // Washoff load + ponded water load
     }
 
     // --- add outflow of pollutants in ponded water to outflow loads
-    //     (Note: at this point, Subcatch.newQual contains mass inflow
+    //     (Note: at this point, project->Subcatch.newQual contains mass inflow
     //      from any upstream subcatchments draining to this one)
-    updatePondedQual(j, Subcatch[j].newQual, Subcatch[j].pondedQual, tStep);
+    updatePondedQual(j, project->Subcatch[j].newQual, Subcatch[j].pondedQual, tStep);
 
     // --- add washoff loads from landuses to outflow loads
     if ( runoff >= MIN_RUNOFF )
     {
-        for (i = 0; i < Nobjects[LANDUSE]; i++)
+        for (i = 0; i < project->Nobjects[LANDUSE]; i++)
         {
-            if ( Subcatch[j].landFactor[i].fraction > 0.0 )
+            if ( project->Subcatch[j].landFactor[i].fraction > 0.0 )
             {
-                landuse_getWashoff(i, Subcatch[j].area, Subcatch[j].landFactor,
+                landuse_getWashoff(i, project->Subcatch[j].area, Subcatch[j].landFactor,
 				    runoff, tStep, WashoffLoad);
             }
         }
 
         // --- compute contribution from any co-pollutant
-        for (p = 0; p < Nobjects[POLLUT]; p++)
+        for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
             WashoffLoad[p] += landuse_getCoPollutLoad(p, WashoffLoad);
             OutflowLoad[p] += WashoffLoad[p];
@@ -925,24 +925,24 @@ void  subcatch_getWashoff(int j, double runoff, double tStep)
 
     // --- switch from internal runoff (used in washoff functions) to
     //     runoff that actually leaves the subcatchment
-    runoff = Subcatch[j].newRunoff;
+    runoff = project->Subcatch[j].newRunoff;
 
     // --- for each pollutant
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- update subcatchment's total runoff load in lbs (or kg)
-        massLoad = OutflowLoad[p] * Pollut[p].mcf;
-        Subcatch[j].totalLoad[p] += massLoad;
+        massLoad = OutflowLoad[p] * project->Pollut[p].mcf;
+        project->Subcatch[j].totalLoad[p] += massLoad;
 
         // --- update overall runoff mass balance if runoff goes to
         //     conveyance system
-        if ( Subcatch[j].outNode >= 0 || Subcatch[j].outSubcatch == j ) 
+        if ( project->Subcatch[j].outNode >= 0 || Subcatch[j].outSubcatch == j ) 
             massbal_updateLoadingTotals(RUNOFF_LOAD, p, massLoad);
         
         // --- save new outflow runoff concentration (in mass/L)
         if ( runoff > MIN_RUNOFF )
-            Subcatch[j].newQual[p] = OutflowLoad[p] / (runoff * tStep * LperFT3);
-        else Subcatch[j].newQual[p] = 0.0;
+            project->Subcatch[j].newQual[p] = OutflowLoad[p] / (runoff * tStep * LperFT3);
+        else project->Subcatch[j].newQual[p] = 0.0;
     }
 }
 
@@ -965,18 +965,18 @@ void updatePondedQual(int j, double wRunon[], double pondedQual[], double tStep)
     else isDry = 0;
 
     // --- analyze each pollutant
-    for (p = 0; p < Nobjects[POLLUT]; p++)
+    for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- update mass balance for direct deposition
-        wPpt = Pollut[p].pptConcen * LperFT3 * Vrain;                          //(5.1.006 - MT)
-        massbal_updateLoadingTotals(DEPOSITION_LOAD, p, wPpt * Pollut[p].mcf);
+        wPpt = project->Pollut[p].pptConcen * LperFT3 * Vrain;                          //(5.1.006 - MT)
+        massbal_updateLoadingTotals(DEPOSITION_LOAD, p, wPpt * project->Pollut[p].mcf);
 
         // --- surface is dry and has no inflow -- add any remaining mass
         //     to overall mass balance's FINAL_LOAD category
         if ( isDry )
         {
             massbal_updateLoadingTotals(FINAL_LOAD, p,
-                pondedQual[p] * Pollut[p].mcf);
+                pondedQual[p] * project->Pollut[p].mcf);
             pondedQual[p] = 0.0;
             OutflowLoad[p] = 0.0;
         }
@@ -989,7 +989,7 @@ void updatePondedQual(int j, double wRunon[], double pondedQual[], double tStep)
             // --- mass lost to infiltration
             wInfil = c * Vinfil;
             wInfil = MIN(wInfil, w1);
-            massbal_updateLoadingTotals(INFIL_LOAD, p, wInfil * Pollut[p].mcf);
+            massbal_updateLoadingTotals(INFIL_LOAD, p, wInfil * project->Pollut[p].mcf);
             w1 -= wInfil;
 
             // --- mass lost to outflow
@@ -999,11 +999,11 @@ void updatePondedQual(int j, double wRunon[], double pondedQual[], double tStep)
             // --- reduce outflow load by average BMP removal
             bmpRemoval = landuse_getAvgBmpEffic(j, p) * OutflowLoad[p];
             massbal_updateLoadingTotals(BMP_REMOVAL_LOAD, p,
-                bmpRemoval*Pollut[p].mcf);
+                bmpRemoval*project->Pollut[p].mcf);
             OutflowLoad[p] -= bmpRemoval;
 
             // --- update ponded mass
-            pondedQual[p] = c * subcatch_getDepth(j) * Subcatch[j].area;       //(5.1.006)
+            pondedQual[p] = c * subcatch_getDepth(j) * project->Subcatch[j].area;       //(5.1.006)
         }
     }
 }
@@ -1018,8 +1018,8 @@ double subcatch_getWtdOutflow(int j, double f)
 //  Purpose: computes wtd. combination of old and new subcatchment runoff.
 //
 {
-    if ( Subcatch[j].area == 0.0 ) return 0.0;
-    return (1.0 - f) * Subcatch[j].oldRunoff + f * Subcatch[j].newRunoff;
+    if ( project->Subcatch[j].area == 0.0 ) return 0.0;
+    return (1.0 - f) * project->Subcatch[j].oldRunoff + f * Subcatch[j].newRunoff;
 }
 
 //=============================================================================
@@ -1033,8 +1033,8 @@ double subcatch_getWtdWashoff(int j, int p, double f)
 //  Purpose: finds wtd. combination of old and new washoff for a pollutant.
 //
 {
-    return (1.0 - f) * Subcatch[j].oldRunoff * Subcatch[j].oldQual[p] +
-           f * Subcatch[j].newRunoff *Subcatch[j].newQual[p];
+    return (1.0 - f) * project->Subcatch[j].oldRunoff * Subcatch[j].oldQual[p] +
+           f * project->Subcatch[j].newRunoff *Subcatch[j].newQual[p];
 }
 
 //=============================================================================
@@ -1055,29 +1055,29 @@ void  subcatch_getResults(int j, double f, float x[])
     TGroundwater* gw;                  // ptr. to groundwater object
 
     // --- retrieve rainfall for current report period
-    k = Subcatch[j].gage;
-    if ( k >= 0 ) x[SUBCATCH_RAINFALL] = (float)Gage[k].reportRainfall;
+    k = project->Subcatch[j].gage;
+    if ( k >= 0 ) x[SUBCATCH_RAINFALL] = (float)project->Gage[k].reportRainfall;
     else          x[SUBCATCH_RAINFALL] = 0.0f;
 
     // --- retrieve snow depth
-    z = ( f1 * Subcatch[j].oldSnowDepth +
-          f * Subcatch[j].newSnowDepth ) * UCF(RAINDEPTH);
+    z = ( f1 * project->Subcatch[j].oldSnowDepth +
+          f * project->Subcatch[j].newSnowDepth ) * UCF(RAINDEPTH);
     x[SUBCATCH_SNOWDEPTH] = (float)z;
 
     // --- retrieve runoff and losses
-    x[SUBCATCH_EVAP] = (float)(Subcatch[j].evapLoss * UCF(EVAPRATE));
-    x[SUBCATCH_INFIL] = (float)(Subcatch[j].infilLoss * UCF(RAINFALL));
-    runoff = f1 * Subcatch[j].oldRunoff + f * Subcatch[j].newRunoff;
+    x[SUBCATCH_EVAP] = (float)(project->Subcatch[j].evapLoss * UCF(EVAPRATE));
+    x[SUBCATCH_INFIL] = (float)(project->Subcatch[j].infilLoss * UCF(RAINFALL));
+    runoff = f1 * project->Subcatch[j].oldRunoff + f * Subcatch[j].newRunoff;
     if ( runoff < MIN_RUNOFF_FLOW ) runoff = 0.0;
     x[SUBCATCH_RUNOFF] = (float)(runoff* UCF(FLOW));
 
     // --- retrieve groundwater results
-    gw = Subcatch[j].groundwater;
+    gw = project->Subcatch[j].groundwater;
     if ( gw )
     {
-        z = (f1 * gw->oldFlow + f * gw->newFlow) * Subcatch[j].area * UCF(FLOW);
+        z = (f1 * gw->oldFlow + f * gw->newFlow) * project->Subcatch[j].area * UCF(FLOW);
         x[SUBCATCH_GW_FLOW] = (float)z;
-        z = (Aquifer[gw->aquifer].bottomElev + gw->lowerDepth) * UCF(LENGTH);
+        z = (project->Aquifer[gw->aquifer].bottomElev + gw->lowerDepth) * UCF(LENGTH);
         x[SUBCATCH_GW_ELEV] = (float)z;
         z = gw->theta;
         x[SUBCATCH_SOIL_MOIST] = (float)z;
@@ -1090,10 +1090,10 @@ void  subcatch_getResults(int j, double f, float x[])
     }
 
     // --- retrieve pollutant washoff
-    if ( !IgnoreQuality ) for (p = 0; p < Nobjects[POLLUT]; p++ )
+    if ( !project->IgnoreQuality ) for (p = 0; p < project->Nobjects[POLLUT]; p++ )
     {
         if ( runoff < MIN_RUNOFF_FLOW ) z = 0.0;
-        else z = f1 * Subcatch[j].oldQual[p] + f * Subcatch[j].newQual[p];
+        else z = f1 * project->Subcatch[j].oldQual[p] + f * Subcatch[j].newQual[p];
         x[SUBCATCH_WASHOFF+p] = (float)z;
     }
 }
@@ -1122,7 +1122,7 @@ void getSubareaRunoff(int j, int i, double precip, double evap, double tStep)
     TSubarea* subarea;                 // pointer to subarea being analyzed
 
     // --- assign pointer to current subarea
-    subarea = &Subcatch[j].subArea[i];
+    subarea = &project->Subcatch[j].subArea[i];
 
     // --- assume runoff occurs over entire time step
     tRunoff = tStep;
@@ -1196,15 +1196,15 @@ double getSubareaInfil(int j, TSubarea* subarea, double precip, double tStep)
     double infil = 0.0;                     // actual infiltration rate (ft/sec)
 
     // --- compute infiltration rate 
-    infil = infil_getInfil(j, InfilModel, tStep, precip,
+    infil = infil_getInfil(j, project->InfilModel, tStep, precip,
                            subarea->inflow, subarea->depth);
 
     // --- limit infiltration rate by available void space in unsaturated
     //     zone of any groundwater aquifer
-    if ( !IgnoreGwater && Subcatch[j].groundwater )
+    if ( !project->IgnoreGwater && project->Subcatch[j].groundwater )
     {
         infil = MIN(infil,
-                    Subcatch[j].groundwater->maxInfilVol/tStep);
+                    project->Subcatch[j].groundwater->maxInfilVol/tStep);
     }
     return infil;
 }
