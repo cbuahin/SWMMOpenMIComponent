@@ -145,14 +145,14 @@ static int    readDrainMatData(int j, char* toks[], int ntoks);
 
 static int    addLidUnit(int j, int k, int n, double x[], char* fname);
 static int    createLidRptFile(TLidUnit* lidUnit, char* fname);
-static void   initLidRptFile(char* title, char* lidID, char* subcatchID,
+static void   initLidRptFile(Project *project, char* title, char* lidID, char* subcatchID,
               TLidUnit* lidUnit);
 static void   validateLidProc(int j);
-static void   validateLidGroup(int j);
+static void   validateLidGroup(Project *project, int j);
 static int    isLidPervious(int k);
 
-static double getImpervAreaInflow(int j);
-static void   findNativeInfil(int j, double infilVol, double tStep);
+static double getImpervAreaInflow(Project *project, int j);
+static void   findNativeInfil(Project *project, int j, double infilVol, double tStep);
 static void   evalLidUnit(TLidUnit* lidUnit, double rainfall, double runon,
               double qImperv, double tStep, double *lidOutflow,
               double *nonLidOutflow, double *flowToPerv);
@@ -160,7 +160,7 @@ static void   evalLidUnit(TLidUnit* lidUnit, double rainfall, double runon,
 
 //=============================================================================
 
-void lid_create(int lidCount, int subcatchCount)
+void lid_create(Project *project, int lidCount, int subcatchCount)
 //
 //  Purpose: creates an array of LID objects.
 //  Input:   n = number of LID processes
@@ -325,7 +325,7 @@ int lid_readProcParams(char* toks[], int ntoks)
 
 //=============================================================================
 
-int lid_readGroupParams(char* toks[], int ntoks)
+int lid_readGroupParams(Project *project, char* toks[], int ntoks)
 //
 //  Purpose: reads input data for a LID unit placed in a subcatchment.
 //  Input:   toks = array of string tokens
@@ -673,7 +673,7 @@ int readDrainMatData(int j, char* toks[], int ntoks)
 }
 //=============================================================================
 
-void lid_writeSummary()
+void lid_writeSummary(Project *project)
 //
 //  Purpose: writes summary of LID processes used to report file.
 //  Input:   none
@@ -719,7 +719,7 @@ void lid_writeSummary()
 
 //=============================================================================
 
-void lid_validate()
+void lid_validate(Project *project)
 //
 //  Purpose: validates LID process and group parameters.
 //  Input:   none 
@@ -728,7 +728,7 @@ void lid_validate()
 {
     int j;
     for (j = 0; j < LidCount; j++) validateLidProc(j);
-    for (j = 0; j < GroupCount; j++) validateLidGroup(j);
+    for (j = 0; j < GroupCount; j++) validateLidGroup(project, j);
 }
 
 //=============================================================================
@@ -882,7 +882,7 @@ void validateLidProc(int j)
 
 //=============================================================================
 
-void validateLidGroup(int j)
+void validateLidGroup(Project *project, int j)
 //
 //  Purpose: validates properties of LID units grouped in a subcatchment.
 //  Input:   j = subcatchment index 
@@ -962,7 +962,7 @@ void validateLidGroup(int j)
 
 //=============================================================================
 
-void lid_initState()
+void lid_initState(Project *project)
 //
 //  Purpose: initializes the internal state of each LID in a subcatchment.
 //  Input:   none 
@@ -1025,7 +1025,7 @@ void lid_initState()
             //... initialize report file for the LID
             if ( lidUnit->rptFile )
             {
-                initLidRptFile(project->Title[0], LidProcs[k].ID, project->Subcatch[j].ID, lidUnit);
+                initLidRptFile(project, project->Title[0], LidProcs[k].ID, project->Subcatch[j].ID, lidUnit);
             }
 
             //... set previous flux rates to 0
@@ -1061,7 +1061,7 @@ int isLidPervious(int k)
 
 //=============================================================================
 
-double lid_getSurfaceDepth(int j)
+double lid_getSurfaceDepth(Project *project, int j)
 //
 //  Purpose: computes the depth of ponded water on the surface of all LIDs
 //           within a subcatchment.
@@ -1119,7 +1119,7 @@ double   lid_getFlowToPerv(int j)
 
 //=============================================================================
 
-double lid_getStoredVolume(int j)
+double lid_getStoredVolume(Project *project, int j)
 //
 //  Purpose: computes stored volume of water for all LIDs 
 //           grouped within a subcatchment.
@@ -1146,7 +1146,7 @@ double lid_getStoredVolume(int j)
 
 //=============================================================================
 
-double lid_getDepthOnPavement(int j, double impervDepth)
+double lid_getDepthOnPavement(Project *project, int j, double impervDepth)
 //
 //  Purpose: computes average stored depth of water over a subcatchment's
 //           impervious area and the area of any porous pavement LIDs.
@@ -1187,14 +1187,14 @@ double lid_getDepthOnPavement(int j, double impervDepth)
 
     //... combine depth over non-LID impervious area with that over LID area
     impervArea = project->Subcatch[j].fracImperv *
-                 (project->Subcatch[j].area - Subcatch[j].lidArea);
+                 (project->Subcatch[j].area - project->Subcatch[j].lidArea);
     return (impervDepth*impervArea + pondedLidDepth) /
            (impervArea + pondedLidArea);
 }
 
 //=============================================================================
 
-double lid_getRunoff(int j, double *outflow, double *evapVol,
+double lid_getRunoff(Project *project, int j, double *outflow, double *evapVol,
                      double *pervEvapVol, double *infilVol, double tStep)
 //
 //  Purpose: computes total runoff from all LIDs placed in a subcatchment.
@@ -1235,10 +1235,10 @@ double lid_getRunoff(int j, double *outflow, double *evapVol,
     if ( project->Evap.dryOnly && project->Subcatch[j].rainfall > 0.0 ) EvapRate = 0.0;
 
     //... find subcatchment's infiltration rate into native soil
-    findNativeInfil(j, *infilVol, tStep);
+    findNativeInfil(project, j, *infilVol, tStep);
 
     //... get inflows from non-LID subareas of subcatchment (cfs)
-    qImperv = getImpervAreaInflow(j) * (project->Subcatch[j].area - Subcatch[j].lidArea);
+    qImperv = getImpervAreaInflow(project, j) * (project->Subcatch[j].area - project->Subcatch[j].lidArea);
     theLidGroup->impervRunoff += qImperv * tStep;
 
     //... check if detailed results should be saved
@@ -1255,7 +1255,7 @@ double lid_getRunoff(int j, double *outflow, double *evapVol,
     //... evaluate performance of each LID unit placed in the subcatchment
     while ( lidList )
     {
-        evalLidUnit(lidList->lidUnit, project->Subcatch[j].rainfall, Subcatch[j].runon,
+        evalLidUnit(lidList->lidUnit, project->Subcatch[j].rainfall, project->Subcatch[j].runon,
                     qImperv, tStep, &lidOutflow, &nonLidOutflow, &flowToPerv);
         lidList = lidList->nextLidUnit;
     }
@@ -1275,7 +1275,7 @@ double lid_getRunoff(int j, double *outflow, double *evapVol,
 
 //=============================================================================
 
-void findNativeInfil(int j, double infilVol, double tStep)
+void findNativeInfil(Project *project, int j, double infilVol, double tStep)
 //
 //  Purpose: determines a subcatchment's current infiltration rate into
 //           its native soil.
@@ -1288,7 +1288,7 @@ void findNativeInfil(int j, double infilVol, double tStep)
     double nonLidArea;
 
     //... subcatchment has non-LID pervious area
-    nonLidArea = project->Subcatch[j].area - Subcatch[j].lidArea;
+    nonLidArea = project->Subcatch[j].area - project->Subcatch[j].lidArea;
     if ( nonLidArea > 0.0 && project->Subcatch[j].fracImperv < 1.0 )
     {
         NativeInfil = infilVol / nonLidArea / tStep;
@@ -1298,7 +1298,7 @@ void findNativeInfil(int j, double infilVol, double tStep)
     else
     {
         NativeInfil = infil_getInfil(j, project->InfilModel, tStep, project->Subcatch[j].rainfall,
-                                     project->Subcatch[j].runon, lid_getSurfaceDepth(j));
+                                     project->Subcatch[j].runon, lid_getSurfaceDepth(project, j));
     }
 
     //... see if there is any groundwater-imposed limit on infil.
@@ -1311,7 +1311,7 @@ void findNativeInfil(int j, double infilVol, double tStep)
 
 //=============================================================================
 
-double getImpervAreaInflow(int j)
+double getImpervAreaInflow(Project *project, int j)
 //
 //  Purpose: computes runoff sent by impervious sub-areas into LID unit.
 //  Input:   none
@@ -1324,7 +1324,7 @@ double getImpervAreaInflow(int j)
     // --- runoff from impervious area w/ & w/o depression storage
     for (i = IMPERV0; i <= IMPERV1; i++)
     {
-        q += project->Subcatch[j].subArea[i].runoff * Subcatch[j].subArea[i].fArea;
+        q += project->Subcatch[j].subArea[i].runoff * project->Subcatch[j].subArea[i].fArea;
     }
 
     // --- adjust for any fraction of runoff sent to pervious area
@@ -1399,7 +1399,7 @@ void evalLidUnit(TLidUnit* lidUnit, double rainfall, double runon,
 
 //=============================================================================
 
-void lid_writeWaterBalance()
+void lid_writeWaterBalance(Project *project)
 //
 //  Purpose: writes a LID performance summary table to the project's report file.
 //  Input:   none
@@ -1482,7 +1482,7 @@ void lid_writeWaterBalance()
 
 //=============================================================================
 
-void initLidRptFile(char* title, char* lidID, char* subcatchID, TLidUnit* lidUnit)
+void initLidRptFile(Project *project, char* title, char* lidID, char* subcatchID, TLidUnit* lidUnit)
 //
 //  Purpose: initializes the report file used for a specific LID unit
 //  Input:   title = project's title

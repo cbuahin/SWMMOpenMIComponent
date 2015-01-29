@@ -12,6 +12,7 @@
 #ifndef INFIL_H
 #define INFIL_H
 
+
 //---------------------
 // Enumerated Constants
 //---------------------
@@ -95,7 +96,7 @@ double  infil_getInfil(int area, int model, double tstep, double rainfall,
 
 int     grnampt_setParams(TGrnAmpt *infil, double p[]);
 void    grnampt_initState(TGrnAmpt *infil);
-double  grnampt_getInfil(TGrnAmpt *infil, double tstep, double irate,
+double  grnampt_getInfil(Project *project, TGrnAmpt *infil, double tstep, double irate,
         double depth);
 
 #endif

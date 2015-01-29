@@ -89,7 +89,7 @@ void project_open(char *f1, char *f2, char *f3)
 
 //=============================================================================
 
-void project_readInput()
+void project_readInput(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -100,13 +100,13 @@ void project_readInput()
     createHashTables();
 
     // --- count number of objects in input file and create them
-    input_countObjects();
+    input_countObjects(project);
 
 
     createObjects();
 
     // --- read project data from input file
-    input_readData();
+    input_readData(project);
 
 
     if ( project->ErrorCode ) return;
@@ -115,7 +115,7 @@ void project_readInput()
     project->StartDateTime = project->StartDate + project->StartTime;
     project->EndDateTime   = project->EndDate + project->EndTime;
     project->ReportStart   = project->ReportStartDate + project->ReportStartTime;
-    project->ReportStart   = MAX(ReportStart, project->StartDateTime);
+    project->ReportStart   = MAX(project->ReportStart, project->StartDateTime);
 
     // --- check for valid starting & ending date/times
     if ( project->EndDateTime <= project->StartDateTime )

@@ -52,11 +52,11 @@ REAL4*           LinkResults;
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static void output_openOutFile(void);
+static void output_openOutFile(Project *project);
 static void output_saveID(char* id, FILE* file);
-static void output_saveSubcatchResults(double reportTime, FILE* file);
-static void output_saveNodeResults(double reportTime, FILE* file);
-static void output_saveLinkResults(double reportTime, FILE* file);
+static void output_saveSubcatchResults(Project *project, double reportTime, FILE* file);
+static void output_saveNodeResults(Project *project, double reportTime, FILE* file);
+static void output_saveLinkResults(Project *project, double reportTime, FILE* file);
 
 //-----------------------------------------------------------------------------
 //  External functions (declared in funcs.h)
@@ -74,7 +74,7 @@ static void output_saveLinkResults(double reportTime, FILE* file);
 
 //=============================================================================
 
-int output_open()
+int output_open(Project *project)
 //
 //  Input:   none
 //  Output:  returns an error code
@@ -88,8 +88,8 @@ int output_open()
     REAL8 z;
 
     // --- open binary output file
-    output_openOutFile();
-    if ( project->ErrorCode ) return ErrorCode;
+    output_openOutFile(project);
+    if ( project->ErrorCode ) return project->ErrorCode;
 
     // --- ignore pollutants if no water quality analsis performed
     if ( project->IgnoreQuality ) NumPolluts = 0;
@@ -154,15 +154,15 @@ int output_open()
     IDStartPos = ftell(project->Fout.file);
     for (j=0; j<project->Nobjects[SUBCATCH]; j++)
     {
-        if ( project->Subcatch[j].rptFlag ) output_saveID(Subcatch[j].ID, project->Fout.file);
+        if ( project->Subcatch[j].rptFlag ) output_saveID(project->Subcatch[j].ID, project->Fout.file);
     }
     for (j=0; j<project->Nobjects[NODE];     j++)
     {
-        if ( project->Node[j].rptFlag ) output_saveID(Node[j].ID, project->Fout.file);
+        if ( project->Node[j].rptFlag ) output_saveID(project->Node[j].ID, project->Fout.file);
     }
     for (j=0; j<project->Nobjects[LINK];     j++)
     {
-        if ( project->Link[j].rptFlag ) output_saveID(Link[j].ID, project->Fout.file);
+        if ( project->Link[j].rptFlag ) output_saveID(project->Link[j].ID, project->Fout.file);
     }
     for (j=0; j<NumPolluts; j++) output_saveID(project->Pollut[j].ID, project->Fout.file);
 
@@ -327,7 +327,7 @@ int output_open()
     //      make saved starting report date one reporting period
     //      prior to the date of the first reported result)
     z = (double)project->ReportStep/86400.0;
-    if ( project->StartDateTime + z > project->ReportStart ) z = StartDateTime;
+    if ( project->StartDateTime + z > project->ReportStart ) z = project->StartDateTime;
     else
     {
         z = floor((project->ReportStart - project->StartDateTime)/z) - 1.0;
@@ -341,13 +341,13 @@ int output_open()
         return project->ErrorCode;
     }
     OutputStartPos = ftell(project->Fout.file);
-    if ( project->Fout.mode == SCRATCH_FILE ) output_checkFileSize();
+    if ( project->Fout.mode == SCRATCH_FILE ) output_checkFileSize(project);
     return project->ErrorCode;
 }
 
 //=============================================================================
 
-void  output_checkFileSize()
+void  output_checkFileSize(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -370,7 +370,7 @@ void  output_checkFileSize()
 
 //=============================================================================
 
-void output_openOutFile()
+void output_openOutFile(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -378,10 +378,10 @@ void output_openOutFile()
 //
 {
     // --- close output file if already opened
-    if (project->Fout.file != NULL) fclose(Fout.file); 
+    if (project->Fout.file != NULL) fclose(project->Fout.file);
 
     // --- else if file name supplied then set file mode to SAVE
-    else if (strlen(project->Fout.name) != 0) Fout.mode = SAVE_FILE;
+    else if (strlen(project->Fout.name) != 0) project->Fout.mode = SAVE_FILE;
 
     // --- otherwise set file mode to SCRATCH & generate a name
     else
@@ -391,7 +391,7 @@ void output_openOutFile()
     }
 
     // --- try to open the file
-    if ( (project->Fout.file = fopen(Fout.name, "w+b")) == NULL)
+    if ( (project->Fout.file = fopen(project->Fout.name, "w+b")) == NULL)
     {
         writecon(FMT14);
         project->ErrorCode = ERR_OUT_FILE;
@@ -400,7 +400,7 @@ void output_openOutFile()
 
 //=============================================================================
 
-void output_saveResults(double reportTime)
+void output_saveResults(Project *project, double reportTime)
 //
 //  Input:   reportTime = elapsed simulation time (millisec)
 //  Output:  none
@@ -416,20 +416,20 @@ void output_saveResults(double reportTime)
     date = reportDate;
     fwrite(&date, sizeof(REAL8), 1, project->Fout.file);
     if (project->Nobjects[SUBCATCH] > 0)
-        output_saveSubcatchResults(reportTime, project->Fout.file);
+        output_saveSubcatchResults(project, reportTime, project->Fout.file);
     if (project->Nobjects[NODE] > 0)
-        output_saveNodeResults(reportTime, project->Fout.file);
+        output_saveNodeResults(project, reportTime, project->Fout.file);
     if (project->Nobjects[LINK] > 0)
-        output_saveLinkResults(reportTime, project->Fout.file);
+        output_saveLinkResults(project, reportTime, project->Fout.file);
     fwrite(SysResults, sizeof(REAL4), MAX_SYS_RESULTS, project->Fout.file);
     if ( project->Foutflows.mode == SAVE_FILE && !project->IgnoreRouting ) 
-        iface_saveOutletResults(reportDate, project->Foutflows.file);
+        iface_saveOutletResults(project, reportDate, project->Foutflows.file);
     project->Nperiods++;
 }
 
 //=============================================================================
 
-void output_end()
+void output_end(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -482,7 +482,7 @@ void output_saveID(char* id, FILE* file)
 
 //=============================================================================
 
-void output_saveSubcatchResults(double reportTime, FILE* file)
+void output_saveSubcatchResults(Project *project, double reportTime, FILE* file)
 //
 //  Input:   reportTime = elapsed simulation time (millisec)
 //           file = ptr. to binary output file
@@ -499,17 +499,17 @@ void output_saveSubcatchResults(double reportTime, FILE* file)
     // --- update reported rainfall at each rain gage
     for ( j=0; j<project->Nobjects[GAGE]; j++ )
     {
-        gage_setReportRainfall(j, reportDate);
+        gage_setReportRainfall(project, j, reportDate);
     }
 
     // --- find where current reporting time lies between latest runoff times
-    f = (reportTime - project->OldRunoffTime) / (project->NewRunoffTime - OldRunoffTime);
+    f = (reportTime - project->OldRunoffTime) / (project->NewRunoffTime - project->OldRunoffTime);
 
     // --- write subcatchment results to file
     for ( j=0; j<project->Nobjects[SUBCATCH]; j++)
     {
         // --- retrieve interpolated results for reporting time & write to file
-        subcatch_getResults(j, f, SubcatchResults);
+        subcatch_getResults(project, j, f, SubcatchResults);
         if ( project->Subcatch[j].rptFlag )
             fwrite(SubcatchResults, sizeof(REAL4), NsubcatchResults, file);
 
@@ -541,7 +541,7 @@ void output_saveSubcatchResults(double reportTime, FILE* file)
 
 //=============================================================================
 
-void output_saveNodeResults(double reportTime, FILE* file)
+void output_saveNodeResults(Project *project, double reportTime, FILE* file)
 //
 //  Input:   reportTime = elapsed simulation time (millisec)
 //           file = ptr. to binary output file
@@ -560,7 +560,7 @@ void output_saveNodeResults(double reportTime, FILE* file)
     for (j=0; j<project->Nobjects[NODE]; j++)
     {
         // --- retrieve interpolated results for reporting time & write to file
-        node_getResults(j, f, NodeResults);
+        node_getResults(project, j, f, NodeResults);
         if ( project->Node[j].rptFlag )
             fwrite(NodeResults, sizeof(REAL4), NnodeResults, file);
 
@@ -584,7 +584,7 @@ void output_saveNodeResults(double reportTime, FILE* file)
 
 //=============================================================================
 
-void output_saveLinkResults(double reportTime, FILE* file)
+void output_saveLinkResults(Project *project, double reportTime, FILE* file)
 //
 //  Input:   reportTime = elapsed simulation time (millisec)
 //           file = ptr. to binary output file
@@ -597,25 +597,25 @@ void output_saveLinkResults(double reportTime, FILE* file)
     double z;
 
     // --- find where current reporting time lies between latest routing times
-    f = (reportTime - project->OldRoutingTime) / (project->NewRoutingTime - OldRoutingTime);
+    f = (reportTime - project->OldRoutingTime) / (project->NewRoutingTime - project->OldRoutingTime);
 
     // --- write link results to file
     for (j=0; j<project->Nobjects[LINK]; j++)
     {
         // --- retrieve interpolated results for reporting time & write to file
-        link_getResults(j, f, LinkResults);
+        link_getResults(project, j, f, LinkResults);
         if ( project->Link[j].rptFlag ) 
             fwrite(LinkResults, sizeof(REAL4), NlinkResults, file);
 
         // --- update system-wide results
-        z = ((1.0-f)*project->Link[j].oldVolume + f*Link[j].newVolume) * UCF(VOLUME);
+        z = ((1.0-f)*project->Link[j].oldVolume + f*project->Link[j].newVolume) * UCF(VOLUME);
         SysResults[SYS_STORAGE] += (REAL4)z;
     }
 }
 
 //=============================================================================
 
-void output_readDateTime(int period, DateTime* days)
+void output_readDateTime(Project *project, int period, DateTime* days)
 //
 //  Input:   period = index of reporting time period
 //  Output:  days = date/time value
@@ -631,7 +631,7 @@ void output_readDateTime(int period, DateTime* days)
 
 //=============================================================================
 
-void output_readSubcatchResults(int period, int index)
+void output_readSubcatchResults(Project *project, int period, int index)
 //
 //  Input:   period = index of reporting time period
 //           index = subcatchment index
@@ -648,7 +648,7 @@ void output_readSubcatchResults(int period, int index)
 
 //=============================================================================
 
-void output_readNodeResults(int period, int index)
+void output_readNodeResults(Project *project, int period, int index)
 //
 //  Input:   period = index of reporting time period
 //           index = node index
@@ -665,7 +665,7 @@ void output_readNodeResults(int period, int index)
 
 //=============================================================================
 
-void output_readLinkResults(int period, int index)
+void output_readLinkResults(Project *project, int period, int index)
 //
 //  Input:   period = index of reporting time period
 //           index = link index

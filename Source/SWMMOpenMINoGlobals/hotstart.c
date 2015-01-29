@@ -33,22 +33,22 @@ static int fileVersion;
 //-----------------------------------------------------------------------------
 // Function declarations
 //-----------------------------------------------------------------------------
-static int  openHotstartFile1(void); 
-static int  openHotstartFile2(void);       
-static void readRunoff(void);
-static void saveRunoff(void);
-static void readRouting(void);
-static void saveRouting(void);
+static int  openHotstartFile1(Project *project);
+static int  openHotstartFile2(Project *project);
+static void readRunoff(Project *project);
+static void saveRunoff(Project *project);
+static void readRouting(Project *project);
+static void saveRouting(Project *project);
 static int  readFloat(float *x, FILE* f);
 static int  readDouble(double* x, FILE* f);
 
 //=============================================================================
 
-int hotstart_open()
+int hotstart_open(Project *project)
 {
     // --- open hot start files
-    if ( !openHotstartFile1() ) return FALSE;       //input hot start file
-    if ( !openHotstartFile2() ) return FALSE;       //output hot start file
+    if ( !openHotstartFile1(project) ) return FALSE;       //input hot start file
+    if ( !openHotstartFile2(project) ) return FALSE;       //output hot start file
 
     ////  Following lines removed. ////                                            //(5.1.005)
     //if ( project->Fhotstart1.file )
@@ -63,19 +63,19 @@ int hotstart_open()
 
 //=============================================================================
 
-void hotstart_close()
+void hotstart_close(Project *project)
 {
     if ( project->Fhotstart2.file )
     {
-        saveRunoff();
-        saveRouting();
+        saveRunoff(project);
+        saveRouting(project);
         fclose(project->Fhotstart2.file);
     }
 }
 
 //=============================================================================
 
-int openHotstartFile1()
+int openHotstartFile1(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -96,7 +96,7 @@ int openHotstartFile1()
 
     // --- try to open the file
     if ( project->Fhotstart1.mode != USE_FILE ) return TRUE;
-    if ( (project->Fhotstart1.file = fopen(Fhotstart1.name, "r+b")) == NULL)
+    if ( (project->Fhotstart1.file = fopen(project->Fhotstart1.name, "r+b")) == NULL)
     {
         report_writeErrorMsg(ERR_HOTSTART_FILE_OPEN, project->Fhotstart1.name);
         return FALSE;
@@ -150,8 +150,8 @@ int openHotstartFile1()
     }
 
     // --- read contents of the file and close it
-    if ( fileVersion == 3 ) readRunoff();
-    readRouting();
+    if ( fileVersion == 3 ) readRunoff(project);
+    readRouting(project);
     fclose(project->Fhotstart1.file);
     if ( project->ErrorCode ) return FALSE;
     else return TRUE;
@@ -159,7 +159,7 @@ int openHotstartFile1()
 
 //=============================================================================
 
-int openHotstartFile2()
+int openHotstartFile2(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -176,7 +176,7 @@ int openHotstartFile2()
 
     // --- try to open file
     if ( project->Fhotstart2.mode != SAVE_FILE ) return TRUE;
-    if ( (project->Fhotstart2.file = fopen(Fhotstart2.name, "w+b")) == NULL)
+    if ( (project->Fhotstart2.file = fopen(project->Fhotstart2.name, "w+b")) == NULL)
     {
         report_writeErrorMsg(ERR_HOTSTART_FILE_OPEN, project->Fhotstart2.name);
         return FALSE;
@@ -201,7 +201,7 @@ int openHotstartFile2()
 
 //=============================================================================
 
-void  saveRouting()
+void  saveRouting(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -238,7 +238,7 @@ void  saveRouting()
 
 //=============================================================================
 
-void readRouting()
+void readRouting(Project *project)
 //
 //  Input:   none 
 //  Output:  none
@@ -266,7 +266,7 @@ void readRouting()
             xgw[1] = x;
 
             // --- set GW state
-            if ( project->Subcatch[i].groundwater != NULL ) gwater_setState(i, xgw);
+            if ( project->Subcatch[i].groundwater != NULL ) gwater_setState(project, i, xgw);
         }
     }
 
@@ -312,7 +312,7 @@ void readRouting()
 
 //=============================================================================
 
-void  saveRunoff(void)
+void  saveRunoff(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -341,7 +341,7 @@ void  saveRunoff(void)
         // Groundwater state (4 elements)
         if ( project->Subcatch[i].groundwater != NULL )
         {
-            gwater_getState(i, x);
+            gwater_getState(project, i, x);
             fwrite(x, sizeof(double), 4, f);
         }
 
@@ -350,13 +350,13 @@ void  saveRunoff(void)
         {
             for (j=0; j<3; j++)
             {
-                snow_getState(i, j, x);
+                snow_getState(project, i, j, x);
                 fwrite(x, sizeof(double), 5, f);
             }
         }
 
         // Water quality
-        if ( project->Nobjects[POLLUT] > 0 && Nobjects[LANDUSE] > 0 )
+        if ( project->Nobjects[POLLUT] > 0 && project->Nobjects[LANDUSE] > 0 )
         {
             // Runoff quality
             for (j=0; j<project->Nobjects[POLLUT]; j++) x[j] = project->Subcatch[i].newQual[j];
@@ -382,7 +382,7 @@ void  saveRunoff(void)
 
 //=============================================================================
 
-void  readRunoff()
+void  readRunoff(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -410,7 +410,7 @@ void  readRunoff()
         if ( project->Subcatch[i].groundwater != NULL )
         {
             for (j=0; j<4; j++) if ( !readDouble(&x[j], f) ) return;
-            gwater_setState(i, x);
+            gwater_setState(project, i, x);
         }
 
         // Snowpack state (5 elements for each of 3 snow surfaces)
@@ -419,12 +419,12 @@ void  readRunoff()
             for (j=0; j<3; j++) 
             {
                 for (k=0; k<5; k++) if ( !readDouble(&x[j], f) ) return;
-                snow_setState(i, j, x);
+                snow_setState(project, i, j, x);
             }
         }
 
         // Water quality
-        if ( project->Nobjects[POLLUT] > 0 && Nobjects[LANDUSE] > 0 )
+        if ( project->Nobjects[POLLUT] > 0 && project->Nobjects[LANDUSE] > 0 )
         {
             // Runoff quality
             for (j=0; j<project->Nobjects[POLLUT]; j++)

@@ -12,6 +12,8 @@
 //         release 5.0.023 and all previous update comments were removed.
 //-----------------------------------------------------------------------------
 
+
+
 enum  ErrorType {
 
 	//... Runtime Errors
@@ -169,4 +171,4 @@ enum  ErrorType {
 
 char*  error_getMsg(int i);
 int  error_getCode(int i);
-int  error_setInpError(int errcode, char* s);
+

@@ -41,19 +41,19 @@ static int  Mlinks[MAX_LINK_TYPES];    // Working number of link objects
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static int  addObject(int objType, char* id);
+static int  addObject(Project *project, int objType, char* id);
 static int  getTokens(char *s);
-static int  parseLine(int sect, char* line);
+static int  parseLine(Project *project, int sect, char* line);
 static int  readOption(char* line);
-static int  readTitle(char* line);
+static int  readTitle(Project *project, char* line);
 static int  readControl(char* tok[], int ntoks);
-static int  readNode(int type);
-static int  readLink(int type);
+static int  readNode(Project *project, int type);
+static int  readLink(Project *project, int type);
 
 
 //=============================================================================
 
-int input_countObjects()
+int input_countObjects(Project *project)
 //
 //  Input:   none
 //  Output:  returns error code
@@ -70,7 +70,7 @@ int input_countObjects()
     long  lineCount = 0;
 
     // --- initialize number of objects & set default values
-    if ( project->ErrorCode ) return ErrorCode;
+    if ( project->ErrorCode ) return project->ErrorCode;
     error_setInpError(0, "");
     for (i = 0; i < MAX_OBJ_TYPES; i++)
 		project->Nobjects[i] = 0;
@@ -109,7 +109,7 @@ int input_countObjects()
         if ( sect == s_OPTION ) 
 			errcode = readOption(line);
         else if ( sect >= 0 )   
-			errcode = addObject(sect, tok);
+			errcode = addObject(project, sect, tok);
 
         // --- report any error found
         if ( errcode )
@@ -127,7 +127,7 @@ int input_countObjects()
 
 //=============================================================================
 
-int input_readData()
+int input_readData(Project *project)
 //
 //  Input:   none
 //  Output:  returns error code
@@ -146,7 +146,7 @@ int input_readData()
     // --- initialize working item count arrays
     //     (final counts in Mobjects, Mnodes & Mlinks should
     //      match those in project->Nobjects, project->Nnodes and project->Nlinks).
-    if ( project->ErrorCode ) return ErrorCode;
+    if ( project->ErrorCode ) return project->ErrorCode;
     error_setInpError(0, "");
     for (i = 0; i < MAX_OBJ_TYPES; i++)  Mobjects[i] = 0;
     for (i = 0; i < MAX_NODE_TYPES; i++) Mnodes[i] = 0;
@@ -216,11 +216,11 @@ int input_readData()
         // --- otherwise parse tokens from input line
         else
         {
-            inperr = parseLine(sect, line);
+            inperr = parseLine(project, sect, line);
             if ( inperr > 0 )
             {
                 errsum++;
-                if ( errsum > MAXERRS ) report_writeLine(FMT19);
+                if ( errsum > MAXERRS ) report_writeLine(project, FMT19);
                 else report_writeInputErrorMsg(inperr, sect, line, lineCount);
             }
         }
@@ -236,7 +236,7 @@ int input_readData()
 
 //=============================================================================
 
-int  addObject(int objType, char* id)
+int  addObject(Project *project, int objType, char* id)
 //
 //  Input:   objType = object type index
 //           id = object's ID string
@@ -430,7 +430,7 @@ int  addObject(int objType, char* id)
 
 //=============================================================================
 
-int  parseLine(int sect, char *line)
+int  parseLine(Project *project, int sect, char *line)
 //
 //  Input:   sect  = current section of input file
 //           *line = line of text read from input file
@@ -442,82 +442,82 @@ int  parseLine(int sect, char *line)
     switch (sect)
     {
       case s_TITLE:
-        return readTitle(line);
+        return readTitle(project, line);
 
       case s_RAINGAGE:
         j = Mobjects[GAGE];
-        err = gage_readParams(j, Tok, Ntokens);
+        err = gage_readParams(project, j, Tok, Ntokens);
         Mobjects[GAGE]++;
         return err;
 
       case s_TEMP:
-        return climate_readParams(Tok, Ntokens);
+        return climate_readParams(project, Tok, Ntokens);
 
       case s_EVAP:
-        return climate_readEvapParams(Tok, Ntokens);
+        return climate_readEvapParams(project, Tok, Ntokens);
 
       case s_SUBCATCH:
         j = Mobjects[SUBCATCH];
-        err = subcatch_readParams(j, Tok, Ntokens);
+        err = subcatch_readParams(project, j, Tok, Ntokens);
         Mobjects[SUBCATCH]++;
         return err;
 
       case s_SUBAREA:
-        return subcatch_readSubareaParams(Tok, Ntokens);
+        return subcatch_readSubareaParams(project, Tok, Ntokens);
 
       case s_INFIL:
         return infil_readParams(project->InfilModel, Tok, Ntokens);
 
       case s_AQUIFER:
         j = Mobjects[AQUIFER];
-        err = gwater_readAquiferParams(j, Tok, Ntokens);
+        err = gwater_readAquiferParams(project, j, Tok, Ntokens);
         Mobjects[AQUIFER]++;
         return err;
 
       case s_GROUNDWATER:
-        return gwater_readGroundwaterParams(Tok, Ntokens);
+        return gwater_readGroundwaterParams(project, Tok, Ntokens);
 
 	  case s_GWFLOW:
-        return gwater_readFlowExpression(Tok, Ntokens);
+        return gwater_readFlowExpression(project, Tok, Ntokens);
 
       case s_SNOWMELT:
-        return snow_readMeltParams(Tok, Ntokens);
+        return snow_readMeltParams(project, Tok, Ntokens);
 
       case s_JUNCTION:
-        return readNode(JUNCTION);
+        return readNode(project, JUNCTION);
 
       case s_OUTFALL:
-        return readNode(OUTFALL);
+        return readNode(project, OUTFALL);
 
       case s_STORAGE:
-        return readNode(STORAGE);
+        return readNode(project, STORAGE);
 
       case s_DIVIDER:
-        return readNode(DIVIDER);
+        return readNode(project, DIVIDER);
 
       case s_CONDUIT:
-        return readLink(CONDUIT);
+        return readLink(project, CONDUIT);
 
       case s_PUMP:
-        return readLink(PUMP);
+        return readLink(project, PUMP);
 
       case s_ORIFICE:
-        return readLink(ORIFICE);
+        return readLink(project, ORIFICE);
 
       case s_WEIR:
-        return readLink(WEIR);
+        return readLink(project, WEIR);
 
       case s_OUTLET:
-        return readLink(OUTLET);
+        return readLink(project, OUTLET);
 
       case s_XSECTION:
-        return link_readXsectParams(Tok, Ntokens);
+        return link_readXsectParams(project, Tok, Ntokens);
 
       case s_TRANSECT:
         return transect_readParams(&Mobjects[TRANSECT], Tok, Ntokens);
 
       case s_LOSSES:
-        return link_readLossParams(Tok, Ntokens);
+        return link_readLossParams(project, Tok, Ntokens);
 
       case s_POLLUTANT:
         j = Mobjects[POLLUT];
@@ -538,7 +538,7 @@ int  parseLine(int sect, char *line)
         return landuse_readWashoffParams(Tok, Ntokens);
 
       case s_COVERAGE:
-        return subcatch_readLanduseParams(Tok, Ntokens);
+        return subcatch_readLanduseParams(project, Tok, Ntokens);
 
       case s_INFLOW:
         return inflow_readExtInflow(Tok, Ntokens);
@@ -550,13 +550,13 @@ int  parseLine(int sect, char *line)
         return inflow_readDwfPattern(Tok, Ntokens);
 
       case s_RDII:
-        return rdii_readRdiiInflow(Tok, Ntokens);
+        return rdii_readRdiiInflow(project, Tok, Ntokens);
 
       case s_UNITHYD:
-        return rdii_readUnitHydParams(Tok, Ntokens);
+        return rdii_readUnitHydParams(project, Tok, Ntokens);
 
       case s_LOADING:
-        return subcatch_readInitBuildup(Tok, Ntokens);
+        return subcatch_readInitBuildup(project, Tok, Ntokens);
 
       case s_TREATMENT:
         return treatmnt_readExpression(Tok, Ntokens);
@@ -571,16 +571,16 @@ int  parseLine(int sect, char *line)
         return readControl(Tok, Ntokens);
 
       case s_REPORT:
-        return report_readOptions(Tok, Ntokens);
+        return report_readOptions(project, Tok, Ntokens);
 
       case s_FILE:
-        return iface_readFileParams(Tok, Ntokens);
+        return iface_readFileParams(project, Tok, Ntokens);
 
       case s_LID_CONTROL:
         return lid_readProcParams(Tok, Ntokens);
 
       case s_LID_USAGE:
-        return lid_readGroupParams(Tok, Ntokens);
+        return lid_readGroupParams(project, Tok, Ntokens);
 
       default: return 0;
     }
@@ -640,7 +640,7 @@ int readOption(char* line)
 
 //=============================================================================
 
-int readTitle(char* line)
+int readTitle(Project *project, char* line)
 //
 //  Input:   line = line from input file
 //  Output:  returns error code
@@ -667,7 +667,7 @@ int readTitle(char* line)
 
 //=============================================================================
     
-int readNode(int type)
+int readNode(Project *project, int type)
 //
 //  Input:   type = type of node
 //  Output:  returns error code
@@ -676,7 +676,7 @@ int readNode(int type)
 {
     int j = Mobjects[NODE];
     int k = Mnodes[type];
-    int err = node_readParams(j, type, k, Tok, Ntokens);
+    int err = node_readParams(project, j, type, k, Tok, Ntokens);
     Mobjects[NODE]++;
     Mnodes[type]++;
     return err;
@@ -684,7 +684,7 @@ int readNode(int type)
 
 //=============================================================================
 
-int readLink(int type)
+int readLink(Project *project, int type)
 //
 //  Input:   type = type of link
 //  Output:  returns error code
@@ -693,7 +693,7 @@ int readLink(int type)
 {
     int j = Mobjects[LINK];
     int k = Mlinks[type];
-    int err = link_readParams(j, type, k, Tok, Ntokens);
+    int err = link_readParams(project, j, type, k, Tok, Ntokens);
     Mobjects[LINK]++;
     Mlinks[type]++;
     return err;

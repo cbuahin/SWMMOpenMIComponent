@@ -43,11 +43,11 @@ static TXsect*  pXsect;
 //  Local functions
 //-----------------------------------------------------------------------------
 static int   solveContinuity(double qin, double ain, double* aout);
-static void  evalContinuity(double a, double* f, double* df, void* p);
+static void  evalContinuity(Project *project, double a, double* f, double* df, void* p);
 
 //=============================================================================
 
-int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
+int kinwave_execute(Project* project, int j, double* qinflow, double* qoutflow, double tStep)
 //
 //  Input:   j = link index
 //           qinflow = inflow at current time (cfs)
@@ -92,7 +92,7 @@ int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
     q2 = project->Conduit[k].q2 / Qfull;
 
     // --- compute evaporation and infiltration loss rate
-	q3 = link_getLossRate(j, tStep) / Qfull;
+	q3 = link_getLossRate(project, j, tStep) / Qfull;
 
     // --- normalize previous areas
     a1 = project->Conduit[k].a1 / Afull;
@@ -105,7 +105,7 @@ int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
     if ( qin >= 1.0 ) ain = 1.0;
 
     // --- get normalized inlet area corresponding to inlet flow
-    else ain = xsect_getAofS(pXsect, qin/Beta1) / Afull;
+    else ain = xsect_getAofS(project, pXsect, qin/Beta1) / Afull;
 
     // --- check for no flow
     if ( qin <= TINY && q2 <= TINY )
@@ -118,7 +118,7 @@ int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
     else
     {
         // --- compute constant factors
-        dxdt = link_getLength(j) / tStep * Afull / Qfull;
+        dxdt = link_getLength(project, j) / tStep * Afull / Qfull;
         dq   = q2 - q1;
         C1   = dxdt * WT / WX;
         C2   = (1.0 - WT) * (ain - a1);
@@ -142,7 +142,7 @@ int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
         if ( result <= 0 ) result = 1;
 
         // --- compute normalized outlet flow from outlet area
-        qout = Beta1 * xsect_getSofA(pXsect, aout*Afull);
+        qout = Beta1 * xsect_getSofA(project, pXsect, aout*Afull);
         if ( qin > 1.0 ) qin = 1.0;
     }
 
@@ -151,8 +151,8 @@ int kinwave_execute(int j, double* qinflow, double* qoutflow, double tStep)
     project->Conduit[k].a1 = ain * Afull;
     project->Conduit[k].q2 = qout * Qfull;
     project->Conduit[k].a2 = aout * Afull;
-    (*qinflow)  = project->Conduit[k].q1 * Conduit[k].barrels;
-    (*qoutflow) = project->Conduit[k].q2 * Conduit[k].barrels;
+    (*qinflow)  = project->Conduit[k].q1 * project->Conduit[k].barrels;
+    (*qoutflow) = project->Conduit[k].q2 * project->Conduit[k].barrels;
     return result;
 }
 
@@ -249,7 +249,7 @@ int solveContinuity(double qin, double ain, double* aout)
 
 //=============================================================================
 
-void evalContinuity(double a, double* f, double* df, void* p)
+void evalContinuity(Project *project, double a, double* f, double* df, void* p)
 //
 //  Input:   a = outlet normalized area
 //  Output:  f = value of continuity eqn.
@@ -258,8 +258,8 @@ void evalContinuity(double a, double* f, double* df, void* p)
 //           w.r.t. normalized area for link with normalized outlet area 'a'.
 //
 {
-    *f  = (Beta1 * xsect_getSofA(pXsect, a*Afull)) + (C1 * a) + C2;
-    *df = (Beta1 * Afull * xsect_getdSdA(pXsect, a*Afull)) + C1;
+    *f  = (Beta1 * xsect_getSofA(project, pXsect, a*Afull)) + (C1 * a) + C2;
+    *df = (Beta1 * Afull * xsect_getdSdA(project, pXsect, a*Afull)) + C1;
 }
 
 //=============================================================================

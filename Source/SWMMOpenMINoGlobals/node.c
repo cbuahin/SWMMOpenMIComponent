@@ -50,28 +50,28 @@ typedef struct
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static void   node_setParams(int j, int type, int k, double x[]);
-static int    junc_readParams(int j, int k, char* tok[], int ntoks);
+static void   node_setParams(Project* project, int j, int type, int k, double x[]);
+static int    junc_readParams(Project *project, int j, int k, char* tok[], int ntoks);
 
-static int    outfall_readParams(int j, int k, char* tok[], int ntoks);
-static void   outfall_setOutletDepth(int j, double yNorm, double yCrit, double z);
+static int    outfall_readParams(Project *project, int j, int k, char* tok[], int ntoks);
+static void   outfall_setOutletDepth(Project *project, int j, double yNorm, double yCrit, double z);
 
-static int    storage_readParams(int j, int k, char* tok[], int ntoks);
-static double storage_getDepth(int j, double v);
-static double storage_getVolume(int j, double d);
-static double storage_getSurfArea(int j, double d);
-static void   storage_getVolDiff(double y, double* f, double* df, void* p);
-static double storage_getOutflow(int j, int i);
-static double storage_getLosses(int j, double tStep);
+static int    storage_readParams(Project *project, int j, int k, char* tok[], int ntoks);
+static double storage_getDepth(Project *project, int j, double v);
+static double storage_getVolume(Project *project, int j, double d);
+static double storage_getSurfArea(Project *project, int j, double d);
+static void   storage_getVolDiff(Project *project, double y, double* f, double* df, void* p);
+static double storage_getOutflow(Project *project, int j, int i);
+static double storage_getLosses(Project *project, int j, double tStep);
 
-static int    divider_readParams(int j, int k, char* tok[], int ntoks);
-static void   divider_validate(int j);
-static double divider_getOutflow(int j, int link);
+static int    divider_readParams(Project *project, int j, int k, char* tok[], int ntoks);
+static void   divider_validate(Project *project, int j);
+static double divider_getOutflow(Project *project, int j, int link);
 
 
 //=============================================================================
 
-int node_readParams(int j, int type, int k, char* tok[], int ntoks)
+int node_readParams(Project *project, int j, int type, int k, char* tok[], int ntoks)
 //
 //  Input:   j = node index
 //           type = node type code
@@ -84,17 +84,17 @@ int node_readParams(int j, int type, int k, char* tok[], int ntoks)
 {
     switch ( type )
     {
-      case JUNCTION: return junc_readParams(j, k, tok, ntoks);
-      case OUTFALL:  return outfall_readParams(j, k, tok, ntoks);
-      case STORAGE:  return storage_readParams(j, k, tok, ntoks);
-      case DIVIDER:  return divider_readParams(j, k, tok, ntoks);
+      case JUNCTION: return junc_readParams(project, j, k, tok, ntoks);
+      case OUTFALL:  return outfall_readParams(project, j, k, tok, ntoks);
+      case STORAGE:  return storage_readParams(project, j, k, tok, ntoks);
+      case DIVIDER:  return divider_readParams(project, j, k, tok, ntoks);
       default:       return 0;
     }
 }
 
 //=============================================================================
 
-void  node_setParams(int j, int type, int k, double x[])
+void  node_setParams(Project* project, int j, int type, int k, double x[])
 //
 //  Input:   j = node index
 //           type = node type code
@@ -107,7 +107,7 @@ void  node_setParams(int j, int type, int k, double x[])
     project->Node[j].type       = type;
     project->Node[j].subIndex   = k;
     project->Node[j].invertElev = x[0] / UCF(LENGTH);
-    project->Node[j].crownElev  = Node[j].invertElev;
+    project->Node[j].crownElev  = project->Node[j].invertElev;
     project->Node[j].initDepth  = 0.0;
     project->Node[j].newVolume  = 0.0;
     project->Node[j].fullVolume = 0.0;
@@ -161,7 +161,7 @@ void  node_setParams(int j, int type, int k, double x[])
 
 //=============================================================================
 
-void  node_validate(int j)
+void  node_validate(Project* project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
@@ -171,16 +171,16 @@ void  node_validate(int j)
     TDwfInflow* inflow;
 
     // --- see if full depth was increased to accommodate conduit crown
-    if ( project->Node[j].fullDepth > Node[j].oldDepth && Node[j].oldDepth > 0.0 )
+    if ( project->Node[j].fullDepth > project->Node[j].oldDepth && project->Node[j].oldDepth > 0.0 )
     {
         report_writeWarningMsg(WARN02, project->Node[j].ID);
     }
 
     // --- check that initial depth does not exceed max. depth
-    if ( project->Node[j].initDepth > Node[j].fullDepth + Node[j].surDepth )
+    if ( project->Node[j].initDepth > project->Node[j].fullDepth + project->Node[j].surDepth )
         report_writeErrorMsg(ERR_NODE_DEPTH, project->Node[j].ID);
 
-    if ( project->Node[j].type == DIVIDER ) divider_validate(j);
+    if ( project->Node[j].type == DIVIDER ) divider_validate(project, j);
 
     // --- initialize dry weather inflows
     inflow = project->Node[j].dwfInflow;
@@ -193,7 +193,7 @@ void  node_validate(int j)
 
 //=============================================================================
 
-void node_initState(int j)
+void node_initState(Project* project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
@@ -203,13 +203,13 @@ void node_initState(int j)
     int p;
 
     // --- initialize depth
-    project->Node[j].oldDepth = Node[j].initDepth;
-    project->Node[j].newDepth = Node[j].oldDepth;
-    project->Node[j].crownElev = Node[j].invertElev;
+    project->Node[j].oldDepth = project->Node[j].initDepth;
+    project->Node[j].newDepth = project->Node[j].oldDepth;
+    project->Node[j].crownElev = project->Node[j].invertElev;
 
-    project->Node[j].fullVolume = node_getVolume(j, Node[j].fullDepth);
-    project->Node[j].oldVolume = node_getVolume(j, Node[j].oldDepth);
-    project->Node[j].newVolume = Node[j].oldVolume;
+    project->Node[j].fullVolume = node_getVolume(project, j, project->Node[j].fullDepth);
+    project->Node[j].oldVolume = node_getVolume(project, j, project->Node[j].oldDepth);
+    project->Node[j].newVolume = project->Node[j].oldVolume;
 
     // --- initialize water quality state
     for (p = 0; p < project->Nobjects[POLLUT]; p++)
@@ -231,21 +231,21 @@ void node_initState(int j)
 
 //=============================================================================
 
-void node_setOldHydState(int j)
+void node_setOldHydState(Project *project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
 //  Purpose: replaces a node's old hydraulic state values with new ones.
 //
 {
-    project->Node[j].oldDepth    = Node[j].newDepth;
-    project->Node[j].oldLatFlow  = Node[j].newLatFlow;
-    project->Node[j].oldVolume   = Node[j].newVolume;
+    project->Node[j].oldDepth    = project->Node[j].newDepth;
+    project->Node[j].oldLatFlow  = project->Node[j].newLatFlow;
+    project->Node[j].oldVolume   = project->Node[j].newVolume;
 }
 
 //=============================================================================
 
-void node_setOldQualState(int j)
+void node_setOldQualState(Project *project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
@@ -255,14 +255,14 @@ void node_setOldQualState(int j)
     int p;
     for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
-        project->Node[j].oldQual[p] = Node[j].newQual[p];
+        project->Node[j].oldQual[p] = project->Node[j].newQual[p];
         project->Node[j].newQual[p] = 0.0;
     }
 }
 
 //=============================================================================
 
-void node_initInflow(int j, double tStep)
+void node_initInflow(Project *project, int j, double tStep)
 //
 //  Input:   j = node index
 //           tStep = time step (sec)
@@ -271,20 +271,20 @@ void node_initInflow(int j, double tStep)
 //
 {
     // --- initialize inflow & outflow
-    project->Node[j].oldFlowInflow = Node[j].inflow;
-    project->Node[j].oldNetInflow  = Node[j].inflow - Node[j].outflow;
-    project->Node[j].inflow = Node[j].newLatFlow;
+    project->Node[j].oldFlowInflow = project->Node[j].inflow;
+    project->Node[j].oldNetInflow  = project->Node[j].inflow - project->Node[j].outflow;
+    project->Node[j].inflow = project->Node[j].newLatFlow;
     project->Node[j].outflow = 0.0;
 
     // --- set overflow to any excess stored volume
-    if ( project->Node[j].newVolume > Node[j].fullVolume )
-        project->Node[j].overflow = (Node[j].newVolume - Node[j].fullVolume) / tStep;
+    if ( project->Node[j].newVolume > project->Node[j].fullVolume )
+        project->Node[j].overflow = (project->Node[j].newVolume - project->Node[j].fullVolume) / tStep;
     else project->Node[j].overflow = 0.0;
 }
 
 //=============================================================================
 
-double node_getDepth(int j, double v)
+double node_getDepth(Project *project, int j, double v)
 //
 //  Input:   j = node index
 //           v = volume (ft3)
@@ -294,14 +294,14 @@ double node_getDepth(int j, double v)
 {
     switch ( project->Node[j].type )
     {
-      case STORAGE: return storage_getDepth(j, v);
+      case STORAGE: return storage_getDepth(project,j, v);
       default:      return 0.0;
     }
 }
 
 //=============================================================================
 
-double node_getVolume(int j, double d)
+double node_getVolume(Project *project, int j, double d)
 //
 //  Input:   j = node index
 //           d = water depth (ft)
@@ -311,18 +311,18 @@ double node_getVolume(int j, double d)
 {
     switch ( project->Node[j].type )
     {
-      case STORAGE: return storage_getVolume(j, d);
+      case STORAGE: return storage_getVolume(project,j, d);
 
       default:
         if ( project->Node[j].fullDepth > 0.0 )
-            return project->Node[j].fullVolume * (d / Node[j].fullDepth);
+            return project->Node[j].fullVolume * (d / project->Node[j].fullDepth);
         else return 0.0;
     }
 }
 
 //=============================================================================
 
-double  node_getSurfArea(int j, double d)
+double  node_getSurfArea(Project *project, int j, double d)
 //
 //  Input:   j = node index
 //           d = water depth (ft)
@@ -332,14 +332,14 @@ double  node_getSurfArea(int j, double d)
 {
     switch (project->Node[j].type)
     {
-      case STORAGE: return storage_getSurfArea(j, d);
+      case STORAGE: return storage_getSurfArea(project, j, d);
       default:      return 0.0;        
     }
 }
 
 //=============================================================================
 
-double node_getOutflow(int j, int k)
+double node_getOutflow(Project *project, int j, int k)
 //
 //  Input:   j = node index
 //           k = link index
@@ -349,15 +349,15 @@ double node_getOutflow(int j, int k)
 {
     switch ( project->Node[j].type )
     {
-      case DIVIDER: return divider_getOutflow(j, k);
-      case STORAGE: return storage_getOutflow(j, k);
-      default:      return project->Node[j].inflow + Node[j].overflow;
+      case DIVIDER: return divider_getOutflow(project, j, k);
+      case STORAGE: return storage_getOutflow(project, j, k);
+      default:      return project->Node[j].inflow + project->Node[j].overflow;
     }
 }
 
 //=============================================================================
 
-double node_getMaxOutflow(int j, double q, double tStep)
+double node_getMaxOutflow(Project *project, int j, double q, double tStep)
 //
 //  Input:   j = node index
 //           q = original outflow rate (cfs)
@@ -369,7 +369,7 @@ double node_getMaxOutflow(int j, double q, double tStep)
     double qMax;
     if ( project->Node[j].fullVolume > 0.0 )
     {
-        qMax = project->Node[j].inflow + Node[j].oldVolume / tStep;
+        qMax = project->Node[j].inflow + project->Node[j].oldVolume / tStep;
         if ( q > qMax ) q = qMax;
     }
     return MAX(0.0, q);
@@ -377,7 +377,7 @@ double node_getMaxOutflow(int j, double q, double tStep)
 
 //=============================================================================
 
-double node_getSystemOutflow(int j, int *isFlooded)
+double node_getSystemOutflow(Project *project, int j, int *isFlooded)
 //
 //  Input:   j = node index
 //           isFlooded = TRUE if node becomes flooded
@@ -394,7 +394,7 @@ double node_getSystemOutflow(int j, int *isFlooded)
     if ( project->Node[j].type == OUTFALL )
     {
         // --- node receives inflow from outfall conduit
-        if ( project->Node[j].outflow == 0.0 ) outflow = Node[j].inflow;
+        if ( project->Node[j].outflow == 0.0 ) outflow = project->Node[j].inflow;
 
         // --- node sends flow into outfall conduit
         //     (therefore it has a negative outflow)
@@ -415,7 +415,7 @@ double node_getSystemOutflow(int j, int *isFlooded)
               project->Node[j].type != STORAGE
             )
     {
-        if ( project->Node[j].outflow == 0.0 ) outflow = Node[j].inflow;
+        if ( project->Node[j].outflow == 0.0 ) outflow = project->Node[j].inflow;
         project->Node[j].overflow = 0.0;
         project->Node[j].newVolume = 0.0;
     }
@@ -424,7 +424,7 @@ double node_getSystemOutflow(int j, int *isFlooded)
     //     overflow is considered as system outflow and flooding
     else 
     {
-        if ( project->Node[j].newVolume <= Node[j].fullVolume)
+        if ( project->Node[j].newVolume <= project->Node[j].fullVolume)
             outflow = project->Node[j].overflow;
         if ( outflow > 0.0 ) *isFlooded = TRUE;
     }
@@ -433,7 +433,7 @@ double node_getSystemOutflow(int j, int *isFlooded)
 
 //=============================================================================
 
-void node_getResults(int j, double f, float x[])
+void node_getResults(Project *project, int j, double f, float x[])
 //
 //  Input:   j = node index
 //           f = weighting factor
@@ -446,29 +446,29 @@ void node_getResults(int j, double f, float x[])
     double z;
     double f1 = 1.0 - f;
 
-    z = (f1 * project->Node[j].oldDepth + f * Node[j].newDepth) * UCF(LENGTH);
+    z = (f1 * project->Node[j].oldDepth + f * project->Node[j].newDepth) * UCF(LENGTH);
     x[NODE_DEPTH] = (float)z;
     z = project->Node[j].invertElev * UCF(LENGTH);
     x[NODE_HEAD] = x[NODE_DEPTH] + (float)z;
-    z = (f1*project->Node[j].oldVolume + f*Node[j].newVolume) * UCF(VOLUME);
+    z = (f1*project->Node[j].oldVolume + f*project->Node[j].newVolume) * UCF(VOLUME);
     x[NODE_VOLUME]  = (float)z;
-    z = (f1*project->Node[j].oldLatFlow + f*Node[j].newLatFlow) * UCF(FLOW); 
+    z = (f1*project->Node[j].oldLatFlow + f*project->Node[j].newLatFlow) * UCF(FLOW);
     x[NODE_LATFLOW] = (float)z;
-    z = (f1*project->Node[j].oldFlowInflow + f*Node[j].inflow) * UCF(FLOW);
+    z = (f1*project->Node[j].oldFlowInflow + f*project->Node[j].inflow) * UCF(FLOW);
     x[NODE_INFLOW] = (float)z;
     z = project->Node[j].overflow * UCF(FLOW);
     x[NODE_OVERFLOW] = (float)z;
 
     if ( !project->IgnoreQuality ) for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
-        z = f1*project->Node[j].oldQual[p] + f*Node[j].newQual[p];
+        z = f1*project->Node[j].oldQual[p] + f*project->Node[j].newQual[p];
         x[NODE_QUAL+p] = (float)z;
     }
 }
 
 //=============================================================================
 
-void   node_setOutletDepth(int j, double yNorm, double yCrit, double z)
+void   node_setOutletDepth(Project *project, int j, double yNorm, double yCrit, double z)
 //
 //  Input:   j = node index
 //           yNorm = normal flow depth (ft)
@@ -486,7 +486,7 @@ void   node_setOutletDepth(int j, double yNorm, double yCrit, double z)
 
       // --- if outlet is a designated outfall then use outfall's specs
       case OUTFALL:
-        outfall_setOutletDepth(j, yNorm, yCrit, z);
+        outfall_setOutletDepth(project, j, yNorm, yCrit, z);
         break;
 
       // --- for all other nodes, use min. of critical & normal depths
@@ -498,7 +498,7 @@ void   node_setOutletDepth(int j, double yNorm, double yCrit, double z)
 
 //=============================================================================
 
-double node_getPondedDepth(int j, double v)
+double node_getPondedDepth(Project *project, int j, double v)
 //
 //  Input:   j = node index
 //           v = water volume (ft3)
@@ -509,20 +509,20 @@ double node_getPondedDepth(int j, double v)
     double y;
 
     // --- if volume below full volume, use normal getDepth function
-    if ( v <= project->Node[j].fullVolume ) return node_getDepth(j, v);
+    if ( v <= project->Node[j].fullVolume ) return node_getDepth(project, j, v);
 
     // --- find ponded volume
     v = v - project->Node[j].fullVolume;
 
     // --- depth equals full depth + ponded volume / ponded area
     y = project->Node[j].fullDepth;
-    if ( project->Node[j].pondedArea > 0.0 ) y += v / Node[j].pondedArea;
+    if ( project->Node[j].pondedArea > 0.0 ) y += v / project->Node[j].pondedArea;
     return y;
 }
 
 //=============================================================================
 
-double node_getPondedArea(int j, double d)
+double node_getPondedArea(Project *project, int j, double d)
 //
 //  Input:   j = node index
 //           d = water depth (ft)
@@ -533,9 +533,9 @@ double node_getPondedArea(int j, double d)
     double a;
 
     // --- use regular getSurfArea function if node not flooded
-    if ( d <= project->Node[j].fullDepth || Node[j].pondedArea == 0.0 )
+    if ( d <= project->Node[j].fullDepth || project->Node[j].pondedArea == 0.0 )
     {
-        return node_getSurfArea(j, d);
+        return node_getSurfArea(project, j, d);
     }
 
     // --- compute ponded depth
@@ -543,13 +543,13 @@ double node_getPondedArea(int j, double d)
 
     // --- use ponded area for flooded node
     a = project->Node[j].pondedArea;
-    if ( a <= 0.0 ) a = node_getSurfArea(j, project->Node[j].fullDepth);
+    if ( a <= 0.0 ) a = node_getSurfArea(project, j, project->Node[j].fullDepth);
     return a;
 }
 
 //=============================================================================
 
-double node_getLosses(int j, double tStep)
+double node_getLosses(Project *project, int j, double tStep)
 //
 //  Input:   j = node index
 //           tStep = time step (sec)
@@ -558,7 +558,7 @@ double node_getLosses(int j, double tStep)
 //           time step for a node.
 //
 {
-    if ( project->Node[j].type == STORAGE ) return storage_getLosses(j, tStep);
+    if ( project->Node[j].type == STORAGE ) return storage_getLosses(project, j, tStep);
     else return 0.0;
 }
 
@@ -566,7 +566,7 @@ double node_getLosses(int j, double tStep)
 //                   J U N C T I O N   M E T H O D S
 //=============================================================================
 
-int junc_readParams(int j, int k, char* tok[], int ntoks)
+int junc_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 //
 //  Input:   j = node index
 //           k = junction index
@@ -606,7 +606,7 @@ int junc_readParams(int j, int k, char* tok[], int ntoks)
 
     // --- add parameters to junction object
     project->Node[j].ID = id;
-    node_setParams(j, JUNCTION, k, x);
+    node_setParams(project, j, JUNCTION, k, x);
     return 0;
 }
 
@@ -615,7 +615,7 @@ int junc_readParams(int j, int k, char* tok[], int ntoks)
 //                   S T O R A G E   M E T H O D S
 //=============================================================================
 
-int storage_readParams(int j, int k, char* tok[], int ntoks)
+int storage_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 //
 //  Input:   j = node index
 //           k = storage unit index
@@ -706,13 +706,13 @@ int storage_readParams(int j, int k, char* tok[], int ntoks)
 
     // --- add parameters to storage unit object
     project->Node[j].ID = id;
-    node_setParams(j, STORAGE, k, x);
+    node_setParams(project, j, STORAGE, k, x);
     return 0;
 }
 
 //=============================================================================
 
-double storage_getDepth(int j, double v)
+double storage_getDepth(Project *project, int j, double v)
 //
 //  Input:   j = node index
 //           v = volume (ft3)
@@ -728,7 +728,7 @@ double storage_getDepth(int j, double v)
     // --- return max depth if a max. volume has been computed
     //     and volume is > max. volume
     if ( project->Node[j].fullVolume > 0.0
-    &&   v >= project->Node[j].fullVolume ) return Node[j].fullDepth;
+    &&   v >= project->Node[j].fullVolume ) return project->Node[j].fullDepth;
     if ( v == 0.0 ) return 0.0;
 
     // --- use tabular area v. depth curve
@@ -741,7 +741,7 @@ double storage_getDepth(int j, double v)
         v *= UCF(VOLUME);
         if ( project->Storage[k].aExpon == 0.0 )
         {
-            d = v / (project->Storage[k].aConst + Storage[k].aCoeff);
+            d = v / (project->Storage[k].aConst + project->Storage[k].aCoeff);
         }
         else if ( project->Storage[k].aConst == 0.0 )
         {
@@ -752,19 +752,19 @@ double storage_getDepth(int j, double v)
         {
             storageVol.k = k;
             storageVol.v = v;
-            d = v / (project->Storage[k].aConst + Storage[k].aCoeff);
+            d = v / (project->Storage[k].aConst + project->Storage[k].aCoeff);
             findroot_Newton(0.0, project->Node[j].fullDepth*UCF(LENGTH), &d,
                             0.001, storage_getVolDiff, &storageVol);            
         }
         d /= UCF(LENGTH);
-        if ( d > project->Node[j].fullDepth ) d = Node[j].fullDepth;
+        if ( d > project->Node[j].fullDepth ) d = project->Node[j].fullDepth;
         return d;
     }
 }
 
 //=============================================================================
 
-void  storage_getVolDiff(double y, double* f, double* df, void* p)
+void  storage_getVolDiff(Project *project, double y, double* f, double* df, void* p)
 //
 //  Input:   y = depth of water (ft)
 //  Output:  f = volume of water (ft3)
@@ -783,17 +783,17 @@ void  storage_getVolDiff(double y, double* f, double* df, void* p)
 
 	// ... find storage volume at depth y
     e = project->Storage[k].aExpon + 1.0;
-    v = project->Storage[k].aConst * y + Storage[k].aCoeff / e * pow(y, e);
+    v = project->Storage[k].aConst * y + project->Storage[k].aCoeff / e * pow(y, e);
 
 	// ... compute difference between this volume and target volume
 	//     as well as its derivative w.r.t. y
 	*f = v - storageVol->v;
-	*df = project->Storage[k].aConst + Storage[k].aCoeff * pow(y, e-1.0);
+	*df = project->Storage[k].aConst + project->Storage[k].aCoeff * pow(y, e-1.0);
 }
 
 //=============================================================================
 
-double storage_getVolume(int j, double d)
+double storage_getVolume(Project *project, int j, double d)
 //
 //  Input:   j = node index
 //           d = depth (ft)
@@ -808,7 +808,7 @@ double storage_getVolume(int j, double d)
     // --- return full volume if depth >= max. depth
     if ( d == 0.0 ) return 0.0;
     if ( d >= project->Node[j].fullDepth
-    &&   project->Node[j].fullVolume > 0.0 ) return Node[j].fullVolume;
+    &&   project->Node[j].fullVolume > 0.0 ) return project->Node[j].fullVolume;
 
     // --- use table integration if area v. depth table exists
     if ( i >= 0 )
@@ -819,7 +819,7 @@ double storage_getVolume(int j, double d)
     {
         d *= UCF(LENGTH);
         v = project->Storage[k].aConst * d;
-        v += project->Storage[k].aCoeff / (Storage[k].aExpon+1.0) *
+        v += project->Storage[k].aCoeff / (project->Storage[k].aExpon+1.0) *
              pow(d, project->Storage[k].aExpon+1.0);
         return v / UCF(VOLUME);
     }
@@ -827,7 +827,7 @@ double storage_getVolume(int j, double d)
 
 //=============================================================================
 
-double storage_getSurfArea(int j, double d)
+double storage_getSurfArea(Project *project, int j, double d)
 //
 //  Input:   j = node index
 //           d = depth (ft)
@@ -842,10 +842,10 @@ double storage_getSurfArea(int j, double d)
         area = table_lookupEx(&project->Curve[i], d*UCF(LENGTH));
     else
     {
-		if ( project->Storage[k].aCoeff <= 0.0 ) area = Storage[k].aConst;
+		if ( project->Storage[k].aCoeff <= 0.0 ) area = project->Storage[k].aConst;
         else if ( project->Storage[k].aExpon == 0.0 )
-            area = project->Storage[k].aConst + Storage[k].aCoeff;
-        else area = project->Storage[k].aConst + Storage[k].aCoeff *
+            area = project->Storage[k].aConst + project->Storage[k].aCoeff;
+        else area = project->Storage[k].aConst + project->Storage[k].aCoeff *
                     pow(d*UCF(LENGTH), project->Storage[k].aExpon);
     }
     return area / UCF(LENGTH) / UCF(LENGTH);
@@ -853,7 +853,7 @@ double storage_getSurfArea(int j, double d)
 
 //=============================================================================
 
-double storage_getOutflow(int j, int i)
+double storage_getOutflow(Project *project, int j, int i)
 //
 //  Input:   j = node index
 //           i = link index
@@ -873,7 +873,7 @@ double storage_getOutflow(int j, int i)
 
     // --- return 0 if conduit empty or full flow if full
     if ( y <= 0.0 ) return 0.0;
-    if ( y >= project->Link[i].xsect.yFull ) return Link[i].qFull;
+    if ( y >= project->Link[i].xsect.yFull ) return project->Link[i].qFull;
 
     // --- if partially full, return normal flow
     k = project->Link[i].subIndex;
@@ -883,7 +883,7 @@ double storage_getOutflow(int j, int i)
 
 //=============================================================================
 
-double storage_getLosses(int j, double tStep)
+double storage_getLosses(Project *project,int j, double tStep)
 //
 //  Input:   j = node index
 //           tStep = time step (sec)
@@ -909,8 +909,8 @@ double storage_getLosses(int j, double tStep)
     if ( evapRate > 0.0 || seepRate > 0.0 )
     {
         // --- find surface area available for evaporation
-        depth = 0.5 * (project->Node[j].oldDepth + Node[j].newDepth);
-        area = storage_getSurfArea(j, depth);
+        depth = 0.5 * (project->Node[j].oldDepth + project->Node[j].newDepth);
+        area = storage_getSurfArea(project, j, depth);
 
         // --- compute evap loss over this area
         evapLoss = area * evapRate * tStep;
@@ -935,7 +935,7 @@ double storage_getLosses(int j, double tStep)
     totalLoss = evapLoss + seepLoss;
     if ( totalLoss > 0.0 )
     {
-        lossRatio = 0.5 * (project->Node[j].oldVolume + Node[j].newVolume) / totalLoss;
+        lossRatio = 0.5 * (project->Node[j].oldVolume + project->Node[j].newVolume) / totalLoss;
         if ( lossRatio < 1.0 )
         {
             evapLoss *= lossRatio;
@@ -954,7 +954,7 @@ double storage_getLosses(int j, double tStep)
 //                   D I V I D E R   M E T H O D S
 //=============================================================================
 
-int divider_readParams(int j, int k, char* tok[], int ntoks)
+int divider_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 //
 //  Input:   j = node index
 //           k = divider index
@@ -1051,13 +1051,13 @@ int divider_readParams(int j, int k, char* tok[], int ntoks)
  
     // --- add parameters to data base
     project->Node[j].ID = id;
-    node_setParams(j, DIVIDER, k, x);
+    node_setParams(project, j, DIVIDER, k, x);
     return 0;
 }
 
 //=============================================================================
 
-void  divider_validate(int j)
+void  divider_validate(Project *project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
@@ -1069,7 +1069,7 @@ void  divider_validate(int j)
     // --- check that diverted link is attached to divider
     k = project->Node[j].subIndex;
     i = project->Divider[k].link;
-    if ( i < 0 || ( project->Link[i].node1 != j && Link[i].node2 != j) )
+    if ( i < 0 || ( project->Link[i].node1 != j && project->Link[i].node2 != j) )
     {
         report_writeErrorMsg(ERR_DIVIDER_LINK, project->Node[j].ID);
     }
@@ -1077,14 +1077,14 @@ void  divider_validate(int j)
     // --- validate parameters supplied for weir-type divider
     if ( project->Divider[k].type == WEIR_DIVIDER )
     {
-        if ( project->Divider[k].dhMax <= 0.0 || Divider[k].cWeir <= 0.0 )
+        if ( project->Divider[k].dhMax <= 0.0 || project->Divider[k].cWeir <= 0.0 )
             report_writeErrorMsg(ERR_WEIR_DIVIDER, project->Node[j].ID);
         else
         {
             // --- find flow when weir is full
-            project->Divider[k].qMax = Divider[k].cWeir * pow(Divider[k].dhMax, 1.5)
+            project->Divider[k].qMax = project->Divider[k].cWeir * pow(project->Divider[k].dhMax, 1.5)
                               / UCF(FLOW);
-            if ( project->Divider[k].qMin > Divider[k].qMax )
+            if ( project->Divider[k].qMin > project->Divider[k].qMax )
                 report_writeErrorMsg(ERR_WEIR_DIVIDER, project->Node[j].ID);
         }
     }
@@ -1092,7 +1092,7 @@ void  divider_validate(int j)
 
 //=============================================================================
 
-double divider_getOutflow(int j, int k)
+double divider_getOutflow(Project *project, int j, int k)
 //
 //  Input:   j = node index
 //           k = index of diversion link
@@ -1108,7 +1108,7 @@ double divider_getOutflow(int j, int k)
     double qOut;                  // diverted outflow
     double f;                     // fraction of weir divider full
 
-    qIn = project->Node[j].inflow + Node[j].overflow;
+    qIn = project->Node[j].inflow + project->Node[j].overflow;
     i = project->Node[j].subIndex;
     switch ( project->Divider[i].type )
     {
@@ -1136,7 +1136,7 @@ double divider_getOutflow(int j, int k)
         {
             // --- find fractional depth of flow over weir
             f = (qIn - project->Divider[i].qMin) /
-                (project->Divider[i].qMax - Divider[i].qMin);
+                (project->Divider[i].qMax - project->Divider[i].qMin);
 
             // --- if weir surcharged, use orifice eqn.
             if ( f > 1.0 ) qOut = project->Divider[i].qMax * sqrt(f);
@@ -1174,7 +1174,7 @@ double divider_getOutflow(int j, int k)
 //                    O U T F A L L   M E T H O D S
 //=============================================================================
 
-int outfall_readParams(int j, int k, char* tok[], int ntoks)
+int outfall_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 //
 //  Input:   j = node index
 //           k = outfall index
@@ -1238,13 +1238,13 @@ int outfall_readParams(int j, int k, char* tok[], int ntoks)
         x[5] = m;
     }
     project->Node[j].ID = id;
-    node_setParams(j, OUTFALL, k, x);
+    node_setParams(project, j, OUTFALL, k, x);
     return 0;
 }
 
 //=============================================================================
 
-void outfall_setOutletDepth(int j, double yNorm, double yCrit, double z)
+void outfall_setOutletDepth(Project *project, int j, double yNorm, double yCrit, double z)
 //
 //  Input:   j = node index
 //           yNorm = normal flow depth in outfall conduit (ft)

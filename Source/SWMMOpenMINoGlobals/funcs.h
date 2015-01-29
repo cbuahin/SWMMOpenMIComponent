@@ -10,12 +10,15 @@
 //   Global interfacing functions.
 //-----------------------------------------------------------------------------
 
+
+#include "globals.h"
+
 //-----------------------------------------------------------------------------
 //   Project Manager Methods
 //-----------------------------------------------------------------------------
 void     project_open(char *f1, char *f2, char *f3);
 void     project_close(void);
-void     project_readInput(void);
+void     project_readInput(Project *project);
 int      project_readOption(char* s1, char* s2);
 void     project_validate(void);
 int      project_init(void);
@@ -28,14 +31,14 @@ void     project_freeMatrix(double** m);
 //-----------------------------------------------------------------------------
 //   Input Reader Methods
 //-----------------------------------------------------------------------------
-int     input_countObjects(void);
-int     input_readData(void);
+int     input_countObjects(Project *project);
+int     input_readData(Project *project);
 
 //-----------------------------------------------------------------------------
 //   Report Writer Methods
 //-----------------------------------------------------------------------------
-int     report_readOptions(char* tok[], int ntoks);
-void    report_writeLine(char* line);
+int     report_readOptions(Project *project, char* tok[], int ntoks);
+void    report_writeLine(Project *project, char* line);
 void    report_writeSysTime(void);
 void    report_writeLogo(void);
 void    report_writeTitle(void);
@@ -62,38 +65,38 @@ void    report_writeWarningMsg(char* msg, char* id);
 void    report_writeTseriesErrorMsg(int code, TTable *tseries);
 
 void    inputrpt_writeInput(void);
-void    statsrpt_writeReport(void);
+void    statsrpt_writeReport(Project *project);
 
 //-----------------------------------------------------------------------------
 //   Temperature/Evaporation Methods
 //-----------------------------------------------------------------------------
-int      climate_readParams(char* tok[], int ntoks);
-int      climate_readEvapParams(char* tok[], int ntoks);
-void     climate_validate(void);
-void     climate_openFile(void);
-void     climate_initState(void);
-void     climate_setState(DateTime aDate);
-DateTime climate_getNextEvap(DateTime aDate); 
+int      climate_readParams(Project *project, char* tok[], int ntoks);
+int      climate_readEvapParams(Project *project, char* tok[], int ntoks);
+void     climate_validate(Project *project);
+void     climate_openFile(Project *project);
+void     climate_initState(Project *project);
+void     climate_setState(Project *project, DateTime aDate);
+DateTime climate_getNextEvap(Project *project, DateTime aDate); 
 
 //-----------------------------------------------------------------------------
 //   Rainfall Processing Methods
 //-----------------------------------------------------------------------------
-void    rain_open(void);
-void    rain_close(void);
+void    rain_open(Project *project);
+void    rain_close(Project *project);
 
 //-----------------------------------------------------------------------------
 //   project->Snowmelt Processing Methods
 //-----------------------------------------------------------------------------
-int     snow_readMeltParams(char* tok[], int ntoks);
-int     snow_createSnowpack(int subcacth, int snowIndex);
-void    snow_initSnowpack(int subcatch);
-void    snow_getState(int subcatch, int subArea, double x[]);
-void    snow_setState(int subcatch, int subArea, double x[]);
-void    snow_initSnowmelt(int snowIndex);
-void    snow_validateSnowmelt(int snowIndex);
-void    snow_setMeltCoeffs(int snowIndex, double season);
-void    snow_plowSnow(int subcatch, double tStep);
-double  snow_getSnowMelt(int subcatch, double rainfall, double snowfall,
+int     snow_readMeltParams(Project *project, char* tok[], int ntoks);
+int     snow_createSnowpack(Project *project, int subcacth, int snowIndex);
+void    snow_initSnowpack(Project *project, int subcatch);
+void    snow_getState(Project *project, int subcatch, int subArea, double x[]);
+void    snow_setState(Project *project, int subcatch, int subArea, double x[]);
+void    snow_initSnowmelt(Project *project, int snowIndex);
+void    snow_validateSnowmelt(Project *project, int snowIndex);
+void    snow_setMeltCoeffs(Project *project, int snowIndex, double season);
+void    snow_plowSnow(Project *project, int subcatch, double tStep);
+double  snow_getSnowMelt(Project *project, int subcatch, double rainfall, double snowfall,
         double tStep, double netPrecip[]);
 double  snow_getSnowCover(int subcatch);
 
@@ -115,42 +118,42 @@ void    routing_close(int routingModel);
 //-----------------------------------------------------------------------------
 //   Output Filer Methods
 //-----------------------------------------------------------------------------
-int     output_open(void);
-void    output_end(void);
+int     output_open(Project *project);
+void    output_end(Project *project);
 void    output_close(void);
-void    output_checkFileSize(void);
-void    output_saveResults(double reportTime);
-void    output_readDateTime(int period, DateTime *aDate);
-void    output_readSubcatchResults(int period, int area);
-void    output_readNodeResults(int period, int node);
-void    output_readLinkResults(int period, int link);
+void    output_checkFileSize(Project *project);
+void    output_saveResults(Project *project, double reportTime);
+void    output_readDateTime(Project *project, int period, DateTime *aDate);
+void    output_readSubcatchResults(Project *project, int period, int area);
+void    output_readNodeResults(Project *project, int period, int node);
+void    output_readLinkResults(Project *project, int period, int link);
 
 //-----------------------------------------------------------------------------
 //   Groundwater Methods
 //-----------------------------------------------------------------------------
-int     gwater_readAquiferParams(int aquifer, char* tok[], int ntoks);
-int     gwater_readGroundwaterParams(char* tok[], int ntoks);
-int     gwater_readFlowExpression(char* tok[], int ntoks);
-void    gwater_deleteFlowExpression(int subcatch);
-void    gwater_validateAquifer(int aquifer);
-void    gwater_validate(int subcatch);
-void    gwater_initState(int subcatch);
-void    gwater_getState(int subcatch, double x[]);
-void    gwater_setState(int subcatch, double x[]);
-void    gwater_getGroundwater(int subcatch, double evap, double infil,
+int     gwater_readAquiferParams(Project *project, int aquifer, char* tok[], int ntoks);
+int     gwater_readGroundwaterParams(Project *project, char* tok[], int ntoks);
+int     gwater_readFlowExpression(Project *project, char* tok[], int ntoks);
+void    gwater_deleteFlowExpression(Project *project, int subcatch);
+void    gwater_validateAquifer(Project *project, int aquifer);
+void    gwater_validate(Project *project, int subcatch);
+void    gwater_initState(Project *project, int subcatch);
+void    gwater_getState(Project *project, int subcatch, double x[]);
+void    gwater_setState(Project *project, int subcatch, double x[]);
+void    gwater_getGroundwater(Project *project, int subcatch, double evap, double infil,
         double tStep);
-double  gwater_getVolume(int subcatch);
+double  gwater_getVolume(Project *project, int subcatch);
 
 //-----------------------------------------------------------------------------
 //   RDII Methods
 //-----------------------------------------------------------------------------
-int     rdii_readRdiiInflow(char* tok[], int ntoks);
-void    rdii_deleteRdiiInflow(int node);
-void    rdii_initUnitHyd(int unitHyd);
-int     rdii_readUnitHydParams(char* tok[], int ntoks);
-void    rdii_openRdii(void);
-void    rdii_closeRdii(void);
-int     rdii_getNumRdiiFlows(DateTime aDate);
+int     rdii_readRdiiInflow(Project *project, char* tok[], int ntoks);
+void    rdii_deleteRdiiInflow(Project *project, int node);
+void    rdii_initUnitHyd(Project *project, int unitHyd);
+int     rdii_readUnitHydParams(Project *project, char* tok[], int ntoks);
+void    rdii_openRdii(Project *project);
+void    rdii_closeRdii(Project *project);
+int     rdii_getNumRdiiFlows(Project *project, DateTime aDate);
 void    rdii_getRdiiFlow(int index, int* node, double* q);
 
 //-----------------------------------------------------------------------------
@@ -172,22 +175,22 @@ double  landuse_getCoPollutLoad(int p, double washoff[]);
 //-----------------------------------------------------------------------------
 //   Flow/Quality Routing Methods
 //-----------------------------------------------------------------------------
-void    flowrout_init(int routingModel);
+void    flowrout_init(Project *project, int routingModel);
 void    flowrout_close(int routingModel);
 double  flowrout_getRoutingStep(int routingModel, double fixedStep);
-int     flowrout_execute(int links[], int routingModel, double tStep);
+int     flowrout_execute(Project *project, int links[], int routingModel, double tStep);
 
 void    toposort_sortLinks(int links[]);
-int     kinwave_execute(int link, double* qin, double* qout, double tStep);
+int     kinwave_execute(Project* project, int link, double* qin, double* qout, double tStep);
 
-void    dynwave_init(void);
+void    dynwave_init(Project *project);
 void    dynwave_close(void);
-double  dynwave_getRoutingStep(double fixedStep);
-int     dynwave_execute(double tStep);
-void    dwflow_findConduitFlow(int j, int steps, double omega, double dt);
+double  dynwave_getRoutingStep(Project *project, double fixedStep);
+int     dynwave_execute(Project *project, double tStep);
+void    dwflow_findConduitFlow(Project *project, int j, int steps, double omega, double dt);
 
-void    qualrout_init(void);
-void    qualrout_execute(double tStep);
+void    qualrout_init(Project *project);
+void    qualrout_execute(Project *project, double tStep);
 
 //-----------------------------------------------------------------------------
 //   Treatment Methods
@@ -202,92 +205,92 @@ void    treatmnt_setInflow(double qIn, double wIn[]);
 //-----------------------------------------------------------------------------
 //   Mass Balance Methods
 //-----------------------------------------------------------------------------
-int     massbal_open(void);
+int     massbal_open(Project *project);
 void    massbal_close(void);
-void    massbal_report(void);
+void    massbal_report(Project *project);
 void    massbal_updateRunoffTotals(double vRainfall, double vEvap, double vInfil,
         double vRunoff);
 void    massbal_updateLoadingTotals(int type, int pollut, double w);
 void    massbal_updateGwaterTotals(double vInfil, double vUpperEvap,
         double vLowerEvap, double vLowerPerc, double vGwater);
-void    massbal_updateRoutingTotals(double tStep);
-void    massbal_initTimeStepTotals(void);
+void    massbal_updateRoutingTotals(Project *project, double tStep);
+void    massbal_initTimeStepTotals(Project *project);
 void    massbal_addInflowFlow(int type, double q);
-void    massbal_addInflowQual(int type, int pollut, double w);
+void    massbal_addInflowQual(Project *project, int type, int pollut, double w);
 void    massbal_addOutflowFlow(double q, int isFlooded);
-void    massbal_addOutflowQual(int pollut, double mass, int isFlooded);
+void    massbal_addOutflowQual(Project *project, int pollut, double mass, int isFlooded);
 void    massbal_addNodeLosses(double evapLoss, double infilLoss);
 void    massbal_addLinkLosses(double evapLoss, double infilLoss);
-void    massbal_addReactedMass(int pollut, double mass);
+void    massbal_addReactedMass(Project *project, int pollut, double mass);
 double  massbal_getStepFlowError(void);
 
 //-----------------------------------------------------------------------------
 //   Simulation Statistics Methods
 //-----------------------------------------------------------------------------
-int     stats_open(void);
-void    stats_close(void);
-void    stats_report(void);
+int     stats_open(Project *project);
+void    stats_close(Project *project);
+void    stats_report(Project *project);
 void    stats_updateCriticalTimeCount(int node, int link);
-void    stats_updateFlowStats(double tStep, DateTime aDate, int stepCount,
+void    stats_updateFlowStats(Project *project, double tStep, DateTime aDate, int stepCount,
         int steadyState);
 void    stats_updateSubcatchStats(int subcatch, double rainVol, double runonVol,
         double evapVol, double infilVol, double runoffVol, double runoff);
-void    stats_updateMaxRunoff(void);
+void    stats_updateMaxRunoff(Project *project);
 
 //-----------------------------------------------------------------------------
 //   Raingage Methods
 //-----------------------------------------------------------------------------
-int      gage_readParams(int gage, char* tok[], int ntoks);
-void     gage_validate(int gage);
-void     gage_initState(int gage);
-void     gage_setState(int gage, DateTime aDate);
-double   gage_getPrecip(int gage, double *rainfall, double *snowfall);
-void     gage_setReportRainfall(int gage, DateTime aDate);
-DateTime gage_getNextRainDate(int gage, DateTime aDate);
+int      gage_readParams(Project *project, int gage, char* tok[], int ntoks);
+void     gage_validate(Project *project, int gage);
+void     gage_initState(Project *project, int gage);
+void     gage_setState(Project *project, int gage, DateTime aDate);
+double   gage_getPrecip(Project *project, int gage, double *rainfall, double *snowfall);
+void     gage_setReportRainfall(Project *project, int gage, DateTime aDate);
+DateTime gage_getNextRainDate(Project *project, int gage, DateTime aDate);
 
 //-----------------------------------------------------------------------------
 //   Subcatchment Methods
 //-----------------------------------------------------------------------------
-int     subcatch_readParams(int subcatch, char* tok[], int ntoks);
-int     subcatch_readSubareaParams(char* tok[], int ntoks);
-int     subcatch_readLanduseParams(char* tok[], int ntoks);
-int     subcatch_readInitBuildup(char* tok[], int ntoks);
-void    subcatch_validate(int subcatch);
-void    subcatch_initState(int subcatch);
-void    subcatch_setOldState(int subcatch);
-double  subcatch_getFracPerv(int subcatch);
-double  subcatch_getStorage(int subcatch);
-void    subcatch_getRunon(int subcatch);
-double  subcatch_getRunoff(int subcatch, double tStep);
-double  subcatch_getDepth(int subcatch);
-void    subcatch_getWashoff(int subcatch, double runoff, double tStep);
-void    subcatch_getBuildup(int subcatch, double tStep);
-void    subcatch_sweepBuildup(int subcatch, DateTime aDate);
-double  subcatch_getWtdOutflow(int subcatch, double wt);
-double  subcatch_getWtdWashoff(int subcatch, int pollut, double wt);
-void    subcatch_getResults(int subcatch, double wt, float x[]);
+int     subcatch_readParams(Project *project, int subcatch, char* tok[], int ntoks);
+int     subcatch_readSubareaParams(Project *project, char* tok[], int ntoks);
+int     subcatch_readLanduseParams(Project *project, char* tok[], int ntoks);
+int     subcatch_readInitBuildup(Project *project, char* tok[], int ntoks);
+void    subcatch_validate(Project *project, int subcatch);
+void    subcatch_initState(Project *project, int subcatch);
+void    subcatch_setOldState(Project *project, int subcatch);
+double  subcatch_getFracPerv(Project *project, int subcatch);
+double  subcatch_getStorage(Project *project, int subcatch);
+void    subcatch_getRunon(Project *project, int subcatch);
+double  subcatch_getRunoff(Project *project, int subcatch, double tStep);
+double  subcatch_getDepth(Project *project, int subcatch);
+void    subcatch_getWashoff(Project *project, int subcatch, double runoff, double tStep);
+void    subcatch_getBuildup(Project *project, int subcatch, double tStep);
+void    subcatch_sweepBuildup(Project *project, int subcatch, DateTime aDate);
+double  subcatch_getWtdOutflow(Project *project, int subcatch, double wt);
+double  subcatch_getWtdWashoff(Project *project, int subcatch, int pollut, double wt);
+void    subcatch_getResults(Project *project, int subcatch, double wt, float x[]);
 
 //-----------------------------------------------------------------------------
 //   Conveyance System project->Node Methods
 //-----------------------------------------------------------------------------
-int     node_readParams(int node, int type, int subIndex, char* tok[], int ntoks);
-void    node_validate(int node);
-void    node_initState(int node);
-void    node_setOldHydState(int node);
-void    node_setOldQualState(int node);
-void    node_initInflow(int node, double tStep);
-void    node_setOutletDepth(int node, double yNorm, double yCrit, double z);
+int     node_readParams(Project *project,int node, int type, int subIndex, char* tok[], int ntoks);
+void    node_validate(Project* project, int node);
+void    node_initState(Project* project, int node);
+void    node_setOldHydState(Project *project, int node);
+void    node_setOldQualState(Project *project, int node);
+void    node_initInflow(Project *project, int node, double tStep);
+void    node_setOutletDepth(Project *project, int node, double yNorm, double yCrit, double z);
 void    node_setDividerCutoff(int node, int link);
-double  node_getSurfArea(int node, double depth);
-double  node_getDepth(int node, double volume);
-double  node_getVolume(int node, double depth);
-double  node_getPondedDepth(int node, double volume);
-double  node_getPondedArea(int node, double depth);
-double  node_getOutflow(int node, int link);
-double  node_getLosses(int node, double tStep);
-double  node_getMaxOutflow(int node, double q, double tStep);
-double  node_getSystemOutflow(int node, int *isFlooded);
-void    node_getResults(int node, double wt, float x[]);
+double  node_getSurfArea(Project *project, int node, double depth);
+double  node_getDepth(Project *project, int node, double volume);
+double  node_getVolume(Project *project, int node, double depth);
+double  node_getPondedDepth(Project *project, int node, double volume);
+double  node_getPondedArea(Project *project, int node, double depth);
+double  node_getOutflow(Project *project, int node, int link);
+double  node_getLosses(Project *project, int node, double tStep);
+double  node_getMaxOutflow(Project *project, int node, double q, double tStep);
+double  node_getSystemOutflow(Project *project, int node, int *isFlooded);
+void    node_getResults(Project *project, int node, double wt, float x[]);
 
 //-----------------------------------------------------------------------------
 //   Conveyance System Inflow Methods
@@ -306,62 +309,62 @@ void    inflow_deleteDwfInflows(int node);
 //-----------------------------------------------------------------------------
 //   Routing Interface File Methods
 //-----------------------------------------------------------------------------
-int     iface_readFileParams(char* tok[], int ntoks);
-void    iface_openRoutingFiles(void);
-void    iface_closeRoutingFiles(void);
-int     iface_getNumIfaceNodes(DateTime aDate);
+int     iface_readFileParams(Project *project, char* tok[], int ntoks);
+void    iface_openRoutingFiles(Project *project);
+void    iface_closeRoutingFiles(Project *project);
+int     iface_getNumIfaceNodes(Project *project, DateTime aDate);
 int     iface_getIfaceNode(int index);
 double  iface_getIfaceFlow(int index);
 double  iface_getIfaceQual(int index, int pollut);
-void    iface_saveOutletResults(DateTime reportDate, FILE* file);
+void    iface_saveOutletResults(Project *project, DateTime reportDate, FILE* file);
 
 //-----------------------------------------------------------------------------
 //   Hot Start File Methods
 //-----------------------------------------------------------------------------
-int     hotstart_open(void);
-void    hotstart_close(void);
+int     hotstart_open(Project *project);
+void    hotstart_close(Project *project);
 
 //-----------------------------------------------------------------------------
 //   Conveyance System project->Link Methods
 //-----------------------------------------------------------------------------
-int     link_readParams(int link, int type, int subIndex, char* tok[], int ntoks);
-int     link_readXsectParams(char* tok[], int ntoks);
-int     link_readLossParams(char* tok[], int ntoks);
-void    link_validate(int link);
-void    link_initState(int link);
-void    link_setOldHydState(int link);
-void    link_setOldQualState(int link);
-void    link_setTargetSetting(int j);
-void    link_setSetting(int j, double tstep);
-int     link_setFlapGate(int link, int n1, int n2, double q);
-double  link_getInflow(int link);
-void    link_setOutfallDepth(int link);
-double  link_getLength(int link);
-double  link_getYcrit(int link, double q);
-double  link_getYnorm(int link, double q);
-double  link_getVelocity(int link, double q, double y);
-double  link_getFroude(int link, double v, double y);
-double  link_getPower(int link);
-double  link_getLossRate(int link, double tStep);
-void    link_getResults(int link, double wt, float x[]);
+int     link_readParams(Project *project, int link, int type, int subIndex, char* tok[], int ntoks);
+int     link_readXsectParams(Project *project, char* tok[], int ntoks);
+int     link_readLossParams(Project *project, char* tok[], int ntoks);
+void    link_validate(Project *project, int link);
+void    link_initState(Project *project, int link);
+void    link_setOldHydState(Project *project, int link);
+void    link_setOldQualState(Project *project, int link);
+void    link_setTargetSetting(Project *project, int j);
+void    link_setSetting(Project *project, int j, double tstep);
+int     link_setFlapGate(Project *project, int link, int n1, int n2, double q);
+double  link_getInflow(Project *project, int link);
+void    link_setOutfallDepth(Project *project, int link);
+double  link_getLength(Project *project, int link);
+double  link_getYcrit(Project *project, int link, double q);
+double  link_getYnorm(Project *project, int link, double q);
+double  link_getVelocity(Project *project, int link, double q, double y);
+double  link_getFroude(Project *project, int link, double v, double y);
+double  link_getPower(Project *project, int link);
+double  link_getLossRate(Project *project, int link, double tStep);
+void    link_getResults(Project *project, int link, double wt, float x[]);
 
 //-----------------------------------------------------------------------------
 //   project->Link Cross-Section Methods
 //-----------------------------------------------------------------------------
 int     xsect_isOpen(int type);
-int     xsect_setParams(TXsect *xsect, int type, double p[], double ucf);
-void    xsect_setIrregXsectParams(TXsect *xsect);
-void    xsect_setCustomXsectParams(TXsect *xsect);
+int     xsect_setParams(Project *project, TXsect *xsect, int type, double p[], double ucf);
+void    xsect_setIrregXsectParams(Project *project, TXsect *xsect);
+void    xsect_setCustomXsectParams(Project *project, TXsect *xsect);
 double  xsect_getAmax(TXsect* xsect);
-double  xsect_getSofA(TXsect* xsect, double area);
-double  xsect_getYofA(TXsect* xsect, double area);
-double  xsect_getRofA(TXsect* xsect, double area);
-double  xsect_getAofS(TXsect* xsect, double sFactor);
-double  xsect_getdSdA(TXsect* xsect, double area);
-double  xsect_getAofY(TXsect* xsect, double y);
-double  xsect_getRofY(TXsect* xsect, double y);
-double  xsect_getWofY(TXsect* xsect, double y);
-double  xsect_getYcrit(TXsect* xsect, double q);
+double  xsect_getSofA(Project *project, TXsect* xsect, double area);
+double  xsect_getYofA(Project *project, TXsect* xsect, double area);
+double  xsect_getRofA(Project *project, TXsect* xsect, double area);
+double  xsect_getAofS(Project *project, TXsect* xsect, double sFactor);
+double  xsect_getdSdA(Project *project, TXsect* xsect, double area);
+double  xsect_getAofY(Project *project, TXsect* xsect, double y);
+double  xsect_getRofY(Project *project, TXsect* xsect, double y);
+double  xsect_getWofY(Project *project, TXsect* xsect, double y);
+double  xsect_getYcrit(Project *project, TXsect* xsect, double q);
 
 //-----------------------------------------------------------------------------
 //   Culvert Methods
@@ -378,10 +381,10 @@ double  forcemain_getFricSlope(int j, double v, double hrad);
 //-----------------------------------------------------------------------------
 //   Cross-Section project->Transect Methods
 //-----------------------------------------------------------------------------
-int     transect_create(int n);
-void    transect_delete(void);
-int     transect_readParams(int* count, char* tok[], int ntoks);
-void    transect_validate(int j);
+int     transect_create(Project *project, int n);
+void    transect_delete(Project *project);
+int     transect_readParams(Project *project, int* count, char* tok[], int ntoks);
+void    transect_validate(Project *project, int j);
 
 //-----------------------------------------------------------------------------
 //   Custom project->Shape Cross-Section Methods
@@ -400,8 +403,8 @@ int     controls_evaluate(DateTime currentTime, DateTime elapsedTime,
 //-----------------------------------------------------------------------------
 //   Table & Time Series Methods
 //-----------------------------------------------------------------------------
-int     table_readCurve(char* tok[], int ntoks);
-int     table_readTimeseries(char* tok[], int ntoks);
+int     table_readCurve(Project *project, char* tok[], int ntoks);
+int     table_readTimeseries(Project *project, char* tok[], int ntoks);
 int     table_addEntry(TTable* table, double x, double y);
 void    table_deleteEntries(TTable* table);
 void    table_init(TTable* table);

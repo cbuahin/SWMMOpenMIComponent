@@ -79,9 +79,9 @@ static MathExpr* FlowExpr;        // user-supplied GW flow expression
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static void   getDxDt(double t, double* x, double* dxdt);
-static void   getFluxes(double upperVolume, double lowerDepth);
-static void   getEvapRates(double theta, double upperDepth);
+static void   getDxDt(Project *project, double t, double* x, double* dxdt);
+static void   getFluxes(Project *project, double upperVolume, double lowerDepth);
+static void   getEvapRates(Project *project, double theta, double upperDepth);
 static double getUpperPerc(double theta, double upperDepth);
 static double getGWFlow(double lowerDepth);
 static void   updateMassBal(double area,  double tStep);
@@ -92,7 +92,7 @@ static double getVariableValue(int varIndex);
 
 //=============================================================================
 
-int gwater_readAquiferParams(int j, char* tok[], int ntoks)
+int gwater_readAquiferParams(Project *project, int j, char* tok[], int ntoks)
 //
 //  Input:   j = aquifer index
 //           tok[] = array of string tokens
@@ -152,7 +152,7 @@ int gwater_readAquiferParams(int j, char* tok[], int ntoks)
 
 //=============================================================================
 
-int gwater_readGroundwaterParams(char* tok[], int ntoks)
+int gwater_readGroundwaterParams(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -231,7 +231,7 @@ int gwater_readGroundwaterParams(char* tok[], int ntoks)
 
 //=============================================================================
 
-int gwater_readFlowExpression(char* tok[], int ntoks)
+int gwater_readFlowExpression(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -258,7 +258,7 @@ int gwater_readFlowExpression(char* tok[], int ntoks)
     // --- if no expression then delete any existing expression
     if ( ntoks == 1 )
     {
-	gwater_deleteFlowExpression(j);
+	gwater_deleteFlowExpression(project, j);
 	return 0;
     }
 
@@ -271,7 +271,7 @@ int gwater_readFlowExpression(char* tok[], int ntoks)
     }
 
     // --- delete any previous outflow eqn.
-    gwater_deleteFlowExpression(j);
+    gwater_deleteFlowExpression(project, j);
 
     // --- create a parsed expression tree from the string expr
     //     (getVariableIndex is the function that converts a GW
@@ -284,7 +284,7 @@ int gwater_readFlowExpression(char* tok[], int ntoks)
 
 //=============================================================================
 
-void gwater_deleteFlowExpression(int j)
+void gwater_deleteFlowExpression(Project *project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  none
@@ -296,7 +296,7 @@ void gwater_deleteFlowExpression(int j)
 
 //=============================================================================
 
-void  gwater_validateAquifer(int j)
+void  gwater_validateAquifer(Project *project, int j)
 //
 //  Input:   j = aquifer index
 //  Output:  none
@@ -306,16 +306,16 @@ void  gwater_validateAquifer(int j)
 	int p;
 
     if ( project->Aquifer[j].porosity          <= 0.0 
-    ||   project->Aquifer[j].fieldCapacity     >= Aquifer[j].porosity
-    ||   project->Aquifer[j].wiltingPoint      >= Aquifer[j].fieldCapacity
+    ||   project->Aquifer[j].fieldCapacity     >= project->Aquifer[j].porosity
+    ||   project->Aquifer[j].wiltingPoint      >= project->Aquifer[j].fieldCapacity
     ||   project->Aquifer[j].conductivity      <= 0.0
     ||   project->Aquifer[j].conductSlope      <  0.0
     ||   project->Aquifer[j].tensionSlope      <  0.0
     ||   project->Aquifer[j].upperEvapFrac     <  0.0
     ||   project->Aquifer[j].lowerEvapDepth    <  0.0
-    ||   project->Aquifer[j].waterTableElev    <  Aquifer[j].bottomElev
-    ||   project->Aquifer[j].upperMoisture     >  Aquifer[j].porosity 
-    ||   project->Aquifer[j].upperMoisture     <  Aquifer[j].wiltingPoint )
+    ||   project->Aquifer[j].waterTableElev    <  project->Aquifer[j].bottomElev
+    ||   project->Aquifer[j].upperMoisture     >  project->Aquifer[j].porosity
+    ||   project->Aquifer[j].upperMoisture     <  project->Aquifer[j].wiltingPoint )
         report_writeErrorMsg(ERR_AQUIFER_PARAMS, project->Aquifer[j].ID);
 
     p = project->Aquifer[j].upperEvapPat;
@@ -327,7 +327,7 @@ void  gwater_validateAquifer(int j)
 
 //=============================================================================
 
-void  gwater_validate(int j)
+void  gwater_validate(Project *project, int j)
 {
     TAquifer a;         // project->Aquifer data structure
     TGroundwater* gw;   // Groundwater data structure
@@ -350,7 +350,7 @@ void  gwater_validate(int j)
 
 //=============================================================================
 
-void  gwater_initState(int j)
+void  gwater_initState(Project *project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  none
@@ -386,13 +386,13 @@ void  gwater_initState(int j)
         // ... initial available infiltration volume into upper zone
         gw->maxInfilVol = (gw->surfElev - gw->waterTableElev) *
                           (a.porosity - gw->theta) /
-                          subcatch_getFracPerv(j);
+                          subcatch_getFracPerv(project, j);
     }
 }
 
 //=============================================================================
 
-void gwater_getState(int j, double x[])
+void gwater_getState(Project *project, int j, double x[])
 //
 //  Input:   j = subcatchment index
 //  Output:  x[] = array of groundwater state variables
@@ -408,7 +408,7 @@ void gwater_getState(int j, double x[])
 
 //=============================================================================
 
-void gwater_setState(int j, double x[])
+void gwater_setState(Project *project, int j, double x[])
 //
 //  Input:   j = subcatchment index
 //           x[] = array of groundwater state variables
@@ -425,7 +425,7 @@ void gwater_setState(int j, double x[])
 
 //=============================================================================
 
-double gwater_getVolume(int j)
+double gwater_getVolume(Project *project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  returns total volume of groundwater in ft/ft2
@@ -444,7 +444,7 @@ double gwater_getVolume(int j)
 
 //=============================================================================
 
-void gwater_getGroundwater(int j, double evap, double infil, double tStep)
+void gwater_getGroundwater(Project *project, int j, double evap, double infil, double tStep)
 //
 //  Purpose: computes groundwater flow from subcatchment during current time step.
 //  Input:   j     = subcatchment index
@@ -468,7 +468,7 @@ void gwater_getGroundwater(int j, double evap, double infil, double tStep)
     A = project->Aquifer[GW->aquifer];
 
     // --- get fraction of total area that is pervious
-    FracPerv = subcatch_getFracPerv(j);
+    FracPerv = subcatch_getFracPerv(project, j);
     if ( FracPerv <= 0.0 ) return;
     area = project->Subcatch[j].area;
 
@@ -508,7 +508,7 @@ void gwater_getGroundwater(int j, double evap, double infil, double tStep)
     {
         Hsw = GW->fixedDepth + project->Node[n].invertElev - GW->bottomElev;
     }
-    else Hsw = project->Node[n].newDepth + Node[n].invertElev - GW->bottomElev;
+    else Hsw = project->Node[n].newDepth + project->Node[n].invertElev - GW->bottomElev;
 
     // --- store state variables (upper zone moisture content, lower zone
     //     depth) in work vector x
@@ -528,7 +528,7 @@ void gwater_getGroundwater(int j, double evap, double infil, double tStep)
     //     inflow to the node
     MaxGWFlowNeg = (TotalDepth - x[LOWERDEPTH]) * (A.porosity - x[THETA])
                    / tStep;
-    nodeFlow = (project->Node[n].inflow + Node[n].newVolume/tStep) / area;
+    nodeFlow = (project->Node[n].inflow + project->Node[n].newVolume/tStep) / area;
     MaxGWFlowNeg = -MIN(MaxGWFlowNeg, nodeFlow);
     
     // --- integrate eqns. for d(Theta)/dt and d(LowerDepth)/dt
@@ -551,7 +551,7 @@ void gwater_getGroundwater(int j, double evap, double infil, double tStep)
     // --- save new values of state values
     GW->theta = x[THETA];
     GW->lowerDepth  = x[LOWERDEPTH];
-    getFluxes(GW->theta, GW->lowerDepth);
+    getFluxes(project, GW->theta, GW->lowerDepth);
     GW->oldFlow = GW->newFlow;
     GW->newFlow = GWFlow;
     GW->evapLoss = UpperEvap + LowerEvap;
@@ -594,7 +594,7 @@ void updateMassBal(double area, double tStep)
 
 //=============================================================================
 
-void  getFluxes(double theta, double lowerDepth)
+void  getFluxes(Project *project, double theta, double lowerDepth)
 //
 //  Input:   upperVolume = vol. depth of upper zone (ft)
 //           upperDepth  = depth of upper zone (ft)
@@ -610,7 +610,7 @@ void  getFluxes(double theta, double lowerDepth)
     upperDepth = TotalDepth - lowerDepth;
 
     // --- find evaporation rate from both zones
-    getEvapRates(theta, upperDepth);
+    getEvapRates(project, theta, upperDepth);
 
     // --- find percolation rate from upper to lower zone
     UpperPerc = getUpperPerc(theta, upperDepth);
@@ -632,7 +632,7 @@ void  getFluxes(double theta, double lowerDepth)
 
 //=============================================================================
 
-void  getDxDt(double t, double* x, double* dxdt)
+void  getDxDt(Project *project, double t, double* x, double* dxdt)
 //
 //  Input:   t    = current time (not used)
 //           x    = array of state variables
@@ -645,7 +645,7 @@ void  getDxDt(double t, double* x, double* dxdt)
     double qLower;    // inflow - outflow for lower zone (ft/sec)
     double denom;
 
-    getFluxes(x[THETA], x[LOWERDEPTH]);
+    getFluxes(project, x[THETA], x[LOWERDEPTH]);
     qUpper = Infil - UpperEvap - UpperPerc;
     qLower = UpperPerc - LowerLoss - LowerEvap - GWFlow;
 
@@ -668,7 +668,7 @@ void  getDxDt(double t, double* x, double* dxdt)
 
 //=============================================================================
 
-void getEvapRates(double theta, double upperDepth)
+void getEvapRates(Project *project, double theta, double upperDepth)
 //
 //  Input:   theta      = moisture content of upper zone
 //           upperDepth = depth of upper zone (ft)

@@ -64,19 +64,19 @@ double   TotalArea;               // total drainage area (ft2)
 //-----------------------------------------------------------------------------
 //  Local Functions   
 //-----------------------------------------------------------------------------
-double massbal_getBuildup(int pollut);
-double massbal_getStorage(char isFinalStorage);
-double massbal_getStoredMass(int pollut);
-double massbal_getRunoffError(void);
-double massbal_getLoadingError(void);
-double massbal_getGwaterError(void);
-double massbal_getFlowError(void);
-double massbal_getQualError(void);
+double massbal_getBuildup(Project *project, int pollut);
+double massbal_getStorage(Project *project, char isFinalStorage);
+double massbal_getStoredMass(Project *project, int pollut);
+double massbal_getRunoffError(Project *project);
+double massbal_getLoadingError(Project *project);
+double massbal_getGwaterError(Project *project);
+double massbal_getFlowError(Project *project);
+double massbal_getQualError(Project *project);
 
 
 //=============================================================================
 
-int massbal_open()
+int massbal_open(Project *project)
 //
 //  Input:   none
 //  Output:  returns error code
@@ -102,7 +102,7 @@ int massbal_open()
     TotalArea = 0.0;
     for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        RunoffTotals.initStorage += subcatch_getStorage(j);
+        RunoffTotals.initStorage += subcatch_getStorage(project,j);
         RunoffTotals.initSnowCover += snow_getSnowCover(j);
         TotalArea += project->Subcatch[j].area;
     }
@@ -117,7 +117,7 @@ int massbal_open()
     GwaterTotals.finalStorage = 0.0;
     for ( j = 0; j < project->Nobjects[SUBCATCH]; j++ )
     {
-        GwaterTotals.initStorage += gwater_getVolume(j) * project->Subcatch[j].area;
+        GwaterTotals.initStorage += gwater_getVolume(project, j) * project->Subcatch[j].area;
     }
 
     // --- initialize node flow & storage totals
@@ -167,7 +167,7 @@ int massbal_open()
         }
         for (j = 0; j < n; j++)
         {
-            LoadingTotals[j].initLoad      = massbal_getBuildup(j);
+            LoadingTotals[j].initLoad      = massbal_getBuildup(project, j);
             LoadingTotals[j].buildup       = 0.0;
             LoadingTotals[j].deposition    = 0.0;
             LoadingTotals[j].sweeping      = 0.0;
@@ -202,11 +202,11 @@ int massbal_open()
         QualTotals[j].evapLoss = 0.0;
         QualTotals[j].seepLoss = 0.0; 
         QualTotals[j].reacted  = 0.0;
-        QualTotals[j].initStorage = massbal_getStoredMass(j);
+        QualTotals[j].initStorage = massbal_getStoredMass(project,j);
     }
 
     // --- initialize totals used over a single time step
-    massbal_initTimeStepTotals();
+    massbal_initTimeStepTotals(project);
 
     // --- allocate memory for nodal flow continuity
     if ( project->Nobjects[NODE] > 0 )
@@ -246,7 +246,7 @@ void massbal_close()
 
 //=============================================================================
 
-void massbal_report()
+void massbal_report(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -258,13 +258,13 @@ void massbal_report()
 
     if ( project->Nobjects[SUBCATCH] > 0 )
     {
-        if ( massbal_getRunoffError() > MAX_RUNOFF_BALANCE_ERR ||
+        if ( massbal_getRunoffError(project) > MAX_RUNOFF_BALANCE_ERR ||
              project->RptFlags.continuity == TRUE
            ) report_writeRunoffError(&RunoffTotals, TotalArea);
 
         if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality )
         {
-            if ( massbal_getLoadingError() > MAX_RUNOFF_BALANCE_ERR ||
+            if ( massbal_getLoadingError(project) > MAX_RUNOFF_BALANCE_ERR ||
                  project->RptFlags.continuity == TRUE
                ) report_writeLoadingError(LoadingTotals);
         }
@@ -272,12 +272,12 @@ void massbal_report()
 
     if ( project->Nobjects[AQUIFER] > 0  && !project->IgnoreGwater )
     {
-        if ( massbal_getGwaterError() > MAX_RUNOFF_BALANCE_ERR ||
+        if ( massbal_getGwaterError(project) > MAX_RUNOFF_BALANCE_ERR ||
              project->RptFlags.continuity == TRUE )
         {
             for ( j = 0; j < project->Nobjects[SUBCATCH]; j++ )
             {
-                if ( project->Subcatch[j].groundwater ) gwArea += Subcatch[j].area;
+                if ( project->Subcatch[j].groundwater ) gwArea += project->Subcatch[j].area;
             }
             if ( gwArea > 0.0 ) report_writeGwaterError(&GwaterTotals, gwArea);
        }
@@ -285,13 +285,13 @@ void massbal_report()
 
     if ( project->Nobjects[NODE] > 0 && !project->IgnoreRouting )
     {
-        if ( massbal_getFlowError() > MAX_FLOW_BALANCE_ERR ||
+        if ( massbal_getFlowError(project) > MAX_FLOW_BALANCE_ERR ||
              project->RptFlags.continuity == TRUE
            ) report_writeFlowError(&FlowTotals);
     
         if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality )
         {
-            if ( massbal_getQualError() > MAX_FLOW_BALANCE_ERR ||
+            if ( massbal_getQualError(project) > MAX_FLOW_BALANCE_ERR ||
                  project->RptFlags.continuity == TRUE
                ) report_writeQualError(QualTotals);
         }
@@ -300,7 +300,7 @@ void massbal_report()
 
 //=============================================================================
 
-double massbal_getBuildup(int p)
+double massbal_getBuildup(Project *project, int p)
 //
 //  Input:   p = pollutant index
 //  Output:  returns total pollutant buildup (lbs or kg)
@@ -363,7 +363,7 @@ void massbal_updateGwaterTotals(double vInfil, double vUpperEvap, double vLowerE
 
 //=============================================================================
 
-void massbal_initTimeStepTotals()
+void massbal_initTimeStepTotals(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -440,7 +440,7 @@ void massbal_updateLoadingTotals(int type, int p, double w)
 
 //=============================================================================
 
-void massbal_addInflowQual(int type, int p, double w)
+void massbal_addInflowQual(Project *project, int type, int p, double w)
 //
 //  Input:   type = type of inflow
 //           p    = pollutant index
@@ -480,7 +480,7 @@ void massbal_addOutflowFlow(double q, int isFlooded)
 
 //=============================================================================
 
-void massbal_addOutflowQual(int p, double w, int isFlooded)
+void massbal_addOutflowQual(Project *project, int p, double w, int isFlooded)
 //
 //  Input:   p = pollutant index
 //           w = mass outflow rate (mass/sec)
@@ -500,7 +500,7 @@ void massbal_addOutflowQual(int p, double w, int isFlooded)
 
 //=============================================================================
 
-void massbal_addReactedMass(int p, double w)
+void massbal_addReactedMass(Project *project, int p, double w)
 //
 //  Input:   p = pollutant index
 //           w = rate of mass reacted (mass/sec)
@@ -542,7 +542,7 @@ void massbal_addLinkLosses(double evapLoss, double seepLoss)
 
 //=============================================================================
 
-void massbal_updateRoutingTotals(double tStep)
+void massbal_updateRoutingTotals(Project *project, double tStep)
 //
 //  Input:   tStep = time step (sec)
 //  Output:  none
@@ -575,14 +575,14 @@ void massbal_updateRoutingTotals(double tStep)
     for ( j = 0; j < project->Nobjects[NODE]; j++)
     {
         NodeInflow[j] += project->Node[j].inflow * tStep;
-        if ( project->Node[j].type == OUTFALL || Node[j].degree == 0 )
+        if ( project->Node[j].type == OUTFALL || project->Node[j].degree == 0 )
         {
             NodeOutflow[j] += project->Node[j].inflow * tStep;
         }
         else
         {
             NodeOutflow[j] += project->Node[j].outflow * tStep; 
-            if ( project->Node[j].newVolume <= Node[j].fullVolume ) 
+            if ( project->Node[j].newVolume <= project->Node[j].fullVolume )
                 NodeOutflow[j] += project->Node[j].overflow * tStep; 
         }
     }
@@ -590,7 +590,7 @@ void massbal_updateRoutingTotals(double tStep)
 
 //=============================================================================
 
-double massbal_getStorage(char isFinalStorage)
+double massbal_getStorage(Project *project, char isFinalStorage)
 //
 //  Input:   isFinalStorage = TRUE if at final time period
 //  Output:  returns storage volume used (ft3)
@@ -658,7 +658,7 @@ void massbal_getSysFlows(double f, double sysFlows[])
 
 //=============================================================================
 
-double massbal_getRunoffError()
+double massbal_getRunoffError(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -674,7 +674,7 @@ double massbal_getRunoffError()
     RunoffTotals.finalSnowCover = 0.0;
     for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        RunoffTotals.finalStorage += subcatch_getStorage(j);
+        RunoffTotals.finalStorage += subcatch_getStorage(project, j);
         RunoffTotals.finalSnowCover += snow_getSnowCover(j);
     }
 
@@ -710,7 +710,7 @@ double massbal_getRunoffError()
 
 //=============================================================================
 
-double massbal_getLoadingError()
+double massbal_getLoadingError(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -725,7 +725,7 @@ double massbal_getLoadingError()
     for (j = 0; j < project->Nobjects[POLLUT]; j++)
     {
         // --- get final pollutant loading remaining on land surface
-        LoadingTotals[j].finalLoad += massbal_getBuildup(j); 
+        LoadingTotals[j].finalLoad += massbal_getBuildup(project, j);
 
         // --- compute total load added to study area
         loadIn = LoadingTotals[j].initLoad +
@@ -773,7 +773,7 @@ double massbal_getLoadingError()
 
 //=============================================================================
 
-double massbal_getGwaterError()
+double massbal_getGwaterError(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -788,7 +788,7 @@ double massbal_getGwaterError()
     GwaterTotals.finalStorage = 0.0;
     for ( j = 0; j < project->Nobjects[SUBCATCH]; j++ )
     {
-        GwaterTotals.finalStorage += gwater_getVolume(j) * project->Subcatch[j].area;
+        GwaterTotals.finalStorage += gwater_getVolume(project, j) * project->Subcatch[j].area;
     }
 
     // --- compute % difference between total inflow and outflow
@@ -818,7 +818,7 @@ double massbal_getGwaterError()
 
 //=============================================================================
 
-double massbal_getFlowError()
+double massbal_getFlowError(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -829,7 +829,7 @@ double massbal_getFlowError()
     double totalOutflow;
 
     // --- get final volume of nodes and links
-    FlowTotals.finalStorage = massbal_getStorage(TRUE);
+    FlowTotals.finalStorage = massbal_getStorage(project,TRUE);
 
     // --- compute % difference between total inflow and outflow
     totalInflow  = FlowTotals.dwInflow +
@@ -863,7 +863,7 @@ double massbal_getFlowError()
 
 //=============================================================================
 
-double massbal_getQualError()
+double massbal_getQualError(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -880,7 +880,7 @@ double massbal_getQualError()
     for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- get final mass stored in nodes and links
-        QualTotals[p].finalStorage = massbal_getStoredMass(p);
+        QualTotals[p].finalStorage = massbal_getStoredMass(project, p);
 
         // --- compute % difference between total inflow and outflow
         totalInflow  = QualTotals[p].dwInflow +
@@ -977,7 +977,7 @@ double massbal_getStepFlowError()
 
 //=============================================================================
 
-double massbal_getStoredMass(int p)
+double massbal_getStoredMass(Project *project, int p)
 //
 //  Input:   p = pollutant index
 //  Output:  returns mass of pollutant.
@@ -989,13 +989,13 @@ double massbal_getStoredMass(int p)
 
     // --- get mass stored in nodes
     for (j = 0; j < project->Nobjects[NODE]; j++)
-        storedMass += project->Node[j].newVolume * Node[j].newQual[p];
+        storedMass += project->Node[j].newVolume * project->Node[j].newQual[p];
 
     // --- get mass stored in links (except for Steady Flow routing)
     if ( project->RouteModel != SF )
     {
         for (j = 0; j < project->Nobjects[LINK]; j++)
-            storedMass += project->Link[j].newVolume * Link[j].newQual[p];
+            storedMass += project->Link[j].newVolume * project->Link[j].newQual[p];
     }
     return storedMass;
 }

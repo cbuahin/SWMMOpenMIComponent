@@ -37,19 +37,19 @@ extern double*         NodeOutflow;            // defined in massbal.c
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-void    writeSubcatchRunoff(void);
-void    writeSubcatchLoads(void);
-void    writeNodeDepths(void);
-void    writeNodeFlows(void);
-void    writeNodeSurcharge(void);
-void    writeNodeFlooding(void);
-void    writeStorageVolumes(void);
-void    writeOutfallLoads(void);
-void    writeLinkFlows(void);
-void    writeFlowClass(void);
-void    writeLinkSurcharge(void);
-void    writePumpFlows(void);
-void    writeLinkLoads(void);
+void    writeSubcatchRunoff(Project *project);
+void    writeSubcatchLoads(Project *project);
+void    writeNodeDepths(Project *project);
+void    writeNodeFlows(Project *project);
+void    writeNodeSurcharge(Project *project);
+void    writeNodeFlooding(Project *project);
+void    writeStorageVolumes(Project *project);
+void    writeOutfallLoads(Project *project);
+void    writeLinkFlows(Project *project);
+void    writeFlowClass(Project *project);
+void    writeLinkSurcharge(Project *project);
+void    writePumpFlows(Project *project);
+void    writeLinkLoads(Project *project);
 
 #define WRITE(x) (report_writeLine((x)))
 
@@ -58,7 +58,7 @@ static double Vcf;
 
 //=============================================================================
 
-void statsrpt_writeReport()
+void statsrpt_writeReport(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -66,7 +66,7 @@ void statsrpt_writeReport()
 //
 {
     // --- set number of decimal places for reporting flow values
-    if ( project->FlowUnits == MGD || FlowUnits == CMS ) strcpy(FlowFmt, "%9.3f");
+    if ( project->FlowUnits == MGD || project->FlowUnits == CMS ) strcpy(FlowFmt, "%9.3f");
     else strcpy(FlowFmt, "%9.2f");
 
     // --- volume conversion factor from ft3 to Mgal or Mliters
@@ -80,32 +80,32 @@ void statsrpt_writeReport()
              (project->Nobjects[SNOWMELT] > 0 && !project->IgnoreSnowmelt) ||
              (project->Nobjects[AQUIFER] > 0  && !project->IgnoreGwater) )
         {
-            writeSubcatchRunoff();
+            writeSubcatchRunoff(project);
             lid_writeWaterBalance();
-            if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality) writeSubcatchLoads();
+            if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality) writeSubcatchLoads(project);
         }
     }
 
     // --- report summary results for flow routing
     if ( project->Nobjects[LINK] > 0 && !project->IgnoreRouting )
     {
-        writeNodeDepths();
-        writeNodeFlows();
-        writeNodeSurcharge();
-        writeNodeFlooding();
-        writeStorageVolumes();
-        writeOutfallLoads();
-        writeLinkFlows();
-        writeFlowClass();
-        writeLinkSurcharge();
-        writePumpFlows();
-	    if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality) writeLinkLoads();
+        writeNodeDepths(project);
+        writeNodeFlows(project);
+        writeNodeSurcharge(project);
+        writeNodeFlooding(project);
+        writeStorageVolumes(project);
+        writeOutfallLoads(project);
+        writeLinkFlows(project);
+        writeFlowClass(project);
+        writeLinkSurcharge(project);
+        writePumpFlows(project);
+	    if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality) writeLinkLoads(project);
     }
 }
 
 //=============================================================================
 
-void writeSubcatchRunoff()
+void writeSubcatchRunoff(Project *project)
 {
     int    j;
     double a, x, r;
@@ -158,7 +158,7 @@ void writeSubcatchRunoff()
 
 //=============================================================================
 
-void writeSubcatchLoads()
+void writeSubcatchLoads(Project *project)
 {
     int i, j, p;
     double x;
@@ -223,7 +223,7 @@ void writeSubcatchLoads()
 
 //=============================================================================
 
-void writeNodeDepths()
+void writeNodeDepths(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -266,7 +266,7 @@ void writeNodeDepths()
 
 //=============================================================================
 
-void writeNodeFlows()
+void writeNodeFlows(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -316,7 +316,7 @@ void writeNodeFlows()
 
 //=============================================================================
 
-void writeNodeSurcharge()
+void writeNodeSurcharge(Project *project)
 {
     int    j, n = 0;
     double t, d1, d2;
@@ -362,7 +362,7 @@ void writeNodeSurcharge()
 
 //=============================================================================
 
-void writeNodeFlooding()
+void writeNodeFlooding(Project *project)
 {
     int    j, n = 0;
     int    days, hrs, mins;
@@ -421,7 +421,7 @@ void writeNodeFlooding()
 
 //=============================================================================
 
-void writeStorageVolumes()
+void writeStorageVolumes(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -489,7 +489,7 @@ void writeStorageVolumes()
 
 //=============================================================================
 
-void writeOutfallLoads()
+void writeOutfallLoads(Project *project)
 //
 //  Input:   node
 //  Output:  none
@@ -605,7 +605,7 @@ void writeOutfallLoads()
 
 //=============================================================================
 
-void writeLinkFlows()
+void writeLinkFlows(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -692,7 +692,7 @@ void writeLinkFlows()
 
 //=============================================================================
 
-void writeFlowClass()
+void writeFlowClass(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -735,7 +735,7 @@ void writeFlowClass()
 
 //=============================================================================
 
-void writeLinkSurcharge()
+void writeLinkSurcharge(Project *project)
 {
     int    i, j, n = 0;
     double t[5];
@@ -776,7 +776,7 @@ void writeLinkSurcharge()
 
 //=============================================================================
 
-void writePumpFlows()
+void writePumpFlows(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -830,7 +830,7 @@ void writePumpFlows()
 
 //=============================================================================
 
-void writeLinkLoads()
+void writeLinkLoads(Project *project)
 {
     int i, j, p;
     double x;

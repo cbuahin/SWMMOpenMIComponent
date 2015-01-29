@@ -17,6 +17,7 @@
 #include "stdlib.h"
 #include "headers.h"
 #include "infil.h"
+#include "globals.h"
 
 //-----------------------------------------------------------------------------
 //  Local Variables
@@ -49,9 +50,9 @@ static void   horton_initState(THorton *infil);
 static void   horton_getState(THorton *infil, double x[]);
 static void   horton_setState(THorton *infil, double x[]);
 
-static double horton_getInfil(THorton *infil, double tstep, double irate,
+static double horton_getInfil(Project* project, THorton *infil, double tstep, double irate,
               double depth);
-static double modHorton_getInfil(THorton *infil, double tstep, double irate,
+static double modHorton_getInfil(Project *project, THorton *infil, double tstep, double irate,
               double depth);
 
 static void   grnampt_getState(TGrnAmpt *infil, double x[]);
@@ -59,13 +60,13 @@ static void   grnampt_setState(TGrnAmpt *infil, double x[]);
 static double grnampt_getRate(TGrnAmpt *infil, double tstep, double F2,
               double F);
 static double grnampt_getF2(double f1, double c1, double c2, double iv2);
-static void   grnampt_setT(TGrnAmpt *infil);
+static void   grnampt_setT(Project *project, TGrnAmpt *infil);
 
 static int    curvenum_setParams(TCurveNum *infil, double p[]);
 static void   curvenum_initState(TCurveNum *infil);
 static void   curvenum_getState(TCurveNum *infil, double x[]);
 static void   curvenum_setState(TCurveNum *infil, double x[]);
-static double curvenum_getInfil(TCurveNum *infil, double tstep, double irate,
+static double curvenum_getInfil(Project* project, TCurveNum *infil, double tstep, double irate,
               double depth);
 
 //=============================================================================
@@ -246,10 +247,10 @@ double infil_getInfil(int j, int m, double tstep, double rainfall,
     switch (m)
     {
       case HORTON:
-          return horton_getInfil(&HortInfil[j], tstep, rainfall+runon, depth);
+          return horton_getInfil(project, &HortInfil[j], tstep, rainfall+runon, depth);
 
       case MOD_HORTON:
-          return modHorton_getInfil(&HortInfil[j], tstep, rainfall+runon,
+          return modHorton_getInfil(project, &HortInfil[j], tstep, rainfall+runon,
                                     depth);
 
       case GREEN_AMPT:
@@ -257,7 +258,7 @@ double infil_getInfil(int j, int m, double tstep, double rainfall,
 
       case CURVE_NUMBER:
         depth += runon / tstep;
-        return curvenum_getInfil(&CNInfil[j], tstep, rainfall, depth);
+        return curvenum_getInfil(project, &CNInfil[j], tstep, rainfall, depth);
 
       default:
         return 0.0;
@@ -325,7 +326,7 @@ void horton_setState(THorton *infil, double x[])
 
 //=============================================================================
 
-double horton_getInfil(THorton *infil, double tstep, double irate, double depth)
+double horton_getInfil(Project* project, THorton *infil, double tstep, double irate, double depth)
 //
 //  Input:   infil = ptr. to Horton infiltration object
 //           tstep =  runoff time step (sec),
@@ -435,7 +436,7 @@ double horton_getInfil(THorton *infil, double tstep, double irate, double depth)
 
 //=============================================================================
 
-double modHorton_getInfil(THorton *infil, double tstep, double irate,
+double modHorton_getInfil(Project *project, THorton *infil, double tstep, double irate,
                           double depth)
 //
 //  Input:   infil = ptr. to Horton infiltration object
@@ -558,7 +559,7 @@ void grnampt_setState(TGrnAmpt *infil, double x[])
 
 //=============================================================================
 
-double grnampt_getInfil(TGrnAmpt *infil, double tstep, double irate,
+double grnampt_getInfil(Project *project, TGrnAmpt *infil, double tstep, double irate,
     double depth)
 //
 //  Input:   infil = ptr. to Green-Ampt infiltration object
@@ -613,7 +614,7 @@ double grnampt_getInfil(TGrnAmpt *infil, double tstep, double irate,
     // --- initialize time to drain upper zone
     if ( infil->T == MISSING )
     {
-        if ( irate > 0.0 ) grnampt_setT(infil);
+        if ( irate > 0.0 ) grnampt_setT(project, infil);
         else return 0.0;
     }
 
@@ -665,7 +666,7 @@ double grnampt_getInfil(TGrnAmpt *infil, double tstep, double irate,
         }
 
         // --- rainfall > hyd. conductivity; renew time to drain upper zone
-        grnampt_setT(infil);
+        grnampt_setT(project, infil);
 
         // --- check if surface already saturated
         Fs = c1 * infil->Ks / (irate - infil->Ks);
@@ -701,7 +702,7 @@ double grnampt_getInfil(TGrnAmpt *infil, double tstep, double irate,
     // --- upper soil zone saturated:
 
     // --- renew time to drain upper zone
-    grnampt_setT(infil);
+    grnampt_setT(project, infil);
 
     // --- compute volume of potential infiltration
     if ( c1 <= 0.0 ) F2 = infil->Ks * tstep + F;
@@ -781,7 +782,7 @@ double grnampt_getF2(double f1, double c1, double c2, double iv2)
 
 //=============================================================================
 
-void grnampt_setT(TGrnAmpt *infil)
+void grnampt_setT(Project *project, TGrnAmpt *infil)
 //
 //  Input:   infil = ptr. to Green-Ampt infiltration object
 //  Output:  none
@@ -863,7 +864,7 @@ void curvenum_setState(TCurveNum *infil, double x[])
 
 //=============================================================================
 
-double curvenum_getInfil(TCurveNum *infil, double tstep, double irate,
+double curvenum_getInfil(Project *project, TCurveNum *infil, double tstep, double irate,
     double depth)
 //
 //  Input:   infil = ptr. to project->Curve Number infiltration object

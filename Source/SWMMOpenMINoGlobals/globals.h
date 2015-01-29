@@ -9,16 +9,21 @@
 //
 //   Global Variables
 //-----------------------------------------------------------------------------
+
+
+
+
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
 #include "hash.h"
 
+
 #ifdef __cplusplus
  extern "C" {
 #endif 
 
-    struct Project
+typedef struct
     {
 
         int J1;
@@ -148,7 +153,7 @@
 //
 //  swmm_retrieve_openmi_items retrieve_openmi_exchangeItems;
 
-    };
+    } Project;
     
 #ifdef __cplusplus
 }   // matches the linkage specification from above */ 

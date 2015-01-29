@@ -57,32 +57,32 @@ static int     Steps;                  // number of Picard iterations
 //-----------------------------------------------------------------------------
 //  Function declarations
 //-----------------------------------------------------------------------------
-static void   initRoutingStep(void);
-static void   initNodeStates(void);
-static void   findBypassedLinks();
-static void   findLimitedLinks();
+static void   initRoutingStep(Project *project);
+static void   initNodeStates(Project *project);
+static void   findBypassedLinks(Project *project);
+static void   findLimitedLinks(Project *project);
 
-static void   findLinkFlows(double dt);
-static int    isTrueConduit(int link);
-static void   findNonConduitFlow(int link, double dt);
-static void   findNonConduitSurfArea(int link);
-static double getModPumpFlow(int link, double q, double dt);
-static void   updateNodeFlows(int link);
+static void   findLinkFlows(Project *project,  double dt);
+static int    isTrueConduit(Project *project,  int link);
+static void   findNonConduitFlow(Project *project, int link, double dt);
+static void   findNonConduitSurfArea(Project *project, int link);
+static double getModPumpFlow(Project *project, int link, double q, double dt);
+static void   updateNodeFlows(Project *project,  int link);
 
-static int    findNodeDepths(double dt);
-static void   setNodeDepth(int node, double dt);
-static double getFloodedDepth(int node, int canPond, double dV, double yNew,
+static int    findNodeDepths(Project *project, double dt);
+static void   setNodeDepth(Project *project, int node, double dt);
+static double getFloodedDepth(Project *project, int node, int canPond, double dV, double yNew,
               double yMax, double dt);
 
-static double getVariableStep(double maxStep);
-static double getLinkStep(double tMin, int *minLink);
-static double getNodeStep(double tMin, int *minNode);
+static double getVariableStep(Project *project, double maxStep);
+static double getLinkStep(Project *project, double tMin, int *minLink);
+static double getNodeStep(Project *project, double tMin, int *minNode);
 
 
 
 //=============================================================================
 
-void dynwave_init()
+void dynwave_init(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -121,7 +121,7 @@ void  dynwave_close()
 
 //=============================================================================
 
-double dynwave_getRoutingStep(double fixedStep)
+double dynwave_getRoutingStep(Project *project, double fixedStep)
 //
 //  Input:   fixedStep = user-supplied fixed time step (sec)
 //  Output:  returns routing time step (sec)
@@ -141,7 +141,7 @@ double dynwave_getRoutingStep(double fixedStep)
     }
 
     // --- otherwise compute variable step based on current flow solution
-    else VariableStep = getVariableStep(fixedStep);
+    else VariableStep = getVariableStep(project, fixedStep);
 
     // --- adjust step to be a multiple of a millisecond
     VariableStep = floor(1000.0 * VariableStep) / 1000.0;
@@ -150,7 +150,7 @@ double dynwave_getRoutingStep(double fixedStep)
 
 //=============================================================================
 
-int dynwave_execute(double tStep)
+int dynwave_execute(Project *project, double tStep)
 //
 //  Input:   links = array of topo sorted links indexes
 //           tStep = time step (sec)
@@ -165,7 +165,7 @@ int dynwave_execute(double tStep)
     Steps = 0;
     converged = FALSE;
     Omega = OMEGA;
-    initRoutingStep();
+    initRoutingStep(project);
 
 
 
@@ -173,11 +173,11 @@ int dynwave_execute(double tStep)
 	while (Steps < project->MaxTrials)
 	{
 		// --- execute a routing step & check for nodal convergence
-		initNodeStates();
+		initNodeStates(project);
 
-		findLinkFlows(tStep);
+		findLinkFlows(project, tStep);
 
-		converged = findNodeDepths(tStep);
+		converged = findNodeDepths(project, tStep);
 
 		setOpenMINodeDepths();
 
@@ -188,7 +188,7 @@ int dynwave_execute(double tStep)
 				break;
 
 			// --- check if link calculations can be skipped in next step
-			findBypassedLinks();
+			findBypassedLinks(project);
 		}
 	}
 
@@ -198,13 +198,13 @@ int dynwave_execute(double tStep)
     if ( !converged ) project->NonConvergeCount++;
 
     //  --- identify any capacity-limited conduits
-    findLimitedLinks();
+    findLimitedLinks(project);
     return Steps;
 }
 
 //=============================================================================
 
-void   initRoutingStep()
+void   initRoutingStep(Project *project)
 {
     int i;
     for (i = 0; i < project->Nobjects[NODE]; i++)
@@ -220,12 +220,12 @@ void   initRoutingStep()
     }
 
     // --- a2 preserves conduit area from solution at last time step
-    for ( i = 0; i < project->Nlinks[CONDUIT]; i++) project->Conduit[i].a2 = Conduit[i].a1;
+    for ( i = 0; i < project->Nlinks[CONDUIT]; i++) project->Conduit[i].a2 = project->Conduit[i].a1;
 }
 
 //=============================================================================
 
-void initNodeStates()
+void initNodeStates(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -239,11 +239,11 @@ void initNodeStates()
         // --- initialize nodal surface area
         if ( project->AllowPonding )
         {
-            Xnode[i].newSurfArea = node_getPondedArea(i, project->Node[i].newDepth);
+            Xnode[i].newSurfArea = node_getPondedArea(project, i, project->Node[i].newDepth);
         }
         else
         {
-            Xnode[i].newSurfArea = node_getSurfArea(i, project->Node[i].newDepth);
+            Xnode[i].newSurfArea = node_getSurfArea(project, i, project->Node[i].newDepth);
         }
         if ( Xnode[i].newSurfArea < project->MinSurfArea )
         {
@@ -251,7 +251,7 @@ void initNodeStates()
         }
 
         // --- initialize nodal inflow & outflow
-        project->Node[i].inflow = Node[i].newLatFlow;
+        project->Node[i].inflow = project->Node[i].newLatFlow;
         project->Node[i].outflow = 0.0;
         Xnode[i].sumdqdh = 0.0;
     }
@@ -259,7 +259,7 @@ void initNodeStates()
 
 //=============================================================================
 
-void   findBypassedLinks()
+void   findBypassedLinks(Project *project)
 {
     int i;
     for (i = 0; i < project->Nobjects[LINK]; i++)
@@ -273,7 +273,7 @@ void   findBypassedLinks()
 
 //=============================================================================
 
-void  findLimitedLinks()
+void  findLimitedLinks(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -286,7 +286,7 @@ void  findLimitedLinks()
     for (j = 0; j < project->Nobjects[LINK]; j++)
     {
         // ---- check only non-dummy conduit links
-        if ( !isTrueConduit(j) ) return;
+        if ( !isTrueConduit(project, j) ) return;
 
         // --- check that upstream end is full
         k = project->Link[j].subIndex;
@@ -296,9 +296,9 @@ void  findLimitedLinks()
             // --- check if HGL slope > conduit slope
             n1 = project->Link[j].node1;
             n2 = project->Link[j].node2;
-            h1 = project->Node[n1].newDepth + Node[n1].invertElev;
-            h2 = project->Node[n2].newDepth + Node[n2].invertElev;
-            if ( (h1 - h2) > fabs(project->Conduit[k].slope) * Conduit[k].length )
+            h1 = project->Node[n1].newDepth + project->Node[n1].invertElev;
+            h2 = project->Node[n2].newDepth + project->Node[n2].invertElev;
+            if ( (h1 - h2) > fabs(project->Conduit[k].slope) * project->Conduit[k].length )
                 project->Conduit[k].capacityLimited = TRUE;
         }
     }
@@ -306,48 +306,48 @@ void  findLimitedLinks()
 
 //=============================================================================
 
-void findLinkFlows(double dt)
+void findLinkFlows(Project *project, double dt)
 {
     int i;
 
     // --- find new flow in each non-dummy conduit
     for ( i = 0; i < project->Nobjects[LINK]; i++)
     {
-        if ( isTrueConduit(i) && !project->Link[i].bypassed )
-            dwflow_findConduitFlow(i, Steps, Omega, dt);
+        if ( isTrueConduit(project, i) && !project->Link[i].bypassed )
+            dwflow_findConduitFlow(project, i, Steps, Omega, dt);
     }
 
 
     // --- update inflow/outflows for nodes attached to non-dummy conduits
     for ( i = 0; i < project->Nobjects[LINK]; i++)
     {
-	    if ( isTrueConduit(i) ) 
-			updateNodeFlows(i);
+	    if ( isTrueConduit(project, i) )
+			updateNodeFlows(project, i);
     }
 
     // --- find new flows for all dummy conduits, pumps & regulators
     for ( i = 0; i < project->Nobjects[LINK]; i++)
     {
-	    if ( !isTrueConduit(i) )
+	    if ( !isTrueConduit(project, i) )
 	    {	
             if ( !project->Link[i].bypassed ) 
-				findNonConduitFlow(i, dt);
+				findNonConduitFlow(project, i, dt);
 
-            updateNodeFlows(i);
+            updateNodeFlows(project, i);
         }
     }
 }
 
 //=============================================================================
 
-int isTrueConduit(int j)
+int isTrueConduit(Project *project, int j)
 {
-    return ( project->Link[j].type == CONDUIT && Link[j].xsect.type != DUMMY );
+    return ( project->Link[j].type == CONDUIT && project->Link[j].xsect.type != DUMMY );
 }
 
 //=============================================================================
 
-void findNonConduitFlow(int i, double dt)
+void findNonConduitFlow(Project *project, int i, double dt)
 //
 //  Input:   i = link index
 //           dt = time step (sec)
@@ -364,11 +364,11 @@ void findNonConduitFlow(int i, double dt)
 
     // --- get new inflow to link from its upstream node
     //     (link_getInflow returns 0 if flap gate closed or pump is offline)
-    qNew = link_getInflow(i);
-    if ( project->Link[i].type == PUMP ) qNew = getModPumpFlow(i, qNew, dt);
+    qNew = link_getInflow(project, i);
+    if ( project->Link[i].type == PUMP ) qNew = getModPumpFlow(project, i, qNew, dt);
 
     // --- find surface area at each end of link
-    findNonConduitSurfArea(i);
+    findNonConduitSurfArea(project, i);
 
     // --- apply under-relaxation with flow from previous iteration;
     // --- do not allow flow to change direction without first being 0
@@ -382,7 +382,7 @@ void findNonConduitFlow(int i, double dt)
 
 //=============================================================================
 
-double getModPumpFlow(int i, double q, double dt)
+double getModPumpFlow(Project *project, int i, double q, double dt)
 //
 //  Input:   i = link index
 //           q = pump flow from pump curve (cfs)
@@ -402,7 +402,7 @@ double getModPumpFlow(int i, double q, double dt)
 
     // --- case where inlet node is a storage node: 
     //     prevent node volume from going negative
-    if ( project->Node[j].type == STORAGE ) return node_getMaxOutflow(j, q, dt); 
+    if ( project->Node[j].type == STORAGE ) return node_getMaxOutflow(project, j, q, dt);
 
     // --- case where inlet is a non-storage node
     switch ( project->Pump[k].type )
@@ -410,14 +410,14 @@ double getModPumpFlow(int i, double q, double dt)
       // --- for Type1 pump, a volume is computed for inlet node,
       //     so make sure it doesn't go negative
       case TYPE1_PUMP:
-        return node_getMaxOutflow(j, q, dt);
+        return node_getMaxOutflow(project, j, q, dt);
 
       // --- for other types of pumps, if pumping rate would make depth
       //     at upstream node negative, then set pumping rate = inflow
       case TYPE2_PUMP:
       case TYPE4_PUMP:
       case TYPE3_PUMP:
-         newNetInflow = project->Node[j].inflow - Node[j].outflow - q;
+         newNetInflow = project->Node[j].inflow - project->Node[j].outflow - q;
          netFlowVolume = 0.5 * (project->Node[j].oldNetInflow + newNetInflow ) * dt;
          y = project->Node[j].oldDepth + netFlowVolume / Xnode[j].newSurfArea;
          if ( y <= 0.0 ) return project->Node[j].inflow;
@@ -427,7 +427,7 @@ double getModPumpFlow(int i, double q, double dt)
 
 //=============================================================================
 
-void  findNonConduitSurfArea(int i)
+void  findNonConduitSurfArea(Project *project, int i)
 //
 //  Input:   i = link index
 //  Output:  none
@@ -437,7 +437,7 @@ void  findNonConduitSurfArea(int i)
 {
     if ( project->Link[i].type == ORIFICE )
     {
-        project->Link[i].surfArea1 = project->Orifice[Link[i].subIndex].surfArea / 2.;
+        project->Link[i].surfArea1 = project->Orifice[project->Link[i].subIndex].surfArea / 2.;
     }
 
 	// --- no surface area for weirs to maintain SWMM 4 compatibility
@@ -449,16 +449,16 @@ void  findNonConduitSurfArea(int i)
 */
 
     else project->Link[i].surfArea1 = 0.0;
-    project->Link[i].surfArea2 = Link[i].surfArea1;
+    project->Link[i].surfArea2 = project->Link[i].surfArea1;
     if ( project->Link[i].flowClass == UP_CRITICAL ||
-        project->Node[project->Link[i].node1].type == STORAGE ) Link[i].surfArea1 = 0.0;
+        project->Node[project->Link[i].node1].type == STORAGE ) project->Link[i].surfArea1 = 0.0;
     if ( project->Link[i].flowClass == DN_CRITICAL ||
-        project->Node[project->Link[i].node2].type == STORAGE ) Link[i].surfArea2 = 0.0;
+        project->Node[project->Link[i].node2].type == STORAGE ) project->Link[i].surfArea2 = 0.0;
 }
 
 //=============================================================================
 
-void updateNodeFlows(int i)
+void updateNodeFlows(Project *project, int i)
 //
 //  Input:   i = link index
 //           q = link flow rate (cfs)
@@ -477,7 +477,7 @@ void updateNodeFlows(int i)
     if ( project->Link[i].type == CONDUIT )
     {
         k = project->Link[i].subIndex;
-        uniformLossRate = project->Conduit[k].evapLossRate + Conduit[k].seepLossRate; 
+        uniformLossRate = project->Conduit[k].evapLossRate + project->Conduit[k].seepLossRate;
         barrels = project->Conduit[k].barrels;
     }
 
@@ -494,11 +494,11 @@ void updateNodeFlows(int i)
     }
 
     // --- add surf. area contributions to upstream/downstream nodes
-    Xnode[project->Link[i].node1].newSurfArea += Link[i].surfArea1 * barrels;
-    Xnode[project->Link[i].node2].newSurfArea += Link[i].surfArea2 * barrels;
+    Xnode[project->Link[i].node1].newSurfArea += project->Link[i].surfArea1 * barrels;
+    Xnode[project->Link[i].node2].newSurfArea += project->Link[i].surfArea2 * barrels;
 
     // --- update summed value of dqdh at each end node
-    Xnode[project->Link[i].node1].sumdqdh += Link[i].dqdh;
+    Xnode[project->Link[i].node1].sumdqdh += project->Link[i].dqdh;
     if ( project->Link[i].type == PUMP )
     {
         k = project->Link[i].subIndex;
@@ -513,7 +513,7 @@ void updateNodeFlows(int i)
 
 //=============================================================================
 
-int findNodeDepths(double dt)
+int findNodeDepths(Project *project, double dt)
 {
     int i;
     int converged;      // convergence flag
@@ -521,7 +521,7 @@ int findNodeDepths(double dt)
 
     // --- compute outfall depths based on flow in connecting link
     for ( i = 0; i < project->Nobjects[LINK]; i++ ) 
-		link_setOutfallDepth(i);
+		link_setOutfallDepth(project, i);
 
     // --- compute new depth for all non-outfall nodes and determine if
     //     depth change from previous iteration is below tolerance
@@ -532,7 +532,7 @@ int findNodeDepths(double dt)
 			continue;
 
         yOld = project->Node[i].newDepth;
-        setNodeDepth(i, dt);
+        setNodeDepth(project, i, dt);
         Xnode[i].converged = TRUE;
 
         if ( fabs(yOld - project->Node[i].newDepth) > project->HeadTol )
@@ -546,7 +546,7 @@ int findNodeDepths(double dt)
 
 //=============================================================================
 
-void setNodeDepth(int i, double dt)
+void setNodeDepth(Project *project, int i, double dt)
 //
 //  Input:   i  = node index
 //           dt = time step (sec)
@@ -571,18 +571,18 @@ void setNodeDepth(int i, double dt)
 
     // --- see if node can pond water above it
     canPond = (project->AllowPonding && project->Node[i].pondedArea > 0.0);
-    isPonded = (canPond && project->Node[i].newDepth > Node[i].fullDepth);
+    isPonded = (canPond && project->Node[i].newDepth > project->Node[i].fullDepth);
 
     // --- initialize values
-    yCrown = project->Node[i].crownElev - Node[i].invertElev;
+    yCrown = project->Node[i].crownElev - project->Node[i].invertElev;
     yOld = project->Node[i].oldDepth;
     yLast = project->Node[i].newDepth;
     project->Node[i].overflow = 0.0;
     surfArea = Xnode[i].newSurfArea;
 
     // --- determine average net flow volume into node over the time step
-    dQ = project->Node[i].inflow - Node[i].outflow;
-    dV = 0.5 * (project->Node[i].oldNetInflow + dQ) * dt - node_getLosses(i, dt);
+    dQ = project->Node[i].inflow - project->Node[i].outflow;
+    dV = 0.5 * (project->Node[i].oldNetInflow + dQ) * dt - node_getLosses(project, i, dt);
 
     // --- if node not surcharged, base depth change on surface area        
     if ( yLast <= yCrown || project->Node[i].type == STORAGE || isPonded )
@@ -653,11 +653,11 @@ void setNodeDepth(int i, double dt)
     // --- find flooded depth & volume
     if ( yNew > yMax )
     {
-        yNew = getFloodedDepth(i, canPond, dV, yNew, yMax, dt);
+        yNew = getFloodedDepth(project, i, canPond, dV, yNew, yMax, dt);
     }
 	else
 	{
-		project->Node[i].newVolume = node_getVolume(i, yNew);
+		project->Node[i].newVolume = node_getVolume(project, i, yNew);
 	}
 
     // --- compute change in depth w.r.t. time
@@ -670,7 +670,7 @@ void setNodeDepth(int i, double dt)
 
 //=============================================================================
 
-double getFloodedDepth(int i, int canPond, double dV, double yNew,
+double getFloodedDepth(Project *project, int i, int canPond, double dV, double yNew,
                        double yMax, double dt)
 //
 //  Input:   i  = node index
@@ -687,23 +687,23 @@ double getFloodedDepth(int i, int canPond, double dV, double yNew,
     if ( canPond == FALSE )
     {
         project->Node[i].overflow = dV / dt;
-        project->Node[i].newVolume = Node[i].fullVolume;
+        project->Node[i].newVolume = project->Node[i].fullVolume;
         yNew = yMax;
     }
     else
     {
-        project->Node[i].newVolume = MAX((Node[i].oldVolume+dV), Node[i].fullVolume);
-        project->Node[i].overflow = (Node[i].newVolume - 
-            MAX(project->Node[i].oldVolume, Node[i].fullVolume)) / dt;
+        project->Node[i].newVolume = MAX((project->Node[i].oldVolume+dV), project->Node[i].fullVolume);
+        project->Node[i].overflow = (project->Node[i].newVolume -
+            MAX(project->Node[i].oldVolume, project->Node[i].fullVolume)) / dt;
     }
-    if ( project->Node[i].overflow < FUDGE ) Node[i].overflow = 0.0;
+    if ( project->Node[i].overflow < FUDGE ) project->Node[i].overflow = 0.0;
     return yNew;
 
 }
 
 //=============================================================================
 
-double getVariableStep(double maxStep)
+double getVariableStep(Project *project, double maxStep)
 //
 //  Input:   maxStep = user-supplied max. time step (sec)
 //  Output:  returns time step (sec)
@@ -719,8 +719,8 @@ double getVariableStep(double maxStep)
 
     // --- find stable time step for links & then nodes
     tMin = maxStep;
-    tMinLink = getLinkStep(tMin, &minLink);
-    tMinNode = getNodeStep(tMinLink, &minNode);
+    tMinLink = getLinkStep(project, tMin, &minLink);
+    tMinNode = getNodeStep(project, tMinLink, &minNode);
 
     // --- use smaller of the link and node time step
     tMin = tMinLink;
@@ -740,7 +740,7 @@ double getVariableStep(double maxStep)
 
 //=============================================================================
 
-double getLinkStep(double tMin, int *minLink)
+double getLinkStep(Project *project, double tMin, int *minLink)
 //
 //  Input:   tMin = critical time step found so far (sec)
 //  Output:  minLink = index of link with critical time step;
@@ -769,8 +769,8 @@ double getLinkStep(double tMin, int *minLink)
 
             // --- compute time step to satisfy Courant condition
             t = project->Link[i].newVolume / project->Conduit[k].barrels / q;
-            t = t * project->Conduit[k].modLength / link_getLength(i);
-            t = t * project->Link[i].froude / (1.0 + Link[i].froude) * project->CourantFactor;
+            t = t * project->Conduit[k].modLength / link_getLength(project, i);
+            t = t * project->Link[i].froude / (1.0 + project->Link[i].froude) * project->CourantFactor;
 
             // --- update critical link time step
             if ( t < tLink )
@@ -785,7 +785,7 @@ double getLinkStep(double tMin, int *minLink)
 
 //=============================================================================
 
-double getNodeStep(double tMin, int *minNode)
+double getNodeStep(Project *project, double tMin, int *minNode)
 //
 //  Input:   tMin = critical time step found so far (sec)
 //  Output:  minNode = index of node with critical time step;
@@ -808,10 +808,10 @@ double getNodeStep(double tMin, int *minNode)
         if ( project->Node[i].type == OUTFALL ) continue;
         if ( project->Node[i].newDepth <= FUDGE) continue;
         if ( project->Node[i].newDepth  + FUDGE >=
-             project->Node[i].crownElev - Node[i].invertElev ) continue;
+             project->Node[i].crownElev - project->Node[i].invertElev ) continue;
 
         // --- define max. allowable depth change using crown elevation
-        maxDepth = (project->Node[i].crownElev - Node[i].invertElev) * 0.25;
+        maxDepth = (project->Node[i].crownElev - project->Node[i].invertElev) * 0.25;
         if ( maxDepth < FUDGE ) continue;
         dYdT = Xnode[i].dYdT;
         if (dYdT < FUDGE ) continue;

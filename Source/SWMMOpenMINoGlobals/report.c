@@ -56,7 +56,7 @@ static void report_LinkHeader(char *id);
 
 //=============================================================================
 
-int report_readOptions(char* tok[], int ntoks)
+int report_readOptions(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -139,14 +139,14 @@ int report_readOptions(char* tok[], int ntoks)
 
 //=============================================================================
 
-void report_writeLine(char *line)
+void report_writeLine(Project *project, char *line)
 //
 //  Input:   line = line of text
 //  Output:  none
 //  Purpose: writes line of text to report file.
 //
 {
-    if ( project->Frpt.file ) fprintf(Frpt.file, "\n  %s", line);
+    if ( project->Frpt.file ) fprintf(project->Frpt.file, "\n  %s", line);
 }
 
 //=============================================================================

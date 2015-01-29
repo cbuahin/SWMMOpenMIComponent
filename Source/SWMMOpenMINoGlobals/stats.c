@@ -57,14 +57,14 @@ extern double*         NodeOutflow;    // defined in massbal.c
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static void stats_updateNodeStats(int node, double tStep, DateTime aDate);
-static void stats_updateLinkStats(int link, double tStep, DateTime aDate);
-static void stats_findMaxStats(void);
+static void stats_updateNodeStats(Project *project, int node, double tStep, DateTime aDate);
+static void stats_updateLinkStats(Project *project, int link, double tStep, DateTime aDate);
+static void stats_findMaxStats(Project *project);
 static void stats_updateMaxStats(TMaxStats maxStats[], int i, int j, double x);
 
 //=============================================================================
 
-int  stats_open()
+int  stats_open(Project *project)
 //
 //  Input:   none
 //  Output:  returns an error code
@@ -243,7 +243,7 @@ int  stats_open()
 
 //=============================================================================
 
-void  stats_close()
+void  stats_close(Project *project)
 //
 //  Input:   none
 //  Output:  
@@ -267,7 +267,7 @@ void  stats_close()
 
 //=============================================================================
 
-void  stats_report()
+void  stats_report(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -278,14 +278,14 @@ void  stats_report()
     // --- report flow routing accuracy statistics
     if ( project->Nobjects[LINK] > 0 && project->RouteModel != NO_ROUTING )
     {
-        stats_findMaxStats();
+        stats_findMaxStats(project);
         report_writeMaxStats(MaxMassBalErrs, MaxCourantCrit, MAX_STATS);
         report_writeMaxFlowTurns(MaxFlowTurns, MAX_STATS);
         report_writeSysStats(&SysStats);
     }
 
     // --- report summary statistics
-    statsrpt_writeReport();
+    statsrpt_writeReport(project);
 }
 
 //=============================================================================
@@ -315,7 +315,7 @@ void   stats_updateSubcatchStats(int j, double rainVol, double runonVol,
 
 //=============================================================================
 
-void  stats_updateMaxRunoff()
+void  stats_updateMaxRunoff(Project *project)
 //
 //   Input:   none
 //   Output:  updates global variable MaxRunoffFlow
@@ -331,7 +331,7 @@ void  stats_updateMaxRunoff()
 
 //=============================================================================
 
-void   stats_updateFlowStats(double tStep, DateTime aDate, int stepCount,
+void   stats_updateFlowStats(Project *project, double tStep, DateTime aDate, int stepCount,
                              int steadyState)
 //
 //  Input:   tStep = routing time step (sec)
@@ -350,9 +350,9 @@ void   stats_updateFlowStats(double tStep, DateTime aDate, int stepCount,
 
     // --- update node & link stats
     for ( j=0; j<project->Nobjects[NODE]; j++ )
-        stats_updateNodeStats(j, tStep, aDate);
+        stats_updateNodeStats(project, j, tStep, aDate);
     for ( j=0; j<project->Nobjects[LINK]; j++ )
-        stats_updateLinkStats(j, tStep, aDate);
+        stats_updateLinkStats(project, j, tStep, aDate);
 
     // --- update time step stats
     //     (skip initial time step for min. value)
@@ -389,7 +389,7 @@ void stats_updateCriticalTimeCount(int node, int link)
 
 //=============================================================================
 
-void stats_updateNodeStats(int j, double tStep, DateTime aDate)
+void stats_updateNodeStats(Project *project, int j, double tStep, DateTime aDate)
 //
 //  Input:   j = node index
 //           tStep = routing time step (sec)
@@ -418,7 +418,7 @@ void stats_updateNodeStats(int j, double tStep, DateTime aDate)
     // --- update flooding, ponding, and surcharge statistics
     if ( project->Node[j].type != OUTFALL )
     {
-        if ( newVolume > project->Node[j].fullVolume || Node[j].overflow > 0.0 )
+        if ( newVolume > project->Node[j].fullVolume || project->Node[j].overflow > 0.0 )
         {
             NodeStats[j].timeFlooded += tStep;
             NodeStats[j].volFlooded += project->Node[j].overflow * tStep;
@@ -426,7 +426,7 @@ void stats_updateNodeStats(int j, double tStep, DateTime aDate)
                 MAX(NodeStats[j].maxPondedVol,
                     (newVolume - project->Node[j].fullVolume));
         }
-        if ( newDepth + project->Node[j].invertElev + FUDGE >= Node[j].crownElev )
+        if ( newDepth + project->Node[j].invertElev + FUDGE >= project->Node[j].crownElev )
         {
                 NodeStats[j].timeSurcharged += tStep;
         }
@@ -470,7 +470,7 @@ void stats_updateNodeStats(int j, double tStep, DateTime aDate)
     }
 
     // --- update inflow statistics
-    NodeStats[j].totLatFlow += ( (project->Node[j].oldLatFlow + Node[j].newLatFlow) * 
+    NodeStats[j].totLatFlow += ( (project->Node[j].oldLatFlow + project->Node[j].newLatFlow) *
                                  0.5 * tStep );
     NodeStats[j].maxLatFlow = MAX(project->Node[j].newLatFlow, NodeStats[j].maxLatFlow);
     if ( project->Node[j].inflow > NodeStats[j].maxInflow )
@@ -489,7 +489,7 @@ void stats_updateNodeStats(int j, double tStep, DateTime aDate)
 
 //=============================================================================
 
-void  stats_updateLinkStats(int j, double tStep, DateTime aDate)
+void  stats_updateLinkStats(Project *project, int j, double tStep, DateTime aDate)
 //
 //  Input:   j = link index
 //           tStep = routing time step (sec)
@@ -503,7 +503,7 @@ void  stats_updateLinkStats(int j, double tStep, DateTime aDate)
     double dq;
 
     // --- update max. flow
-    dq = project->Link[j].newFlow - Link[j].oldFlow;
+    dq = project->Link[j].newFlow - project->Link[j].oldFlow;
     q = fabs(project->Link[j].newFlow);
     if ( q > LinkStats[j].maxFlow )
     {
@@ -512,7 +512,7 @@ void  stats_updateLinkStats(int j, double tStep, DateTime aDate)
     }
 
     // --- update max. velocity
-    v = link_getVelocity(j, q, project->Link[j].newDepth);
+    v = link_getVelocity(project, j, q, project->Link[j].newDepth);
     if ( v > LinkStats[j].maxVeloc )
     {
         LinkStats[j].maxVeloc = v;
@@ -537,7 +537,7 @@ void  stats_updateLinkStats(int j, double tStep, DateTime aDate)
             PumpStats[k].avgFlow += q;
             PumpStats[k].volume += q*tStep;
             PumpStats[k].utilized += tStep;
-            PumpStats[k].energy += link_getPower(j)*tStep/3600.0;
+            PumpStats[k].energy += link_getPower(project, j)*tStep/3600.0;
             if ( project->Link[j].flowClass == DN_DRY )
                 PumpStats[k].offCurveLow += tStep;
             if ( project->Link[j].flowClass == UP_DRY )
@@ -569,7 +569,7 @@ void  stats_updateLinkStats(int j, double tStep, DateTime aDate)
         if ( q >= project->Link[j].qFull ) LinkStats[j].timeFullFlow += tStep; 
         if ( project->Conduit[k].capacityLimited )
             LinkStats[j].timeCapacityLimited += tStep;
-        if ( project->Link[j].newDepth >= Link[j].xsect.yFull )
+        if ( project->Link[j].newDepth >= project->Link[j].xsect.yFull )
         {
             LinkStats[j].timeSurcharged += tStep;
             LinkStats[j].timeFullUpstream += tStep;
@@ -590,7 +590,7 @@ void  stats_updateLinkStats(int j, double tStep, DateTime aDate)
 
 //=============================================================================
 
-void  stats_findMaxStats()
+void  stats_findMaxStats(Project *project)
 //
 //  Input:   none
 //  Output:  none

@@ -50,18 +50,18 @@ static DateTime NewIfaceDate;          // next date of interface values
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static void  openFileForOutput(void);
-static void  openFileForInput(void);
-static int   getIfaceFilePolluts(void);
-static int   getIfaceFileNodes(void);
-static void  setOldIfaceValues(void);
-static void  readNewIfaceValues(void);
-static int   isOutletNode(int node);
+static void  openFileForOutput(Project *project);
+static void  openFileForInput(Project *project);
+static int   getIfaceFilePolluts(Project *project);
+static int   getIfaceFileNodes(Project *project);
+static void  setOldIfaceValues(Project *project);
+static void  readNewIfaceValues(Project *project);
+static int   isOutletNode(Project *project, int node);
 
 
 //=============================================================================
 
-int iface_readFileParams(char* tok[], int ntoks)
+int iface_readFileParams(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -131,7 +131,7 @@ int iface_readFileParams(char* tok[], int ntoks)
 
 //=============================================================================
 
-void iface_openRoutingFiles()
+void iface_openRoutingFiles(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -157,13 +157,13 @@ void iface_openRoutingFiles()
     }
 
     // --- open the file for reading or writing
-    if ( project->Foutflows.mode == SAVE_FILE ) openFileForOutput();
-    if ( project->Finflows.mode == USE_FILE ) openFileForInput();
+    if ( project->Foutflows.mode == SAVE_FILE ) openFileForOutput(project);
+    if ( project->Finflows.mode == USE_FILE ) openFileForInput(project);
 }
 
 //=============================================================================
 
-void iface_closeRoutingFiles()
+void iface_closeRoutingFiles(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -174,13 +174,13 @@ void iface_closeRoutingFiles()
     FREE(IfaceNodes);
     if ( OldIfaceValues != NULL ) project_freeMatrix(OldIfaceValues);
     if ( NewIfaceValues != NULL ) project_freeMatrix(NewIfaceValues);
-    if ( project->Finflows.file )  fclose(Finflows.file);
-    if ( project->Foutflows.file ) fclose(Foutflows.file);
+    if ( project->Finflows.file )  fclose(project->Finflows.file);
+    if ( project->Foutflows.file ) fclose(project->Foutflows.file);
 }
 
 //=============================================================================
 
-int iface_getNumIfaceNodes(DateTime currentDate)
+int iface_getNumIfaceNodes(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current date/time
 //  Output:  returns number of interface nodes if data exists or
@@ -194,8 +194,8 @@ int iface_getNumIfaceNodes(DateTime currentDate)
     // --- keep updating new interface values until current date bracketed
     while ( NewIfaceDate < currentDate && NewIfaceDate != NO_DATE )
     {
-        setOldIfaceValues();
-        readNewIfaceValues();
+        setOldIfaceValues(project);
+        readNewIfaceValues(project);
     }
 
     // --- return 0 if no data available
@@ -274,7 +274,7 @@ double iface_getIfaceQual(int index, int pollut)
 
 //=============================================================================
 
-void iface_saveOutletResults(DateTime reportDate, FILE* file)
+void iface_saveOutletResults(Project *project, DateTime reportDate, FILE* file)
 //
 //  Input:   reportDate = reporting date/time
 //           file = ptr. to interface file
@@ -291,7 +291,7 @@ void iface_saveOutletResults(DateTime reportDate, FILE* file)
     for (i=0; i<project->Nobjects[NODE]; i++)
     {
         // --- check that node is an outlet node
-        if ( !isOutletNode(i) ) continue;
+        if ( !isOutletNode(project, i) ) continue;
 
         // --- write node ID, date, flow, and quality to file
         fprintf(file, "\n%-16s", project->Node[i].ID);
@@ -306,7 +306,7 @@ void iface_saveOutletResults(DateTime reportDate, FILE* file)
 
 //=============================================================================
 
-void openFileForOutput()
+void openFileForOutput(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -316,7 +316,7 @@ void openFileForOutput()
     int i, n;
 
     // --- open the routing file for writing text
-    project->Foutflows.file = fopen(Foutflows.name, "wt");
+    project->Foutflows.file = fopen(project->Foutflows.name, "wt");
     if ( project->Foutflows.file == NULL )
     {
         report_writeErrorMsg(ERR_ROUTING_FILE_OPEN, project->Foutflows.name);
@@ -342,14 +342,14 @@ void openFileForOutput()
     n = 0;
     for (i=0; i<project->Nobjects[NODE]; i++)
     {
-        if ( isOutletNode(i) ) n++;
+        if ( isOutletNode(project, i) ) n++;
     }
 
     // --- write number and names of outlet nodes to file
     fprintf(project->Foutflows.file, "\n%-4d - number of nodes as listed below:", n);
     for (i=0; i<project->Nobjects[NODE]; i++)
     {
-          if ( isOutletNode(i) )
+          if ( isOutletNode(project, i) )
             fprintf(project->Foutflows.file, "\n%s", project->Node[i].ID);
     }
 
@@ -364,13 +364,13 @@ void openFileForOutput()
     // --- if reporting starts immediately, save initial outlet values
     if ( project->ReportStart == project->StartDateTime )
     {
-        iface_saveOutletResults(project->ReportStart, project->Foutflows.file);
+        iface_saveOutletResults(project, project->ReportStart, project->Foutflows.file);
     }
 }
 
 //=============================================================================
 
-void openFileForInput()
+void openFileForInput(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -382,7 +382,7 @@ void openFileForInput()
     char  s[MAXLINE+1];                // general string variable
 
     // --- open the routing interface file for reading text
-    project->Finflows.file = fopen(Finflows.name, "rt");
+    project->Finflows.file = fopen(project->Finflows.name, "rt");
     if ( project->Finflows.file == NULL )
     {
         report_writeErrorMsg(ERR_ROUTING_FILE_OPEN, project->Finflows.name);
@@ -412,7 +412,7 @@ void openFileForInput()
     }
 
     // --- match constituents in file with those in project
-    err = getIfaceFilePolluts();
+    err = getIfaceFilePolluts(project);
     if ( err > 0 )
     {
         report_writeErrorMsg(err, project->Finflows.name);
@@ -420,7 +420,7 @@ void openFileForInput()
     }
 
     // --- match nodes in file with those in project
-    err = getIfaceFileNodes();
+    err = getIfaceFileNodes(project);
     if ( err > 0 )
     {
         report_writeErrorMsg(err, project->Finflows.name);
@@ -439,13 +439,13 @@ void openFileForInput()
     }
 
     // --- read in new interface flows & WQ values
-    readNewIfaceValues();
+    readNewIfaceValues(project);
     OldIfaceDate = NewIfaceDate;
 }
 
 //=============================================================================
 
-int  getIfaceFilePolluts()
+int  getIfaceFilePolluts(Project *project)
 //
 //  Input:   none
 //  Output:  returns an error code
@@ -502,7 +502,7 @@ int  getIfaceFilePolluts()
 
 //=============================================================================
 
-int getIfaceFileNodes()
+int getIfaceFileNodes(Project *project)
 //
 //  Input:   none
 //  Output:  returns an error code
@@ -539,7 +539,7 @@ int getIfaceFileNodes()
 
 //=============================================================================
 
-void readNewIfaceValues()
+void readNewIfaceValues(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -622,7 +622,7 @@ void setOldIfaceValues()
 
 //=============================================================================
 
-int  isOutletNode(int i)
+int  isOutletNode(Project *project, int i)
 //
 //  Input:   i = node index
 //  Output:  returns 1 if node is an outlet, 0 if not.

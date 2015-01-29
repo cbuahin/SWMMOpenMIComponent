@@ -155,21 +155,21 @@ typedef struct
 //-----------------------------------------------------------------------------
 //   LID Methods
 //-----------------------------------------------------------------------------
-void     lid_create(int lidCount, int subcatchCount);
+void     lid_create(Project *project, int lidCount, int subcatchCount);
 void     lid_delete(void);
 int      lid_readProcParams(char* tok[], int ntoks);
-int      lid_readGroupParams(char* tok[], int ntoks);
-void     lid_validate(void);
-void     lid_initState(void);
+int      lid_readGroupParams(Project *project, char* tok[], int ntoks);
+void     lid_validate(Project *project);
+void     lid_initState(Project *project);
 double   lid_getPervArea(int subcatch);
 double   lid_getFlowToPerv(int subcatch);
-double   lid_getStoredVolume(int subcatch);
-double   lid_getSurfaceDepth(int subcatch);
-double   lid_getDepthOnPavement(int subcatch, double impervDepth);
-double   lid_getRunoff(int subcatch, double *outflow, double *evapVol,
+double   lid_getStoredVolume(Project *project, int subcatch);
+double   lid_getSurfaceDepth(Project *project, int subcatch);
+double   lid_getDepthOnPavement(Project *project, int subcatch, double impervDepth);
+double   lid_getRunoff(Project *project, int subcatch, double *outflow, double *evapVol,
          double *pervEvapVol, double *infilVol, double tStep);
-void     lid_writeSummary(void);
-void     lid_writeWaterBalance(void);
+void     lid_writeSummary(Project *project);
+void     lid_writeWaterBalance(Project *project);
 //-----------------------------------------------------------------------------
 void     lidproc_initWaterBalance(TLidUnit *lidUnit, double initVol);
 double   lidproc_getOutflow(TLidUnit* theUnit, TLidProc* theProc, double inflow,

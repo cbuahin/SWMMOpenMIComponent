@@ -101,46 +101,46 @@ extern double     Qcf[];               // flow units conversion factors
 // Function Declarations
 //-----------------------------------------------------------------------------
 // --- functions used to create a RDII file
-static int    readOldUHFormat(int j, int m, char* tok[], int ntoks);
-static void   setUnitHydParams(int j, int i, int m, double x[]);
-static void   createRdiiFile(void);
-static int    getNumRdiiNodes(void);
-static void   validateRdii(void);
+static int    readOldUHFormat(Project *project, int j, int m, char* tok[], int ntoks);
+static void   setUnitHydParams(Project *project, int j, int i, int m, double x[]);
+static void   createRdiiFile(Project *project);
+static int    getNumRdiiNodes(Project *project);
+static void   validateRdii(Project *project);
 
-static void   openRdiiProcessor(void);
-static int    allocRdiiMemory(void);
-static int    getRainInterval(int i);
-static int    getMaxPeriods(int i, int k);
-static void   initGageData(void);
-static void   initUnitHydData(void);
-static int    openNewRdiiFile(void);
-static void   getRainfall(DateTime currentDate);
+static void   openRdiiProcessor(Project *project);
+static int    allocRdiiMemory(Project *project);
+static int    getRainInterval(Project *project, int i);
+static int    getMaxPeriods(Project *project, int i, int k);
+static void   initGageData(Project *project);
+static void   initUnitHydData(Project *project);
+static int    openNewRdiiFile(Project *project);
+static void   getRainfall(Project *project, DateTime currentDate);
 
-static double applyIA(int j, int k, DateTime aDate, double dt,
+static double applyIA(Project *project, int j, int k, DateTime aDate, double dt,
               double rainDepth);
 static void   updateDryPeriod(int j, int k, double rain, int gageInterval);
-static void   getUnitHydRdii(DateTime currentDate);
-static double getUnitHydConvol(int j, int k, int gageInterval);
-static double getUnitHydOrd(int j, int m, int k, double t);
+static void   getUnitHydRdii(Project *project, DateTime currentDate);
+static double getUnitHydConvol(Project *project, int j, int k, int gageInterval);
+static double getUnitHydOrd(Project *project, int j, int m, int k, double t);
 
-static int    getNodeRdii(void);
-static void   saveRdiiFlows(DateTime currentDate);
-static void   closeRdiiProcessor(void);
-static void   freeRdiiMemory(void);
+static int    getNodeRdii(Project *project);
+static void   saveRdiiFlows(Project *project, DateTime currentDate);
+static void   closeRdiiProcessor(Project *project);
+static void   freeRdiiMemory(Project *project);
 
 // --- functions used to read an existing RDII file
-static int   readRdiiFileHeader(void);
-static void  readRdiiFlows(void);
+static int   readRdiiFileHeader(Project *project);
+static void  readRdiiFlows(Project *project);
 
-static void  openRdiiTextFile(void);
-static int   readRdiiTextFileHeader(void);
-static void  readRdiiTextFlows(void);
+static void  openRdiiTextFile(Project *project);
+static int   readRdiiTextFileHeader(Project *project);
+static void  readRdiiTextFlows(Project *project);
 
 //=============================================================================
 //                   Management of RDII-Related Data
 //=============================================================================
 
-int rdii_readRdiiInflow(char* tok[], int ntoks)
+int rdii_readRdiiInflow(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -186,7 +186,7 @@ int rdii_readRdiiInflow(char* tok[], int ntoks)
 
 //=============================================================================
 
-void rdii_initUnitHyd(int j)
+void rdii_initUnitHyd(Project *project, int j)
 //
 //  Input:   j = UH group index
 //  Output:  none
@@ -212,7 +212,7 @@ void rdii_initUnitHyd(int j)
 
 //=============================================================================
 
-int rdii_readUnitHydParams(char* tok[], int ntoks)
+int rdii_readUnitHydParams(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -253,7 +253,7 @@ int rdii_readUnitHydParams(char* tok[], int ntoks)
     k = findmatch(tok[2], UHTypeWords);
 
     // --- if no type match, try using older UH line format
-    if ( k < 0 ) return readOldUHFormat(j, m, tok, ntoks);
+    if ( k < 0 ) return readOldUHFormat(project, j, m, tok, ntoks);
 
     // --- read the R-T-K parameters
     for ( i = 0; i < 3; i++ )
@@ -274,13 +274,13 @@ int rdii_readUnitHydParams(char* tok[], int ntoks)
     }
 
     // --- save UH params
-    setUnitHydParams(j, k, m, x);
+    setUnitHydParams(project, j, k, m, x);
     return 0;
 }
 
 //=============================================================================
 
-int readOldUHFormat(int j, int m, char* tok[], int ntoks)
+int readOldUHFormat(Project *project, int j, int m, char* tok[], int ntoks)
 //
 //  Input:   j = unit hydrograph index
 //           m = month of year (0 = all months)
@@ -321,7 +321,7 @@ int readOldUHFormat(int j, int m, char* tok[], int ntoks)
         for ( i = 0; i < 3; i++)
         {
             x[i] = p[3*k + i]; 
-            setUnitHydParams(j, k, m, x);
+            setUnitHydParams(project, j, k, m, x);
         }
     }
     return 0;
@@ -329,7 +329,7 @@ int readOldUHFormat(int j, int m, char* tok[], int ntoks)
 
 //=============================================================================
 
-void setUnitHydParams(int j, int i, int m, double x[])
+void setUnitHydParams(Project *project, int j, int i, int m, double x[])
 //
 //  Input:   j = unit hydrograph index
 //           i = type of UH response (short, medium or long term)
@@ -376,7 +376,7 @@ void setUnitHydParams(int j, int i, int m, double x[])
 
 //=============================================================================
 
-void rdii_deleteRdiiInflow(int j)
+void rdii_deleteRdiiInflow(Project *project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
@@ -395,7 +395,7 @@ void rdii_deleteRdiiInflow(int j)
 //                 Reading Inflow Data From a RDII File
 //=============================================================================
 
-void rdii_openRdii()
+void rdii_openRdii(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -411,11 +411,11 @@ void rdii_openRdii()
 
     // --- create the RDII file if existing file not being used
     if ( project->IgnoreRDII ) return;                                                  //(5.1.004)
-    if ( project->Frdii.mode != USE_FILE ) createRdiiFile();
+    if ( project->Frdii.mode != USE_FILE ) createRdiiFile(project);
     if ( project->Frdii.mode == NO_FILE || project->ErrorCode ) return;
 
     // --- try to open the RDII file in binary mode
-    project->Frdii.file = fopen(Frdii.name, "rb");
+    project->Frdii.file = fopen(project->Frdii.name, "rb");
     if ( project->Frdii.file == NULL)
     {
         if ( project->Frdii.mode == SCRATCH_FILE )
@@ -434,7 +434,7 @@ void rdii_openRdii()
     if ( strcmp(fStamp, FileStamp) == 0 )
     {
         RdiiFileType = BINARY;
-        project->ErrorCode = readRdiiFileHeader();
+        project->ErrorCode = readRdiiFileHeader(project);
     }
 
     // --- if stamp invalid try to open the file in text mode
@@ -442,7 +442,7 @@ void rdii_openRdii()
     {
         fclose(project->Frdii.file);
         RdiiFileType = TEXT;
-        openRdiiTextFile();
+        openRdiiTextFile(project);
     }
 
     // --- catch any error
@@ -452,15 +452,15 @@ void rdii_openRdii()
     }
 
     // --- read the first set of RDII flows form the file
-    else readRdiiFlows();
+    else readRdiiFlows(project);
 }
 
 //=============================================================================
 
-void openRdiiTextFile()
+void openRdiiTextFile(Project *project)
 {
     // --- try to open the RDII file in text mode
-    project->Frdii.file = fopen(Frdii.name, "rt");
+    project->Frdii.file = fopen(project->Frdii.name, "rt");
     if ( project->Frdii.file == NULL)
     {
         if ( project->Frdii.mode == SCRATCH_FILE )
@@ -475,7 +475,7 @@ void openRdiiTextFile()
     }
 
     // --- read header records from file
-    project->ErrorCode = readRdiiTextFileHeader();
+    project->ErrorCode = readRdiiTextFileHeader(project);
     if ( project->ErrorCode )
     {
         report_writeErrorMsg(project->ErrorCode, project->Frdii.name);
@@ -484,22 +484,22 @@ void openRdiiTextFile()
 
 //=============================================================================
 
-void rdii_closeRdii()
+void rdii_closeRdii(Project *project)
 //
 //  Input:   none
 //  Output:  none
 //  Purpose: closes the RDII interface file.
 //
 {
-    if ( project->Frdii.file ) fclose(Frdii.file);
-    if ( project->Frdii.mode == SCRATCH_FILE ) remove(Frdii.name);
+    if ( project->Frdii.file ) fclose(project->Frdii.file);
+    if ( project->Frdii.mode == SCRATCH_FILE ) remove(project->Frdii.name);
     FREE(RdiiNodeIndex);
     FREE(RdiiNodeFlow);
 }
 
 //=============================================================================
 
-int rdii_getNumRdiiFlows(DateTime aDate)
+int rdii_getNumRdiiFlows(Project *project, DateTime aDate)
 //
 //  Input:   aDate = current date/time
 //  Output:  returns 0 if no RDII flow or number of nodes with RDII inflows
@@ -522,7 +522,7 @@ int rdii_getNumRdiiFlows(DateTime aDate)
         if ( aDate < RdiiEndDate ) return NumRdiiNodes;
 
         // --- otherwise get next date and RDII flow values from file
-        else readRdiiFlows();
+        else readRdiiFlows(project);
     }
     return 0;
 }
@@ -547,7 +547,7 @@ void rdii_getRdiiFlow(int i, int* j, double* q)
 
 //=============================================================================
 
-int readRdiiFileHeader()
+int readRdiiFileHeader(Project *project)
 //
 //  Input:   none
 //  Output:  returns error code
@@ -582,7 +582,7 @@ int readRdiiFileHeader()
 
 //=============================================================================
 
-int readRdiiTextFileHeader()
+int readRdiiTextFileHeader(Project *project)
 //
 //  Input:   none
 //  Output:  returns error code
@@ -644,14 +644,14 @@ int readRdiiTextFileHeader()
 
 //=============================================================================
 
-void readRdiiFlows()
+void readRdiiFlows(Project *project)
 //
 //  Input:   none
 //  Output:  none
 //  Purpose: reads date and flow values of next RDII inflows from RDII file.
 //
 {
-    if ( RdiiFileType == TEXT ) readRdiiTextFlows();
+    if ( RdiiFileType == TEXT ) readRdiiTextFlows(project);
     else
     {
         RdiiStartDate = NO_DATE;
@@ -667,7 +667,7 @@ void readRdiiFlows()
 
 //=============================================================================
 
-void readRdiiTextFlows()
+void readRdiiTextFlows(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -701,7 +701,7 @@ void readRdiiTextFlows()
 //                   Creation of a RDII Interface File
 //=============================================================================
 
-void createRdiiFile()
+void createRdiiFile(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -717,7 +717,7 @@ void createRdiiFile()
     RdiiStep = project->WetStep;
 
     // --- count nodes with RDII data
-    NumRdiiNodes = getNumRdiiNodes();
+    NumRdiiNodes = getNumRdiiNodes(project);
 
     // --- if no RDII nodes then re-set RDII file usage to NO_FILE
     if ( NumRdiiNodes == 0 )
@@ -727,19 +727,19 @@ void createRdiiFile()
     }
 
     // --- otherwise set file usage to SCRATCH if originally set to NO_FILE
-    else if ( project->Frdii.mode == NO_FILE ) Frdii.mode = SCRATCH_FILE;
+    else if ( project->Frdii.mode == NO_FILE ) project->Frdii.mode = SCRATCH_FILE;
 
     // --- validate RDII data
-    validateRdii();
-    initGageData();
+    validateRdii(project);
+    initGageData(project);
     if ( project->ErrorCode ) return;
 
     // --- open RDII processing system
-    openRdiiProcessor();
+    openRdiiProcessor(project);
     if ( !project->ErrorCode )
     {
         // --- initialize rain gage & UH processing data
-        initUnitHydData();
+        initUnitHydData(project);
 
         // --- convert total simulation duration from millisec to sec
         duration = project->TotalDuration / 1000.0;
@@ -752,16 +752,16 @@ void createRdiiFile()
             currentDate = project->StartDateTime + elapsedTime / SECperDAY;
 
             // --- update rainfall at all rain gages
-            getRainfall(currentDate);
+            getRainfall(project, currentDate);
 
             // --- compute convolutions of past rainfall with UH's
-            getUnitHydRdii(currentDate);
+            getUnitHydRdii(project, currentDate);
     
             // --- find RDII at all nodes
-            hasRdii = getNodeRdii();
+            hasRdii = getNodeRdii(project);
     
             // --- save RDII at all nodes to file for current date
-            if ( hasRdii ) saveRdiiFlows(currentDate);
+            if ( hasRdii ) saveRdiiFlows(project, currentDate);
     
             // --- advance one time step
             elapsedTime += RdiiStep; 
@@ -769,12 +769,12 @@ void createRdiiFile()
     }
 
     // --- close RDII processing system
-    closeRdiiProcessor();
+    closeRdiiProcessor(project);
 } 
 
 //=============================================================================
 
-int  getNumRdiiNodes()
+int  getNumRdiiNodes(Project *project)
 //
 //  Input:   none
 //  Output:  returns node count
@@ -794,7 +794,7 @@ int  getNumRdiiNodes()
 
 //=============================================================================
 
-void validateRdii()
+void validateRdii(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -858,7 +858,7 @@ void validateRdii()
 
 //=============================================================================
 
-void openRdiiProcessor()
+void openRdiiProcessor(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -876,14 +876,14 @@ void openRdiiProcessor()
     TotalRdiiVol = 0.0;
 
     // --- allocate memory used for RDII processing
-    if ( !allocRdiiMemory() )
+    if ( !allocRdiiMemory(project) )
     {
         report_writeErrorMsg(ERR_MEMORY, "");
         return;
     }
 
     // --- open & initialize RDII file
-    if ( !openNewRdiiFile() )
+    if ( !openNewRdiiFile(project) )
     {
         report_writeErrorMsg(ERR_RDII_FILE_SCRATCH, "");
         return;
@@ -903,7 +903,7 @@ void openRdiiProcessor()
 
 //=============================================================================
 
-int  allocRdiiMemory()
+int  allocRdiiMemory(Project *project)
 //
 //  Input:   none
 //  Output:  returns TRUE if successful, FALSE if not
@@ -922,12 +922,12 @@ int  allocRdiiMemory()
     // --- allocate memory for past rainfall data for each UH in each group
     for (i=0; i<project->Nobjects[UNITHYD]; i++)
     {
-        UHGroup[i].rainInterval = getRainInterval(i);
+        UHGroup[i].rainInterval = getRainInterval(project,i);
         for (k=0; k<3; k++)
         {
             UHGroup[i].uh[k].pastRain = NULL;
             UHGroup[i].uh[k].pastMonth = NULL;
-            UHGroup[i].uh[k].maxPeriods = getMaxPeriods(i, k);
+            UHGroup[i].uh[k].maxPeriods = getMaxPeriods(project, i, k);
             n = UHGroup[i].uh[k].maxPeriods;
             if ( n > 0 )
             {
@@ -951,7 +951,7 @@ int  allocRdiiMemory()
 
 //=============================================================================
 
-int  getRainInterval(int i)
+int  getRainInterval(Project *project, int i)
 //
 //  Input:   i = UH group index
 //  Output:  returns a time interval (sec)
@@ -986,7 +986,7 @@ int  getRainInterval(int i)
 
 //=============================================================================
 
-int  getMaxPeriods(int i, int k)
+int  getMaxPeriods(Project *project, int i, int k)
 //
 //  Input:   i = UH group index
 //           k = UH index
@@ -1015,7 +1015,7 @@ int  getMaxPeriods(int i, int k)
 
 //=============================================================================
 
-void initGageData()
+void initGageData(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -1032,7 +1032,7 @@ void initGageData()
         {
             table_tseriesInit(&project->Tseries[project->Gage[g].tSeries]);
         }
-        gage_initState(g);
+        gage_initState(project, g);
     }
 
     // --- then flag each gage that is used by a Unit Hydrograph set
@@ -1048,7 +1048,7 @@ void initGageData()
             if ( project->Gage[g].coGage >= 0 ) 
             {
                 project->UnitHyd[i].rainGage = project->Gage[g].coGage;
-                project->Gage[Gage[g].coGage].isUsed = TRUE;
+                project->Gage[project->Gage[g].coGage].isUsed = TRUE;
             }
         }
     }
@@ -1056,7 +1056,7 @@ void initGageData()
 
 //=============================================================================
 
-void initUnitHydData()
+void initUnitHydData(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -1112,7 +1112,7 @@ void initUnitHydData()
 
 //=============================================================================
 
-int openNewRdiiFile()
+int openNewRdiiFile(Project *project)
 //
 //  Input:   none
 //  Output:  returns TRUE if successful, FALSE if not
@@ -1122,10 +1122,10 @@ int openNewRdiiFile()
     int j;                             // node index
 
     // --- create a temporary file name if scratch file being used
-    if ( project->Frdii.mode == SCRATCH_FILE ) getTempFileName(Frdii.name);
+    if ( project->Frdii.mode == SCRATCH_FILE ) getTempFileName(project->Frdii.name);
 
     // --- open the RDII file as a formatted text file
-    project->Frdii.file = fopen(Frdii.name, "w+b");
+    project->Frdii.file = fopen(project->Frdii.name, "w+b");
     if ( project->Frdii.file == NULL )
     {
         return FALSE;
@@ -1147,7 +1147,7 @@ int openNewRdiiFile()
 
 //=============================================================================
 
-void getRainfall(DateTime currentDate)
+void getRainfall(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current calendar date/time
 //  Output:  none
@@ -1182,7 +1182,7 @@ void getRainfall(DateTime currentDate)
             gageDate = UHGroup[j].gageDate;
             if (!project->Gage[g].isCurrent)
             {
-                gage_setState(g, gageDate);
+                gage_setState(project, g, gageDate);
                 project->Gage[g].isCurrent = TRUE;
             }
             rainDepth = project->Gage[g].rainfall * (double)rainInterval / 3600.0;
@@ -1194,7 +1194,7 @@ void getRainfall(DateTime currentDate)
             for (k=0; k<3; k++)
             {
                 // --- adjust rainfall volume for any initial abstraction
-                excessDepth = applyIA(j, k, gageDate, rainInterval, rainDepth);
+                excessDepth = applyIA(project, j, k, gageDate, rainInterval, rainDepth);
 
                 // --- adjust extent of dry period for the UH
                 updateDryPeriod(j, k, excessDepth, rainInterval);
@@ -1216,7 +1216,7 @@ void getRainfall(DateTime currentDate)
 
 //=============================================================================
 
-double  applyIA(int j, int k, DateTime aDate, double dt, double rainDepth)
+double  applyIA(Project *project, int j, int k, DateTime aDate, double dt, double rainDepth)
 //
 //  Input:   j = UH group index
 //           k = unit hydrograph index
@@ -1306,7 +1306,7 @@ void updateDryPeriod(int j, int k, double rainDepth, int rainInterval)
 
 //=============================================================================
 
-void getUnitHydRdii(DateTime currentDate)
+void getUnitHydRdii(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current calendar date/time
 //  Output:  none
@@ -1335,7 +1335,7 @@ void getUnitHydRdii(DateTime currentDate)
         {
             if ( UHGroup[j].uh[k].hasPastRain )
             {
-                UHGroup[j].rdii += getUnitHydConvol(j, k, rainInterval);
+                UHGroup[j].rdii += getUnitHydConvol(project, j, k, rainInterval);
             }
         }
     }
@@ -1343,7 +1343,7 @@ void getUnitHydRdii(DateTime currentDate)
 
 //=============================================================================
 
-double getUnitHydConvol(int j, int k, int rainInterval)
+double getUnitHydConvol(Project *project, int j, int k, int rainInterval)
 //
 //  Input:   j = UH group index
 //           k = UH index
@@ -1382,7 +1382,7 @@ double getUnitHydConvol(int j, int k, int rainInterval)
             t = ((double)(p) - 0.5) * (double)rainInterval;
 
             // --- convolute rain volume with UH ordinate
-            u = getUnitHydOrd(j, m, k, t) * project->UnitHyd[j].r[m][k];
+            u = getUnitHydOrd(project, j, m, k, t) * project->UnitHyd[j].r[m][k];
             rdii += u * v;
         }
 
@@ -1396,7 +1396,7 @@ double getUnitHydConvol(int j, int k, int rainInterval)
 
 //=============================================================================
 
-double getUnitHydOrd(int h, int m, int k, double t)
+double getUnitHydOrd(Project *project, int h, int m, int k, double t)
 //
 //  Input:   h = index of UH group
 //           m = month index
@@ -1431,7 +1431,7 @@ double getUnitHydOrd(int h, int m, int k, double t)
 
 //=============================================================================
 
-int getNodeRdii()
+int getNodeRdii(Project *project)
 //
 //  Input:   none
 //  Output:  returns TRUE if any node has RDII inflow, FALSE if not
@@ -1468,7 +1468,7 @@ int getNodeRdii()
 
 //=============================================================================
 
-void saveRdiiFlows(DateTime currentDate)
+void saveRdiiFlows(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current calendar date/time
 //  Output:  none
@@ -1481,7 +1481,7 @@ void saveRdiiFlows(DateTime currentDate)
 
 //=============================================================================
 
-void  closeRdiiProcessor()
+void  closeRdiiProcessor(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -1495,13 +1495,13 @@ void  closeRdiiProcessor()
     }
 
     // --- free allocated memory and close RDII file
-    freeRdiiMemory();
-    if ( project->Frdii.file ) fclose(Frdii.file);
+    freeRdiiMemory(project);
+    if ( project->Frdii.file ) fclose(project->Frdii.file);
 }
 
 //=============================================================================
 
-void freeRdiiMemory()
+void freeRdiiMemory(Project *project)
 //
 //  Input:   none
 //  Output:  none
