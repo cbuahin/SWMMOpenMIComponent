@@ -177,7 +177,7 @@ double  landuse_getCoPollutLoad(int p, double washoff[]);
 //-----------------------------------------------------------------------------
 void    flowrout_init(Project *project, int routingModel);
 void    flowrout_close(int routingModel);
-double  flowrout_getRoutingStep(int routingModel, double fixedStep);
+double  flowrout_getRoutingStep(Project *project,int routingModel, double fixedStep);
 int     flowrout_execute(Project *project, int links[], int routingModel, double tStep);
 
 void    toposort_sortLinks(int links[]);
