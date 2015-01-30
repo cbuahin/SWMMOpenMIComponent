@@ -173,7 +173,7 @@ int link_readXsectParams(Project *project, char* tok[], int ntoks)
             if ( !getDouble(tok[i], &x[i-2]) )
                 return error_setInpError(ERR_NUMBER, tok[i]);
         }
-        if ( !xsect_setParams(&project->Link[j].xsect, k, x, UCF(LENGTH)) )
+        if ( !xsect_setParams(project, &project->Link[j].xsect, k, x, UCF(LENGTH)) )
         {
             return error_setInpError(ERR_NUMBER, "");
         }
@@ -318,7 +318,7 @@ void  link_setParams(Project *project, int j, int type, int n1, int n2, int k, d
         project->Link[j].hasFlapGate  = (x[4] > 0.0) ? 1 : 0;
         project->Outlet[k].curveType  = (int)x[5];
 
-        xsect_setParams(&project->Link[j].xsect, DUMMY, NULL, 0.0);
+        xsect_setParams(project, &project->Link[j].xsect, DUMMY, NULL, 0.0);
         break;
 
     }
@@ -610,7 +610,7 @@ void link_getResults(Project *project, int j, double f, float x[])
     if (project->Link[j].type == CONDUIT)
     {
         if (project->Link[j].xsect.type != DUMMY)
-            c = xsect_getAofY(&project->Link[j].xsect, y) / project->Link[j].xsect.aFull;
+            c = xsect_getAofY(project, &project->Link[j].xsect, y) / project->Link[j].xsect.aFull;
     }
     else c = project->Link[j].setting;
 
@@ -690,7 +690,7 @@ double link_getYcrit(Project *project, int j, double q)
 //  Purpose: computes critical depth for given flow rate.
 //
 {
-    return xsect_getYcrit(&project->Link[j].xsect, q);
+    return xsect_getYcrit(project, &project->Link[j].xsect, q);
 }
 
 //=============================================================================
@@ -713,8 +713,8 @@ double  link_getYnorm(Project *project, int j, double q)
     if ( q > project->Conduit[k].qMax ) q = project->Conduit[k].qMax;
     if ( q <= 0.0 ) return 0.0;
     s = q / project->Conduit[k].beta;
-    a = xsect_getAofS(&project->Link[j].xsect, s);
-    y = xsect_getYofA(&project->Link[j].xsect, a);
+    a = xsect_getAofS(project, &project->Link[j].xsect, s);
+    y = xsect_getYofA(project, &project->Link[j].xsect, a);
     return y;
 }
 
@@ -751,7 +751,7 @@ double link_getVelocity(Project *project, int j, double flow, double depth)
     {
         k = project->Link[j].subIndex;
         flow /= project->Conduit[k].barrels;
-        area = xsect_getAofY(&project->Link[j].xsect, depth);
+        area = xsect_getAofY(project, &project->Link[j].xsect, depth);
         if (area > FUDGE ) veloc = flow / area;
     }
     return veloc;
@@ -779,7 +779,7 @@ double link_getFroude(Project *project, int j, double v, double y)
          xsect->yFull - y <= FUDGE ) return 0.0;
 
     // --- compute hydraulic depth
-    y = xsect_getAofY(xsect, y) / xsect_getWofY(xsect, y);
+    y = xsect_getAofY(project, xsect, y) / xsect_getWofY(project, xsect, y);
 
     // --- compute Froude No.
     return fabs(v) / sqrt(GRAVITY * y);
@@ -905,12 +905,12 @@ void  conduit_validate(Project *project, int j, int k)
 
     // --- if custom xsection, then set its parameters
     if ( project->Link[j].xsect.type == CUSTOM )
-        xsect_setCustomXsectParams(&project->Link[j].xsect);
+        xsect_setCustomXsectParams(project, &project->Link[j].xsect);
 
     // --- if irreg. xsection, assign transect roughness to conduit
     if ( project->Link[j].xsect.type == IRREGULAR )
     {
-        xsect_setIrregXsectParams(&project->Link[j].xsect);
+        xsect_setIrregXsectParams(project, &project->Link[j].xsect);
         project->Conduit[k].roughness = project->Transect[project->Link[j].xsect.transect].roughness;
     }
 
@@ -1124,7 +1124,7 @@ double conduit_getLengthFactor(Project *project,int j, int k, double roughness)
     yFull = project->Link[j].xsect.yFull;
     if ( xsect_isOpen(project->Link[j].xsect.type) )
     {
-        yFull = project->Link[j].xsect.aFull / xsect_getWofY(&project->Link[j].xsect, yFull);
+        yFull = project->Link[j].xsect.aFull / xsect_getWofY(project, &project->Link[j].xsect, yFull);
     }
     vFull = PHI / roughness * project->Link[j].xsect.sFull *
             sqrt(fabs(project->Conduit[k].slope)) / project->Link[j].xsect.aFull;
@@ -1241,7 +1241,7 @@ double conduit_getLossRate(Project *project, int j, double tStep)
         // --- find evaporation rate for open conduits
         if ( xsect_isOpen(xsect->type) && project->Evap.rate > 0.0 )
         {
-            topWidth = xsect_getWofY(xsect, depth);
+            topWidth = xsect_getWofY(project, xsect, depth);
             evapLossRate = topWidth * length * project->Evap.rate;
         }
 
@@ -1255,8 +1255,8 @@ double conduit_getLossRate(Project *project, int j, double tStep)
             wettedPerimeter = 0.0;
             if ( depth > 0.0 )
             {
-                wettedPerimeter = xsect_getAofY(xsect, depth) / 
-                                  xsect_getRofY(xsect, depth);
+                wettedPerimeter = xsect_getAofY(project, xsect, depth) /
+                                  xsect_getRofY(project, xsect, depth);
             }
 
             // compute seepage loss rate across length of conduit
@@ -1639,7 +1639,7 @@ void  orifice_setSetting(Project *project, int j, double tstep)
 
     // --- find effective orifice discharge coeff.
     h = project->Link[j].setting * project->Link[j].xsect.yFull;
-    f = xsect_getAofY(&project->Link[j].xsect, h) * sqrt(2.0 * GRAVITY);
+    f = xsect_getAofY(project, &project->Link[j].xsect, h) * sqrt(2.0 * GRAVITY);
     project->Orifice[k].cOrif = project->Orifice[k].cDisch * f;
 
     // --- find equiv. discharge coeff. for when weir flow occurs
@@ -1797,13 +1797,13 @@ double orifice_getInflow(Project *project, int j)
     {
         project->Link[j].newDepth = y1 * f;
         project->Orifice[k].surfArea =
-            xsect_getWofY(&project->Link[j].xsect, project->Link[j].newDepth) *
+            xsect_getWofY(project, &project->Link[j].xsect, project->Link[j].newDepth) *
             project->Orifice[k].length;
     }
     else
     {
         project->Link[j].newDepth = y1;
-        project->Orifice[k].surfArea = xsect_getAofY(&project->Link[j].xsect, y1);
+        project->Orifice[k].surfArea = xsect_getAofY(project, &project->Link[j].xsect, y1);
     }
 
     // --- find flow through the orifice
@@ -1860,7 +1860,7 @@ double orifice_getFlow(Project *project, int j, int k,  double head, double f, i
     if ( hasFlapGate )
     {
         // --- compute velocity for current orifice flow
-        area = xsect_getAofY(&project->Link[j].xsect,
+        area = xsect_getAofY(project, &project->Link[j].xsect,
                              project->Link[j].setting * project->Link[j].xsect.yFull);
         veloc = q / area;
 
@@ -2083,7 +2083,7 @@ double weir_getInflow(Project *project, int j)
 
     // --- compute new equivalent surface area
     y = project->Link[j].xsect.yFull - (hcrown - MIN(h1, hcrown));
-    project->Weir[k].surfArea = xsect_getWofY(&project->Link[j].xsect, y) * project->Weir[k].length;
+    project->Weir[k].surfArea = xsect_getWofY(project, &project->Link[j].xsect, y) * project->Weir[k].length;
 
 //// Since weirs can't physically surcharge (because they have open tops)
 ///  the 5.0 code that applied an equivalent orifice eqn. when h1 > hcrown
@@ -2169,7 +2169,7 @@ void weir_getFlow(Project *project, int j, int k,  double head, double dir, int 
 
       case TRAPEZOIDAL_WEIR:
         y = (1.0 - project->Link[j].setting) * project->Link[j].xsect.yFull;
-        length = xsect_getWofY(&project->Link[j].xsect, y) * UCF(LENGTH);
+        length = xsect_getWofY(project, &project->Link[j].xsect, y) * UCF(LENGTH);
         length -= 0.1 * project->Weir[k].endCon * h;
         length = MAX(length, 0.0);
         *q1 = project->Weir[k].cDisch1 * length * pow(h, 1.5);
@@ -2228,8 +2228,8 @@ double weir_getOpenArea(Project *project, int j, double y)
 
     // --- return difference between area of offset + water depth
     //     and area of just the offset
-    return xsect_getAofY(&project->Link[j].xsect, zy) -
-           xsect_getAofY(&project->Link[j].xsect, z);
+    return xsect_getAofY(project, &project->Link[j].xsect, zy) -
+           xsect_getAofY(project, &project->Link[j].xsect, z);
 }
 
 //=============================================================================
