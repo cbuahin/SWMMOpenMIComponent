@@ -448,9 +448,9 @@ void findSurfArea(Project *project, int j, double q, double length, double* h1, 
 	case SUBCRITICAL:
 		flowDepthMid = 0.5 * (flowDepth1 + flowDepth2);
 		if (flowDepthMid < FUDGE) flowDepthMid = FUDGE;
-		width1 = getWidth(xsect, flowDepth1);
-		width2 = getWidth(xsect, flowDepth2);
-		widthMid = getWidth(xsect, flowDepthMid);
+		width1 = getWidth(project, xsect, flowDepth1);
+		width2 = getWidth(project, xsect, flowDepth2);
+		widthMid = getWidth(project, xsect, flowDepthMid);
 		surfArea1 = (width1 + widthMid) * length / 4.;
 		surfArea2 = (widthMid + width2) * length / 4. * fasnh;
 		break;
@@ -462,8 +462,8 @@ void findSurfArea(Project *project, int j, double q, double length, double* h1, 
 		*h1 = project->Node[n1].invertElev + project->Link[j].offset1 + flowDepth1;
 		flowDepthMid = 0.5 * (flowDepth1 + flowDepth2);
 		if (flowDepthMid < FUDGE) flowDepthMid = FUDGE;
-		width2 = getWidth(xsect, flowDepth2);
-		widthMid = getWidth(xsect, flowDepthMid);
+		width2 = getWidth(project, xsect, flowDepth2);
+		widthMid = getWidth(project, xsect, flowDepthMid);
 		surfArea2 = (widthMid + width2) * length * 0.5;
 		break;
 
@@ -472,10 +472,10 @@ void findSurfArea(Project *project, int j, double q, double length, double* h1, 
 		if (normalDepth < criticalDepth) flowDepth2 = normalDepth;
 		flowDepth2 = MAX(flowDepth2, FUDGE);
 		*h2 = project->Node[n2].invertElev + project->Link[j].offset2 + flowDepth2;
-		width1 = getWidth(xsect, flowDepth1);
+		width1 = getWidth(project, xsect, flowDepth1);
 		flowDepthMid = 0.5 * (flowDepth1 + flowDepth2);
 		if (flowDepthMid < FUDGE) flowDepthMid = FUDGE;
-		widthMid = getWidth(xsect, flowDepthMid);
+		widthMid = getWidth(project, xsect, flowDepthMid);
 		surfArea1 = (width1 + widthMid) * length * 0.5;
 		break;
 
@@ -483,9 +483,9 @@ void findSurfArea(Project *project, int j, double q, double length, double* h1, 
 		flowDepth1 = FUDGE;
 		flowDepthMid = 0.5 * (flowDepth1 + flowDepth2);
 		if (flowDepthMid < FUDGE) flowDepthMid = FUDGE;
-		width1 = getWidth(xsect, flowDepth1);
-		width2 = getWidth(xsect, flowDepth2);
-		widthMid = getWidth(xsect, flowDepthMid);
+		width1 = getWidth(project, xsect, flowDepth1);
+		width2 = getWidth(project, xsect, flowDepth2);
+		widthMid = getWidth(project, xsect, flowDepthMid);
 
 		// --- assign avg. surface area of downstream half of conduit
 		//     to the downstream node
@@ -503,9 +503,9 @@ void findSurfArea(Project *project, int j, double q, double length, double* h1, 
 		flowDepth2 = FUDGE;
 		flowDepthMid = 0.5 * (flowDepth1 + flowDepth2);
 		if (flowDepthMid < FUDGE) flowDepthMid = FUDGE;
-		width1 = getWidth(xsect, flowDepth1);
-		width2 = getWidth(xsect, flowDepth2);
-		widthMid = getWidth(xsect, flowDepthMid);
+		width1 = getWidth(project, xsect, flowDepth1);
+		width2 = getWidth(project, xsect, flowDepth2);
+		widthMid = getWidth(project, xsect, flowDepthMid);
 
 		// --- assign avg. surface area of upstream half of conduit
 		//     to the upstream node
