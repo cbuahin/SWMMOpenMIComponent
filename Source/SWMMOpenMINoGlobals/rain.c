@@ -133,7 +133,7 @@ void  rain_open(Project *project)
         getTempFileName(project->Frain.name);
         if ( (project->Frain.file = fopen(project->Frain.name, "w+b")) == NULL)
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_SCRATCH, "");
+            report_writeErrorMsg(project, ERR_RAIN_FILE_SCRATCH, "");
             return;
         }
         break;
@@ -141,7 +141,7 @@ void  rain_open(Project *project)
       case USE_FILE:
         if ( (project->Frain.file = fopen(project->Frain.name, "r+b")) == NULL)
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_OPEN, project->Frain.name);
+            report_writeErrorMsg(project, ERR_RAIN_FILE_OPEN, project->Frain.name);
             return;
         }
         break;
@@ -149,7 +149,7 @@ void  rain_open(Project *project)
       case SAVE_FILE:
         if ( (project->Frain.file = fopen(project->Frain.name, "w+b")) == NULL)
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_OPEN, project->Frain.name);
+            report_writeErrorMsg(project, ERR_RAIN_FILE_OPEN, project->Frain.name);
             return;
         }
         break;
@@ -278,7 +278,7 @@ int rainFileConflict(Project *project, int i)
     {
         if ( strcomp(project->Gage[j].staID, staID) && !strcomp(project->Gage[j].fname, fname) )
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_CONFLICT, project->Gage[i].ID);
+            report_writeErrorMsg(project, ERR_RAIN_FILE_CONFLICT, project->Gage[i].ID);
             return 1;
         }
     }
@@ -303,13 +303,13 @@ int addGageToRainFile(Project *project, int i)
 
     // --- check that rain file exists
     if ( (f = fopen(project->Gage[i].fname, "rt")) == NULL )
-        report_writeErrorMsg(ERR_RAIN_FILE_DATA, project->Gage[i].fname);
+        report_writeErrorMsg(project, ERR_RAIN_FILE_DATA, project->Gage[i].fname);
     else
     {
         fileFormat = findFileFormat(project,f, i, &hdrLines);
         if ( fileFormat == UNKNOWN_FORMAT )
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_FORMAT, project->Gage[i].fname);
+            report_writeErrorMsg(project, ERR_RAIN_FILE_FORMAT, project->Gage[i].fname);
         }
         else
         {
@@ -347,7 +347,7 @@ void initRainFile(Project *project)
     fread(fStamp, sizeof(char), strlen(fileStamp), project->Frain.file);
     if ( strcmp(fStamp, fileStamp) != 0 )
     {
-        report_writeErrorMsg(ERR_RAIN_IFACE_FORMAT, "");
+        report_writeErrorMsg(project, ERR_RAIN_IFACE_FORMAT, "");
         return;
     }
     fread(&kount, sizeof(int), 1, project->Frain.file);
@@ -363,7 +363,7 @@ void initRainFile(Project *project)
         if ( !findGageInFile(project,i, (int)kount) ||
              project->Gage[i].startFilePos == project->Gage[i].endFilePos )
         {
-            report_writeErrorMsg(ERR_RAIN_FILE_GAGE, project->Gage[i].ID);
+            report_writeErrorMsg(project, ERR_RAIN_FILE_GAGE, project->Gage[i].ID);
         }
     }
 }

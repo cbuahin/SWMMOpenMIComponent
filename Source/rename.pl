@@ -102,7 +102,32 @@ use feature 'say';
     'Curve',                    
     'Tseries',                  
     'Transect',                 
-    'Shape'
+    'Shape',
+    'Htable[MAX_OBJ_TYPES]',
+    'MemPoolAllocated',      
+    'LidProcs',            
+    'LidCount',            
+    'LidGroups',           
+    'GroupCount',          
+    'EvapRate',            
+    'NativeInfil',         
+    'MaxNativeInfil',      
+    'TotalEvapVol',        
+    'TotalPervEvapVol',    
+    'TotalInfilVol',       
+    'NextReportTime',
+    'SaveResults',         
+    'HortInfil',
+    'GAInfil',
+    'CNInfil ',
+    'RunoffTotals',    
+    'LoadingTotals',   
+    'GwaterTotals',    
+    'FlowTotals',      
+    'QualTotals',      
+    'StepFlowTotals',  
+    'OldStepFlowTotals',
+    'StepQualTotals'
 );
 
 
@@ -110,7 +135,7 @@ foreach my $var (@varNames){
 	print "Replacing all occurrences of '${var}' with 'project->${var}'... ";	
 	# `sed -i '' 's/\<$var\>/project->$var/' ./SWMMOpenMINoGlobals/*`;
 
-	`sed -i '' 's/[[:<:]]${var}[[:>:]]/project->${var}/g' ./SWMMOpenMINoGlobals/*`;
+	`sed -i '' 's/[[:<:]]${var}[[:>:]]/project->${var}/g' ./SWMMOpenMINoGlobals/toposort.c`;
 
 	say 'done';
 

@@ -72,10 +72,10 @@ int snow_readMeltParams(Project *project, char* tok[], int ntoks)
     if ( ntoks < 8 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- save snow melt parameter set name if not already done so
-    j = project_findObject(SNOWMELT, tok[0]);
+    j = project_findObject(project, SNOWMELT, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
     if ( project->Snowmelt[j].ID == NULL )
-        project->Snowmelt[j].ID = project_findID(SNOWMELT, tok[0]);
+        project->Snowmelt[j].ID = project_findID(project, SNOWMELT, tok[0]);
 
     // --- identify data keyword
     k = findmatch(tok[1], SnowmeltWords);
@@ -100,7 +100,7 @@ int snow_readMeltParams(Project *project, char* tok[], int ntoks)
         x[6] = -1.0;
         if ( ntoks >= 9 )
         {
-            m = project_findObject(SUBCATCH, tok[8]);
+            m = project_findObject(project, SUBCATCH, tok[8]);
             if ( m < 0 ) return error_setInpError(ERR_NAME, tok[8]);
             x[6] = m;
         }
@@ -233,7 +233,7 @@ void snow_validateSnowmelt(Project *project, int j)
     // --- check that removal fractions sum <= 1.0
     for ( k=0; k<5; k++ ) sum += project->Snowmelt[j].sfrac[k];
     if ( sum > 1.01 ) err = TRUE;
-    if ( err ) report_writeErrorMsg(ERR_SNOWPACK_PARAMS, project->Snowmelt[j].ID);
+    if ( err ) report_writeErrorMsg(project, ERR_SNOWPACK_PARAMS, project->Snowmelt[j].ID);
 }
 
 //=============================================================================

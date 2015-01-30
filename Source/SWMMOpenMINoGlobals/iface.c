@@ -151,7 +151,7 @@ void iface_openRoutingFiles(Project *project)
     {
         if ( strcomp(project->Foutflows.name, project->Finflows.name) )
         {
-            report_writeErrorMsg(ERR_ROUTING_FILE_NAMES, "");
+            report_writeErrorMsg(project, ERR_ROUTING_FILE_NAMES, "");
             return;
         }
     }
@@ -319,7 +319,7 @@ void openFileForOutput(Project *project)
     project->Foutflows.file = fopen(project->Foutflows.name, "wt");
     if ( project->Foutflows.file == NULL )
     {
-        report_writeErrorMsg(ERR_ROUTING_FILE_OPEN, project->Foutflows.name);
+        report_writeErrorMsg(project, ERR_ROUTING_FILE_OPEN, project->Foutflows.name);
         return;
     }
 
@@ -385,7 +385,7 @@ void openFileForInput(Project *project)
     project->Finflows.file = fopen(project->Finflows.name, "rt");
     if ( project->Finflows.file == NULL )
     {
-        report_writeErrorMsg(ERR_ROUTING_FILE_OPEN, project->Finflows.name);
+        report_writeErrorMsg(project, ERR_ROUTING_FILE_OPEN, project->Finflows.name);
         return;
     }
 
@@ -394,7 +394,7 @@ void openFileForInput(Project *project)
     sscanf(line, "%s", s);
     if ( !strcomp(s, "SWMM5") )
     {
-        report_writeErrorMsg(ERR_ROUTING_FILE_FORMAT, project->Finflows.name);
+        report_writeErrorMsg(project, ERR_ROUTING_FILE_FORMAT, project->Finflows.name);
         return;
     }
 
@@ -407,7 +407,7 @@ void openFileForInput(Project *project)
     sscanf(line, "%d", &IfaceStep);
     if ( IfaceStep <= 0 )
     {
-        report_writeErrorMsg(ERR_ROUTING_FILE_FORMAT, project->Finflows.name);
+        report_writeErrorMsg(project, ERR_ROUTING_FILE_FORMAT, project->Finflows.name);
         return;
     }
 
@@ -415,7 +415,7 @@ void openFileForInput(Project *project)
     err = getIfaceFilePolluts(project);
     if ( err > 0 )
     {
-        report_writeErrorMsg(err, project->Finflows.name);
+        report_writeErrorMsg(project, err, project->Finflows.name);
         return;
     }
 
@@ -423,7 +423,7 @@ void openFileForInput(Project *project)
     err = getIfaceFileNodes(project);
     if ( err > 0 )
     {
-        report_writeErrorMsg(err, project->Finflows.name);
+        report_writeErrorMsg(project, err, project->Finflows.name);
         return;
     }
 
@@ -434,7 +434,7 @@ void openFileForInput(Project *project)
                                          1+NumIfacePolluts);
     if ( OldIfaceValues == NULL || NewIfaceValues == NULL )
     {
-        report_writeErrorMsg(ERR_MEMORY, "");
+        report_writeErrorMsg(project, ERR_MEMORY, "");
         return;
     }
 

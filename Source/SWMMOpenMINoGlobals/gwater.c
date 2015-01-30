@@ -84,7 +84,7 @@ static void   getFluxes(Project *project, double upperVolume, double lowerDepth)
 static void   getEvapRates(Project *project, double theta, double upperDepth);
 static double getUpperPerc(double theta, double upperDepth);
 static double getGWFlow(double lowerDepth);
-static void   updateMassBal(double area,  double tStep);
+static void   updateMassBal(Project *project, double area,  double tStep);
 
 // Used to process custom GW outflow equations
 static int    getVariableIndex(char* s);
@@ -113,7 +113,7 @@ int gwater_readAquiferParams(Project *project, int j, char* tok[], int ntoks)
 
     // --- check that aquifer exists
     if ( ntoks < 13 ) return error_setInpError(ERR_ITEMS, "");
-    id = project_findID(AQUIFER, tok[0]);
+    id = project_findID(project, AQUIFER, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- read remaining tokens as numbers
@@ -128,7 +128,7 @@ int gwater_readAquiferParams(Project *project, int j, char* tok[], int ntoks)
     p = -1;
     if ( ntoks > 13 )
     {
-        p = project_findObject(TIMEPATTERN, tok[13]);
+        p = project_findObject(project, TIMEPATTERN, tok[13]);
         if ( p < 0 ) return error_setInpError(ERR_NAME, tok[13]);
     }
 
@@ -171,16 +171,16 @@ int gwater_readGroundwaterParams(Project *project, char* tok[], int ntoks)
 
     // --- check that specified subcatchment, aquifer & node exist
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
-    j = project_findObject(SUBCATCH, tok[0]);
+    j = project_findObject(project, SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- check for enough tokens
     if ( ntoks < 11 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that specified aquifer and node exists
-    k = project_findObject(AQUIFER, tok[1]);
+    k = project_findObject(project, AQUIFER, tok[1]);
     if ( k < 0 ) return error_setInpError(ERR_NAME, tok[1]);
-    n = project_findObject(NODE, tok[2]);
+    n = project_findObject(project, NODE, tok[2]);
     if ( n < 0 ) return error_setInpError(ERR_NAME, tok[2]);
 
     // -- read in the flow parameters
@@ -252,7 +252,7 @@ int gwater_readFlowExpression(Project *project, char* tok[], int ntoks)
     MathExpr* expr;
 
     // --- check that subcatchment exists
-    j = project_findObject(SUBCATCH, tok[0]);
+    j = project_findObject(project, SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- if no expression then delete any existing expression
@@ -316,12 +316,12 @@ void  gwater_validateAquifer(Project *project, int j)
     ||   project->Aquifer[j].waterTableElev    <  project->Aquifer[j].bottomElev
     ||   project->Aquifer[j].upperMoisture     >  project->Aquifer[j].porosity
     ||   project->Aquifer[j].upperMoisture     <  project->Aquifer[j].wiltingPoint )
-        report_writeErrorMsg(ERR_AQUIFER_PARAMS, project->Aquifer[j].ID);
+        report_writeErrorMsg(project, ERR_AQUIFER_PARAMS, project->Aquifer[j].ID);
 
     p = project->Aquifer[j].upperEvapPat;
     if ( p >= 0 && project->Pattern[p].type != MONTHLY_PATTERN )
     {
-        report_writeErrorMsg(ERR_AQUIFER_PARAMS, project->Aquifer[j].ID);
+        report_writeErrorMsg(project, ERR_AQUIFER_PARAMS, project->Aquifer[j].ID);
     }
 }
 
@@ -344,7 +344,7 @@ void  gwater_validate(Project *project, int j)
 
         // ... ground elevation can't be below water table elevation
         if ( gw->surfElev < gw->waterTableElev )
-            report_writeErrorMsg(ERR_GROUND_ELEV, project->Subcatch[j].ID);
+            report_writeErrorMsg(project, ERR_GROUND_ELEV, project->Subcatch[j].ID);
     }
 }
 
@@ -563,12 +563,12 @@ void gwater_getGroundwater(Project *project, int j, double evap, double infil, d
                       (A.porosity - x[THETA]) / FracPerv;
 
     // --- update GW mass balance
-    updateMassBal(area, tStep);
+    updateMassBal(project, area, tStep);
 }
 
 //=============================================================================
 
-void updateMassBal(double area, double tStep)
+void updateMassBal(Project *project, double area, double tStep)
 //
 //  Input:   area  = subcatchment area (ft2)
 //           tStep = time step (sec)
@@ -588,7 +588,7 @@ void updateMassBal(double area, double tStep)
     vLowerEvap = LowerEvap * ft2sec;
     vLowerPerc = LowerLoss * ft2sec;
     vGwater    = 0.5 * (GW->oldFlow + GW->newFlow) * ft2sec;
-    massbal_updateGwaterTotals(vInfil, vUpperEvap, vLowerEvap, vLowerPerc,
+    massbal_updateGwaterTotals(project, vInfil, vUpperEvap, vLowerEvap, vLowerPerc,
                                vGwater);
 }
 

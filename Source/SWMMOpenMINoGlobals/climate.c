@@ -125,7 +125,7 @@ int  climate_readParams(Project *project, char* tok[], int ntoks)
       case 0: // Time series name
         // --- check that time series name exists
         if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
-        i = project_findObject(TSERIES, tok[1]);
+        i = project__findObject(project, TSERIES, tok[1]);
         if ( i < 0 ) return error_setInpError(ERR_NAME, tok[1]);
 
         // --- record the time series as being the data source for temperature
@@ -243,7 +243,7 @@ int climate_readEvapParams(Project *project, char* tok[], int ntoks)
     if ( k == RECOVERY )
     {
         if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
-        i = project_findObject(TIMEPATTERN, tok[1]);
+        i = project__findObject(project, TIMEPATTERN, tok[1]);
         if ( i < 0 ) return error_setInpError(ERR_NAME, tok[1]);
         project->Evap.recoveryPattern = i;
         return 0;
@@ -282,7 +282,7 @@ int climate_readEvapParams(Project *project, char* tok[], int ntoks)
 
       case TIMESERIES_EVAP:
         // --- for time series evap., read name of time series
-        i = project_findObject(TSERIES, tok[1]);
+        i = project__findObject(project, TSERIES, tok[1]);
         if ( i < 0 ) return error_setInpError(ERR_NAME, tok[1]);
         project->Evap.tSeries = i;
         project->Tseries[i].refersTo = TIMESERIES_EVAP;
@@ -323,7 +323,7 @@ void climate_validate(Project *project)
     {
         if ( project->Fclimate.mode == NO_FILE )
         {
-            report_writeErrorMsg(ERR_NO_CLIMATE_FILE, "");
+            report_writeErrorMsg(project, ERR_NO_CLIMATE_FILE, "");
         }
     }
 
@@ -331,12 +331,12 @@ void climate_validate(Project *project)
     if ( project->Snow.tipm < 0.0 ||
          project->Snow.tipm > 1.0 ||
          project->Snow.rnm  < 0.0 ||
-         project->Snow.rnm  > 1.0 ) report_writeErrorMsg(ERR_SNOWMELT_PARAMS, "");
+         project->Snow.rnm  > 1.0 ) report_writeErrorMsg(project, ERR_SNOWMELT_PARAMS, "");
 
     // --- latitude should be between -90 & 90 degrees
     a = project->Temp.anglat;
     if ( a <= -89.99 ||
-         a >= 89.99  ) report_writeErrorMsg(ERR_SNOWMELT_PARAMS, "");
+         a >= 89.99  ) report_writeErrorMsg(project, ERR_SNOWMELT_PARAMS, "");
     else project->Temp.tanAnglat = tan(a * PI / 180.0); 
 
     // --- compute psychrometric constant
@@ -360,7 +360,7 @@ void climate_openFile(Project *project)
     // --- open the file
     if ( (project->Fclimate.file = fopen(project->Fclimate.name, "rt")) == NULL )
     {
-        report_writeErrorMsg(ERR_CLIMATE_FILE_OPEN, project->Fclimate.name);
+        report_writeErrorMsg(project, ERR_CLIMATE_FILE_OPEN, project->Fclimate.name);
         return;
     }
 
@@ -375,7 +375,7 @@ void climate_openFile(Project *project)
     FileFormat = getFileFormat(project);
     if ( FileFormat == UNKNOWN_FORMAT )
     {
-        report_writeErrorMsg(ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
         return;
     }
 
@@ -395,7 +395,7 @@ void climate_openFile(Project *project)
     }
     if ( feof(project->Fclimate.file) )
     {
-        report_writeErrorMsg(ERR_CLIMATE_END_OF_FILE, project->Fclimate.name);
+        report_writeErrorMsg(project, ERR_CLIMATE_END_OF_FILE, project->Fclimate.name);
         return;
     }
     
@@ -849,7 +849,7 @@ void readUserFileLine(Project *project, int* y, int* m)
     n = sscanf(FileLine, "%s %d %d", staID, y, m);
     if ( n < 3 )
     {
-        report_writeErrorMsg(ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
     }
 }
 
@@ -872,7 +872,7 @@ void readTD3200FileLine(Project *project, int* y, int* m)
     len = strlen(FileLine);
     if ( len < 30 )
     {
-        report_writeErrorMsg(ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
         return;
     }
 
@@ -880,7 +880,7 @@ void readTD3200FileLine(Project *project, int* y, int* m)
     sstrncpy(recdType, FileLine, 3);
     if ( strcmp(recdType, "DLY") != 0 )
     {
-        report_writeErrorMsg(ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
         return;
     }
 
@@ -909,7 +909,7 @@ void readDLY0204FileLine(Project *project, int* y, int* m)
     len = strlen(FileLine);
     if ( len < 16 )
     {
-        report_writeErrorMsg(ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
         return;
     }
 

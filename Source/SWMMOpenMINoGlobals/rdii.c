@@ -153,14 +153,14 @@ int rdii_readRdiiInflow(Project *project, char* tok[], int ntoks)
     TRdiiInflow* inflow;
 
     // --- check for proper number of items
-    if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
+    if ( ntoks < 3 ) return error_setInpError(project, ERR_ITEMS, "");
 
     // --- check that node receiving RDII exists
-    j = project_findObject(NODE, tok[0]);
+    j = project_findObject(project, NODE, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
     
     // --- check that RDII unit hydrograph exists
-    k = project_findObject(UNITHYD, tok[1]);
+    k = project_findObject(project, UNITHYD, tok[1]);
     if ( k < 0 ) return error_setInpError(ERR_NAME, tok[1]);
 
     // --- read in sewer area value
@@ -224,17 +224,17 @@ int rdii_readUnitHydParams(Project *project, char* tok[], int ntoks)
     double x[6];
 
     // --- check that RDII UH object exists in database
-    j = project_findObject(UNITHYD, tok[0]);
+    j = project_findObject(project, UNITHYD, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
    
     // --- assign UH ID to name in hash table
     if ( project->UnitHyd[j].ID == NULL )
-        project->UnitHyd[j].ID = project_findID(UNITHYD, tok[0]);
+        project->UnitHyd[j].ID = project_findID(project, UNITHYD, tok[0]);
 
     // --- line has 2 tokens; assign rain gage to UH object
     if ( ntoks == 2 )
     {
-        g = project_findObject(GAGE, tok[1]);
+        g = project_findObject(project, GAGE, tok[1]);
         if ( g < 0 ) return error_setInpError(ERR_NAME, tok[1]);
         project->UnitHyd[j].rainGage = g;
         return 0;
@@ -420,11 +420,11 @@ void rdii_openRdii(Project *project)
     {
         if ( project->Frdii.mode == SCRATCH_FILE )
         {
-            report_writeErrorMsg(ERR_RDII_FILE_SCRATCH, "");
+            report_writeErrorMsg(project, ERR_RDII_FILE_SCRATCH, "");
         }
         else
         {
-            report_writeErrorMsg(ERR_RDII_FILE_OPEN, project->Frdii.name);
+            report_writeErrorMsg(project, ERR_RDII_FILE_OPEN, project->Frdii.name);
         }
         return;
     }
@@ -448,7 +448,7 @@ void rdii_openRdii(Project *project)
     // --- catch any error
     if ( project->ErrorCode )
     {
-        report_writeErrorMsg(project->ErrorCode, project->Frdii.name);
+        report_writeErrorMsg(project, project->ErrorCode, project->Frdii.name);
     }
 
     // --- read the first set of RDII flows form the file
@@ -465,11 +465,11 @@ void openRdiiTextFile(Project *project)
     {
         if ( project->Frdii.mode == SCRATCH_FILE )
         {
-            report_writeErrorMsg(ERR_RDII_FILE_SCRATCH, "");
+            report_writeErrorMsg(project, ERR_RDII_FILE_SCRATCH, "");
         }
         else
         {
-            report_writeErrorMsg(ERR_RDII_FILE_OPEN, project->Frdii.name);
+            report_writeErrorMsg(project, ERR_RDII_FILE_OPEN, project->Frdii.name);
         }
         return;
     }
@@ -478,7 +478,7 @@ void openRdiiTextFile(Project *project)
     project->ErrorCode = readRdiiTextFileHeader(project);
     if ( project->ErrorCode )
     {
-        report_writeErrorMsg(project->ErrorCode, project->Frdii.name);
+        report_writeErrorMsg(project, project->ErrorCode, project->Frdii.name);
     }
 }
 
@@ -633,7 +633,7 @@ int readRdiiTextFileHeader(Project *project)
         if ( feof(project->Frdii.file) ) return ERR_RDII_FILE_FORMAT;
         fgets(line, MAXLINE, project->Frdii.file);
         sscanf(line, "%s", s1);
-        RdiiNodeIndex[i] = project_findObject(NODE, s1);
+        RdiiNodeIndex[i] = project_findObject(project, NODE, s1);
     }
 
     // --- skip column heading line
@@ -825,19 +825,19 @@ void validateRdii(Project *project)
                 // --- can't have negative UH parameters
                 if ( project->UnitHyd[j].tPeak[m][k] < 0.0 ) 
                 {
-                    report_writeErrorMsg(ERR_UNITHYD_TIMES, project->UnitHyd[j].ID);
+                    report_writeErrorMsg(project, ERR_UNITHYD_TIMES, project->UnitHyd[j].ID);
                 }
 
                 // --- can't have negative UH response ratio
                 if ( project->UnitHyd[j].r[m][k] < 0.0 )
                 {
-                    report_writeErrorMsg(ERR_UNITHYD_RATIOS, project->UnitHyd[j].ID);
+                    report_writeErrorMsg(project, ERR_UNITHYD_RATIOS, project->UnitHyd[j].ID);
                 }
                 else rsum += project->UnitHyd[j].r[m][k];
             }
             if ( rsum > 1.01 )
             {
-                report_writeErrorMsg(ERR_UNITHYD_RATIOS, project->UnitHyd[j].ID);
+                report_writeErrorMsg(project, ERR_UNITHYD_RATIOS, project->UnitHyd[j].ID);
             }
         }
     }
@@ -850,7 +850,7 @@ void validateRdii(Project *project)
             // --- check that sewer area is non-negative
             if ( project->Node[i].rdiiInflow->area < 0.0 )
             {
-                report_writeErrorMsg(ERR_RDII_AREA, project->Node[i].ID);
+                report_writeErrorMsg(project, ERR_RDII_AREA, project->Node[i].ID);
             }
         }
     }
@@ -878,14 +878,14 @@ void openRdiiProcessor(Project *project)
     // --- allocate memory used for RDII processing
     if ( !allocRdiiMemory(project) )
     {
-        report_writeErrorMsg(ERR_MEMORY, "");
+        report_writeErrorMsg(project, ERR_MEMORY, "");
         return;
     }
 
     // --- open & initialize RDII file
     if ( !openNewRdiiFile(project) )
     {
-        report_writeErrorMsg(ERR_RDII_FILE_SCRATCH, "");
+        report_writeErrorMsg(project, ERR_RDII_FILE_SCRATCH, "");
         return;
     }
 

@@ -118,7 +118,7 @@ int report_readOptions(Project *project, char* tok[], int ntoks)
         k = SOME;
         for (t = 1; t < ntoks; t++)
         {
-            j = project_findObject(m, tok[t]);
+            j = project_findObject(project, m, tok[t]);
             if ( j < 0 ) return error_setInpError(ERR_NAME, tok[t]);
             switch ( m )
             {
@@ -151,7 +151,7 @@ void report_writeLine(Project *project, char *line)
 
 //=============================================================================
 
-void report_writeSysTime(void)
+void report_writeSysTime(Project *project, )
 //
 //  Input:   none
 //  Output:  none

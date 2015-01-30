@@ -88,7 +88,7 @@ int  stats_open(Project *project)
                                                sizeof(TSubcatchStats));
         if ( !SubcatchStats )
         {
-            report_writeErrorMsg(ERR_MEMORY, "");
+            report_writeErrorMsg(project, ERR_MEMORY, "");
             return project->ErrorCode;
         }
         for (j=0; j<project->Nobjects[SUBCATCH]; j++)
@@ -109,7 +109,7 @@ int  stats_open(Project *project)
         LinkStats = (TLinkStats *) calloc(project->Nobjects[LINK], sizeof(TLinkStats));
         if ( !NodeStats || !LinkStats )
         {
-            report_writeErrorMsg(ERR_MEMORY, "");
+            report_writeErrorMsg(project, ERR_MEMORY, "");
             return project->ErrorCode;
         }
     }
@@ -159,7 +159,7 @@ int  stats_open(Project *project)
                            sizeof(TStorageStats));
         if ( !StorageStats )
         {
-            report_writeErrorMsg(ERR_MEMORY, "");
+            report_writeErrorMsg(project, ERR_MEMORY, "");
             return project->ErrorCode;
         }
         else for ( k = 0; k < project->Nobjects[NODE]; k++ )
@@ -183,7 +183,7 @@ int  stats_open(Project *project)
                            sizeof(TOutfallStats));
         if ( !OutfallStats )
         {
-            report_writeErrorMsg(ERR_MEMORY, "");
+            report_writeErrorMsg(project, ERR_MEMORY, "");
             return project->ErrorCode;
         }
         else for ( j = 0; j < project->Nnodes[OUTFALL]; j++ )
@@ -197,7 +197,7 @@ int  stats_open(Project *project)
                     (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
                 if ( !OutfallStats[j].totalLoad )
                 {
-                    report_writeErrorMsg(ERR_MEMORY, "");
+                    report_writeErrorMsg(project, ERR_MEMORY, "");
                     return project->ErrorCode;
                 }
                 for (k=0; k<project->Nobjects[POLLUT]; k++)
@@ -213,7 +213,7 @@ int  stats_open(Project *project)
         PumpStats = (TPumpStats *) calloc(project->Nlinks[PUMP], sizeof(TPumpStats));
         if ( !PumpStats ) 
         {
-            report_writeErrorMsg(ERR_MEMORY, "");
+            report_writeErrorMsg(project, ERR_MEMORY, "");
             return project->ErrorCode;
         }
         else for ( j = 0; j < project->Nlinks[PUMP]; j++ )

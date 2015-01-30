@@ -39,7 +39,7 @@ int     input_readData(Project *project);
 //-----------------------------------------------------------------------------
 int     report_readOptions(Project *project, char* tok[], int ntoks);
 void    report_writeLine(Project *project, char* line);
-void    report_writeSysTime(void);
+void    report_writeSysTime(Project *project);
 void    report_writeLogo(void);
 void    report_writeTitle(void);
 void    report_writeOptions(void);
@@ -98,7 +98,7 @@ void    snow_setMeltCoeffs(Project *project, int snowIndex, double season);
 void    snow_plowSnow(Project *project, int subcatch, double tStep);
 double  snow_getSnowMelt(Project *project, int subcatch, double rainfall, double snowfall,
         double tStep, double netPrecip[]);
-double  snow_getSnowCover(int subcatch);
+double  snow_getSnowCover(Project *project, int subcatch);
 
 //-----------------------------------------------------------------------------
 //   Runoff Analyzer Methods
@@ -180,7 +180,7 @@ void    flowrout_close(int routingModel);
 double  flowrout_getRoutingStep(Project *project,int routingModel, double fixedStep);
 int     flowrout_execute(Project *project, int links[], int routingModel, double tStep);
 
-void    toposort_sortLinks(int links[]);
+void    toposort_sortLinks(Project *project, int links[]);
 int     kinwave_execute(Project* project, int link, double* qin, double* qout, double tStep);
 
 void    dynwave_init(Project *project);
@@ -206,23 +206,23 @@ void    treatmnt_setInflow(double qIn, double wIn[]);
 //   Mass Balance Methods
 //-----------------------------------------------------------------------------
 int     massbal_open(Project *project);
-void    massbal_close(void);
+void    massbal_close(Project *project);
 void    massbal_report(Project *project);
-void    massbal_updateRunoffTotals(double vRainfall, double vEvap, double vInfil,
+void    massbal_updateRunoffTotals(Project *project, double vRainfall, double vEvap, double vInfil,
         double vRunoff);
-void    massbal_updateLoadingTotals(int type, int pollut, double w);
-void    massbal_updateGwaterTotals(double vInfil, double vUpperEvap,
+void    massbal_updateLoadingTotals(Project *project, int type, int pollut, double w);
+void    massbal_updateGwaterTotals(Project *project, double vInfil, double vUpperEvap,
         double vLowerEvap, double vLowerPerc, double vGwater);
 void    massbal_updateRoutingTotals(Project *project, double tStep);
 void    massbal_initTimeStepTotals(Project *project);
-void    massbal_addInflowFlow(int type, double q);
+void    massbal_addInflowFlow(Project *project, int type, double q);
 void    massbal_addInflowQual(Project *project, int type, int pollut, double w);
-void    massbal_addOutflowFlow(double q, int isFlooded);
+void    massbal_addOutflowFlow(Project *project, double q, int isFlooded);
 void    massbal_addOutflowQual(Project *project, int pollut, double mass, int isFlooded);
-void    massbal_addNodeLosses(double evapLoss, double infilLoss);
-void    massbal_addLinkLosses(double evapLoss, double infilLoss);
+void    massbal_addNodeLosses(Project *project, double evapLoss, double infilLoss);
+void    massbal_addLinkLosses(Project *project, double evapLoss, double infilLoss);
 void    massbal_addReactedMass(Project *project, int pollut, double mass);
-double  massbal_getStepFlowError(void);
+double  massbal_getStepFlowError(Project *project);
 
 //-----------------------------------------------------------------------------
 //   Simulation Statistics Methods

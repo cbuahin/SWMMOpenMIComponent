@@ -130,7 +130,7 @@ int output_open(Project *project)
     LinkResults = (REAL4 *) calloc(NlinkResults, sizeof(REAL4));
     if ( !SubcatchResults || !NodeResults || !LinkResults )
     {
-        report_writeErrorMsg(ERR_MEMORY, "");
+        report_writeErrorMsg(project, ERR_MEMORY, "");
         return project->ErrorCode;
     }
 
@@ -337,7 +337,7 @@ int output_open(Project *project)
     k = project->ReportStep;
     if ( fwrite(&k, sizeof(INT4), 1, project->Fout.file) < 1)
     {
-        report_writeErrorMsg(ERR_OUT_WRITE, "");
+        report_writeErrorMsg(project, ERR_OUT_WRITE, "");
         return project->ErrorCode;
     }
     OutputStartPos = ftell(project->Fout.file);
@@ -362,7 +362,7 @@ void  output_checkFileSize(Project *project)
         if ( (double)OutputStartPos + (double)BytesPerPeriod * project->TotalDuration
              / 1000.0 / (double)project->ReportStep >= (double)MAXFILESIZE )
         {
-            report_writeErrorMsg(ERR_FILE_SIZE, "");
+            report_writeErrorMsg(project, ERR_FILE_SIZE, "");
         }
     }
 }
@@ -447,7 +447,7 @@ void output_end(Project *project)
     k = MAGICNUMBER;
     if (fwrite(&k, sizeof(INT4), 1, project->Fout.file) < 1)
     {
-        report_writeErrorMsg(ERR_OUT_WRITE, "");
+        report_writeErrorMsg(project, ERR_OUT_WRITE, "");
     }
 }
 

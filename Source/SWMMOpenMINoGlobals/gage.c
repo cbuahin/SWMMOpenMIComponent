@@ -33,7 +33,7 @@ const double OneSecond = 1.1574074e-5;
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static int    readGageSeriesFormat(char* tok[], int ntoks, double x[]);
+static int    readGageSeriesFormat(Project *project, char* tok[], int ntoks, double x[]);
 static int    readGageFileFormat(char* tok[], int ntoks, double x[]);
 static int    getFirstRainfall(Project *project, int gage);
 static int    getNextRainfall(Project *project, int gage);
@@ -63,7 +63,7 @@ int gage_readParams(Project *project, int j, char* tok[], int ntoks)
 
     // --- check that gage exists
     if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
-    id = project_findID(GAGE, tok[0]);
+    id = project_findID(project, GAGE, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- assign default parameter values
@@ -81,7 +81,7 @@ int gage_readParams(Project *project, int j, char* tok[], int ntoks)
     k = findmatch(tok[4], GageDataWords);
     if      ( k == RAIN_TSERIES )
     {
-        err = readGageSeriesFormat(tok, ntoks, x);
+        err = readGageSeriesFormat(project, tok, ntoks, x);
     }
     else if ( k == RAIN_FILE    )
     {
@@ -117,7 +117,7 @@ int gage_readParams(Project *project, int j, char* tok[], int ntoks)
 
 //=============================================================================
 
-int readGageSeriesFormat(char* tok[], int ntoks, double x[])
+int readGageSeriesFormat(Project *project, char* tok[], int ntoks, double x[])
 {
     int m, ts;
     DateTime aTime;
@@ -143,7 +143,7 @@ int readGageSeriesFormat(char* tok[], int ntoks, double x[])
         return error_setInpError(ERR_DATETIME, tok[3]);;
 
     // --- get time series index
-    ts = project_findObject(TSERIES, tok[5]);
+    ts = project_findObject(project, TSERIES, tok[5]);
     if ( ts < 0 ) return error_setInpError(ERR_NAME, tok[5]);
     x[0] = (double)ts;
     strcpy(tok[2], "");
@@ -213,20 +213,20 @@ void  gage_validate(Project *project, int j)
         k = project->Gage[j].tSeries;
         if ( project->Tseries[k].refersTo >= 0 )
         {
-            report_writeErrorMsg(ERR_RAIN_GAGE_TSERIES, project->Gage[j].ID);
+            report_writeErrorMsg(project, ERR_RAIN_GAGE_TSERIES, project->Gage[j].ID);
         }
         gageInterval = (int)(floor(project->Tseries[k].dxMin*SECperDAY + 0.5));
         if ( gageInterval > 0 && project->Gage[j].rainInterval > gageInterval )
         {
-            report_writeErrorMsg(ERR_RAIN_GAGE_INTERVAL, project->Gage[j].ID);
+            report_writeErrorMsg(project, ERR_RAIN_GAGE_INTERVAL, project->Gage[j].ID);
         } 
         if ( project->Gage[j].rainInterval < gageInterval )
         {
-            report_writeWarningMsg(WARN09, project->Gage[j].ID);
+            report_writeWarningMsg(project, WARN09, project->Gage[j].ID);
         }
         if ( project->Gage[j].rainInterval < project->WetStep )
         {
-            report_writeWarningMsg(WARN01, project->Gage[j].ID);
+            report_writeWarningMsg(project, WARN01, project->Gage[j].ID);
             project->WetStep = project->Gage[j].rainInterval;
         }
 
@@ -240,7 +240,7 @@ void  gage_validate(Project *project, int j)
                 // --- check that both gages record same type of data
                 if ( project->Gage[j].rainType != project->Gage[i].rainType )
                 {
-                    report_writeErrorMsg(ERR_RAIN_GAGE_FORMAT, project->Gage[j].ID);
+                    report_writeErrorMsg(project, ERR_RAIN_GAGE_FORMAT, project->Gage[j].ID);
                 }
                 return;
             }

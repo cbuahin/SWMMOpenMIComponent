@@ -136,7 +136,7 @@ int kinwave_execute(Project* project, int j, double* qinflow, double* qoutflow, 
         // --- report error if continuity eqn. not solved
         if ( result == -1 )
         {
-            report_writeErrorMsg(ERR_KINWAVE, project->Link[j].ID);
+            report_writeErrorMsg(project, ERR_KINWAVE, project->Link[j].ID);
             return 1;
         }
         if ( result <= 0 ) result = 1;

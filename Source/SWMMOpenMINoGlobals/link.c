@@ -132,7 +132,7 @@ int link_readXsectParams(Project *project, char* tok[], int ntoks)
 
     // --- get index of link
     if ( ntoks < 6 ) return error_setInpError(ERR_ITEMS, "");
-    j = project_findObject(LINK, tok[0]);
+    j = project__findObject(project, LINK, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- get code of xsection shape
@@ -148,7 +148,7 @@ int link_readXsectParams(Project *project, char* tok[], int ntoks)
     // --- for irregular shape, find index of transect object
     if ( k == IRREGULAR )
     {
-        i = project_findObject(TRANSECT, tok[2]);
+        i = project__findObject(project, TRANSECT, tok[2]);
         if ( i < 0 ) return error_setInpError(ERR_NAME, tok[2]);
         project->Link[j].xsect.type = k;
         project->Link[j].xsect.transect = i;
@@ -160,7 +160,7 @@ int link_readXsectParams(Project *project, char* tok[], int ntoks)
         {
             if ( !getDouble(tok[2], &x[0]) || x[0] <= 0.0 )
                return error_setInpError(ERR_NUMBER, tok[2]);
-            i = project_findObject(CURVE, tok[3]);
+            i = project__findObject(project, CURVE, tok[3]);
             if ( i < 0 ) return error_setInpError(ERR_NAME, tok[3]);
             project->Link[j].xsect.type = k;
             project->Link[j].xsect.transect = i;
@@ -214,7 +214,7 @@ int link_readLossParams(Project *project, char* tok[], int ntoks)
     double seepRate = 0.0;
 
     if ( ntoks < 4 ) return error_setInpError(ERR_ITEMS, "");
-    j = project_findObject(LINK, tok[0]);
+    j = project__findObject(project, LINK, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
     for (i=1; i<=3; i++)
     {
@@ -352,7 +352,7 @@ void  link_validate(Project *project, int j)
       case OUTLET:
           if ( project->Node[project->Link[j].node1].invertElev + project->Link[j].offset1 <
                project->Node[project->Link[j].node2].invertElev )
-               report_writeWarningMsg(WARN10, project->Link[j].ID);
+               report_writeWarningMsg(project, WARN10, project->Link[j].ID);
     }
 
     // --- force max. depth of end nodes to be >= link crown height
@@ -416,7 +416,7 @@ double link_getOffsetHeight(Project *project, int j, double offset, double elev)
     offset -= elev;
     if ( offset >= 0.0 ) return offset;
     if ( offset >= -MIN_DELTA_Z ) return 0.0;
-    report_writeWarningMsg(WARN03, project->Link[j].ID);
+    report_writeWarningMsg(project, WARN03, project->Link[j].ID);
     return 0.0;
 }
 
@@ -839,11 +839,11 @@ int  conduit_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 
     // --- check for valid ID and end node IDs
     if ( ntoks < 7 ) return error_setInpError(ERR_ITEMS, "");
-    id = project_findID(LINK, tok[0]);                // link ID
+    id = project_findID(project, LINK, tok[0]);                // link ID
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
-    n1 = project_findObject(NODE, tok[1]);            // upstrm. node
+    n1 = project__findObject(project, NODE, tok[1]);            // upstrm. node
     if ( n1 < 0 ) return error_setInpError(ERR_NAME, tok[1]);
-    n2 = project_findObject(NODE, tok[2]);            // dwnstrm. node
+    n2 = project__findObject(project, NODE, tok[2]);            // dwnstrm. node
     if ( n2 < 0 ) return error_setInpError(ERR_NAME, tok[2]);
 
     // --- parse length & Mannings N
@@ -898,7 +898,7 @@ void  conduit_validate(Project *project, int j, int k)
     {
         if ( project->Node[project->Link[j].node1].type == STORAGE )
         {
-            report_writeErrorMsg(ERR_DUMMY_LINK, project->Node[project->Link[j].node1].ID);
+            report_writeErrorMsg(project, ERR_DUMMY_LINK, project->Node[project->Link[j].node1].ID);
             return;
         }
     }
@@ -919,36 +919,36 @@ void  conduit_validate(Project *project, int j, int k)
     {
         if ( project->ForceMainEqn == D_W ) project->Link[j].xsect.rBot /= UCF(RAINDEPTH);
         if ( project->Link[j].xsect.rBot <= 0.0 )
-            report_writeErrorMsg(ERR_XSECT, project->Link[j].ID);
+            report_writeErrorMsg(project, ERR_XSECT, project->Link[j].ID);
     }
 
     // --- check for valid length & roughness
     if ( project->Conduit[k].length <= 0.0 )
-        report_writeErrorMsg(ERR_LENGTH, project->Link[j].ID);
+        report_writeErrorMsg(project, ERR_LENGTH, project->Link[j].ID);
     if ( project->Conduit[k].roughness <= 0.0 )
-        report_writeErrorMsg(ERR_ROUGHNESS, project->Link[j].ID);
+        report_writeErrorMsg(project, ERR_ROUGHNESS, project->Link[j].ID);
     if ( project->Conduit[k].barrels <= 0 )
-        report_writeErrorMsg(ERR_BARRELS, project->Link[j].ID);
+        report_writeErrorMsg(project, ERR_BARRELS, project->Link[j].ID);
 
     // --- check for valid xsection
     if ( project->Link[j].xsect.type != DUMMY )
     {
         if ( project->Link[j].xsect.type < 0 )
-            report_writeErrorMsg(ERR_NO_XSECT, project->Link[j].ID);
+            report_writeErrorMsg(project, ERR_NO_XSECT, project->Link[j].ID);
         else if ( project->Link[j].xsect.aFull <= 0.0 )
-            report_writeErrorMsg(ERR_XSECT, project->Link[j].ID);
+            report_writeErrorMsg(project, ERR_XSECT, project->Link[j].ID);
     }
     if ( project->ErrorCode ) return;
 
     // --- check for negative offsets
     if ( project->Link[j].offset1 < 0.0 )
     {
-        report_writeWarningMsg(WARN03, project->Link[j].ID);
+        report_writeWarningMsg(project, WARN03, project->Link[j].ID);
         project->Link[j].offset1 = 0.0;
     }
 	if ( project->Link[j].offset2 < 0.0 )
     {
-        report_writeWarningMsg(WARN03, project->Link[j].ID);
+        report_writeWarningMsg(project, WARN03, project->Link[j].ID);
         project->Link[j].offset2 = 0.0;
     }
 
@@ -1157,14 +1157,14 @@ double conduit_getSlope(Project *project, int j)
     delta = fabs(elev1 - elev2);
     if ( delta < MIN_DELTA_Z )
     {
-        report_writeWarningMsg(WARN04, project->Link[j].ID);
+        report_writeWarningMsg(project, WARN04, project->Link[j].ID);
         delta = MIN_DELTA_Z;
     }
 
     // --- elevation drop cannot exceed conduit length
     if ( delta >= length )
     {
-        report_writeWarningMsg(WARN08, project->Link[j].ID);
+        report_writeWarningMsg(project, WARN08, project->Link[j].ID);
         slope = delta / length;
     }
 
@@ -1174,7 +1174,7 @@ double conduit_getSlope(Project *project, int j)
     // -- check that slope exceeds minimum allowable slope
     if ( project->MinSlope > 0.0 && slope < project->MinSlope )
     {
-        report_writeWarningMsg(WARN05, project->Link[j].ID);
+        report_writeWarningMsg(project, WARN05, project->Link[j].ID);
         slope = project->MinSlope;
         // keep min. slope positive for SF or KW routing 
         if (project->RouteModel == SF || project->RouteModel == KW) return slope;
@@ -1305,11 +1305,11 @@ int  pump_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 
     // --- check for valid ID and end node IDs
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, ""); 
-    id = project_findID(LINK, tok[0]);
+    id = project_findID(project, LINK, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
-    n1 = project_findObject(NODE, tok[1]);
+    n1 = project__findObject(project, NODE, tok[1]);
     if ( n1 < 0 ) return error_setInpError(ERR_NAME, tok[1]);
-    n2 = project_findObject(NODE, tok[2]);
+    n2 = project__findObject(project, NODE, tok[2]);
     if ( n2 < 0 ) return error_setInpError(ERR_NAME, tok[2]);
 
     // --- parse curve name
@@ -1318,7 +1318,7 @@ int  pump_readParams(Project *project, int j, int k, char* tok[], int ntoks)
     {
         if ( !strcomp(tok[3],"*") )
         {
-            m = project_findObject(CURVE, tok[3]);
+            m = project__findObject(project, CURVE, tok[3]);
             if ( m < 0 ) return error_setInpError(ERR_NAME, tok[3]);
             x[0] = m;
         }
@@ -1378,7 +1378,7 @@ void  pump_validate(Project *project, int j, int k)
     {
         if ( project->Curve[m].curveType < PUMP1_CURVE ||
              project->Curve[m].curveType > PUMP4_CURVE )
-            report_writeErrorMsg(ERR_NO_CURVE, project->Link[j].ID);
+            report_writeErrorMsg(project, ERR_NO_CURVE, project->Link[j].ID);
 
         // --- store pump curve type with pump's parameters
         else 
@@ -1401,7 +1401,7 @@ void  pump_validate(Project *project, int j, int k)
 
     // --- check that shutoff depth < startup depth
     if ( project->Pump[k].yOn > 0.0 && project->Pump[k].yOn <= project->Pump[k].yOff )
-        report_writeErrorMsg(ERR_PUMP_LIMITS, project->Link[j].ID);
+        report_writeErrorMsg(project, ERR_PUMP_LIMITS, project->Link[j].ID);
 
     // --- assign wet well volume to inlet node of Type 1 pump 
     if ( project->Pump[k].type == TYPE1_PUMP )
@@ -1540,11 +1540,11 @@ int  orifice_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 
     // --- check for valid ID and end node IDs
     if ( ntoks < 6 ) return error_setInpError(ERR_ITEMS, "");
-    id = project_findID(LINK, tok[0]);
+    id = project_findID(project, LINK, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
-    n1 = project_findObject(NODE, tok[1]);
+    n1 = project__findObject(project, NODE, tok[1]);
     if ( n1 < 0 ) return error_setInpError(ERR_NAME, tok[1]);
-    n2 = project_findObject(NODE, tok[2]);
+    n2 = project__findObject(project, NODE, tok[2]);
     if ( n2 < 0 ) return error_setInpError(ERR_NAME, tok[2]);
 
     // --- parse orifice parameters
@@ -1593,7 +1593,7 @@ void  orifice_validate(Project *project, int j, int k)
     &&   project->Link[j].xsect.type != CIRCULAR ) err = ERR_REGULATOR_SHAPE;
     if ( err > 0 )
     {
-        report_writeErrorMsg(err, project->Link[j].ID);
+        report_writeErrorMsg(project, err, project->Link[j].ID);
         return;
     }
 
@@ -1909,11 +1909,11 @@ int   weir_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 
     // --- check for valid ID and end node IDs
     if ( ntoks < 6 ) return error_setInpError(ERR_ITEMS, "");
-    id = project_findID(LINK, tok[0]);
+    id = project_findID(project, LINK, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
-    n1 = project_findObject(NODE, tok[1]);
+    n1 = project__findObject(project, NODE, tok[1]);
     if ( n1 < 0 ) return error_setInpError(ERR_NAME, tok[1]);
-    n2 = project_findObject(NODE, tok[2]);
+    n2 = project__findObject(project, NODE, tok[2]);
     if ( n2 < 0 ) return error_setInpError(ERR_NAME, tok[2]);
 
     // --- parse weir parameters
@@ -1990,7 +1990,7 @@ void  weir_validate(Project *project, int j, int k)
     }
     if ( err > 0 )
     {
-        report_writeErrorMsg(err, project->Link[j].ID);
+        report_writeErrorMsg(project, err, project->Link[j].ID);
         return;
     }
 
@@ -2284,11 +2284,11 @@ int outlet_readParams(Project *project, int j, int k, char* tok[], int ntoks)
 
     // --- check for valid ID and end node IDs
     if ( ntoks < 6 ) return error_setInpError(ERR_ITEMS, "");
-    id = project_findID(LINK, tok[0]);
+    id = project_findID(project, LINK, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
-    n1 = project_findObject(NODE, tok[1]);
+    n1 = project__findObject(project, NODE, tok[1]);
     if ( n1 < 0 ) return error_setInpError(ERR_NAME, tok[1]);
-    n2 = project_findObject(NODE, tok[2]);
+    n2 = project__findObject(project, NODE, tok[2]);
     if ( n2 < 0 ) return error_setInpError(ERR_NAME, tok[2]);
 
     // --- get height above invert
@@ -2328,7 +2328,7 @@ int outlet_readParams(Project *project, int j, int k, char* tok[], int ntoks)
     // --- get name of outlet rating curve
     else
     {
-        i = project_findObject(CURVE, tok[5]);
+        i = project__findObject(project, CURVE, tok[5]);
         if ( i < 0 ) return error_setInpError(ERR_NAME, tok[5]);
         x[3] = i;
         n = 6;

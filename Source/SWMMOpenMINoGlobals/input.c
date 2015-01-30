@@ -44,9 +44,9 @@ static int  Mlinks[MAX_LINK_TYPES];    // Working number of link objects
 static int  addObject(Project *project, int objType, char* id);
 static int  getTokens(char *s);
 static int  parseLine(Project *project, int sect, char* line);
-static int  readOption(char* line);
+static int  readOption(Project *project, char* line);
 static int  readTitle(Project *project, char* line);
-static int  readControl(char* tok[], int ntoks);
+static int  readControl(Project *project, char* tok[], int ntoks);
 static int  readNode(Project *project, int type);
 static int  readLink(Project *project, int type);
 
@@ -107,14 +107,14 @@ int input_countObjects(Project *project)
         // --- if in OPTIONS section then read the option setting
         //     otherwise add object and its ID name (tok) to project
         if ( sect == s_OPTION ) 
-			errcode = readOption(line);
+			errcode = readOption(project, line);
         else if ( sect >= 0 )   
 			errcode = addObject(project, sect, tok);
 
         // --- report any error found
         if ( errcode )
         {
-            report_writeInputErrorMsg(errcode, sect, line, lineCount);
+            report_writeInputErrorMsg(project, errcode, sect, line, lineCount);
             errsum++;
             if (errsum >= MAXERRS ) break;
         }
@@ -183,7 +183,7 @@ int input_readData(Project *project)
             if ( lineLength >= MAXLINE )
             {
                 inperr = ERR_LINE_LENGTH;
-                report_writeInputErrorMsg(inperr, sect, line, lineCount);
+                report_writeInputErrorMsg(project, inperr, sect, line, lineCount);
                 errsum++;
             }
         }
@@ -207,7 +207,7 @@ int input_readData(Project *project)
             else
             {
                 inperr = error_setInpError(ERR_KEYWORD, Tok[0]);
-                report_writeInputErrorMsg(inperr, sect, line, lineCount);
+                report_writeInputErrorMsg(project, inperr, sect, line, lineCount);
                 errsum++;
                 break;
             }
@@ -221,7 +221,7 @@ int input_readData(Project *project)
             {
                 errsum++;
                 if ( errsum > MAXERRS ) report_writeLine(project, FMT19);
-                else report_writeInputErrorMsg(inperr, sect, line, lineCount);
+                else report_writeInputErrorMsg(project, inperr, sect, line, lineCount);
             }
         }
 
@@ -248,28 +248,28 @@ int  addObject(Project *project, int objType, char* id)
     switch( objType )
     {
       case s_RAINGAGE:
-        if ( !project_addObject(GAGE, id, project->Nobjects[GAGE]) )
+        if ( !project_addObject(project, GAGE, id, project->Nobjects[GAGE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[GAGE]++;
         break;
 
       case s_SUBCATCH:
-        if ( !project_addObject(SUBCATCH, id, project->Nobjects[SUBCATCH]) )
+        if ( !project_addObject(project, SUBCATCH, id, project->Nobjects[SUBCATCH]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[SUBCATCH]++;
         break;
 
       case s_AQUIFER:
-        if ( !project_addObject(AQUIFER, id, project->Nobjects[AQUIFER]) )
+        if ( !project_addObject(project, AQUIFER, id, project->Nobjects[AQUIFER]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[AQUIFER]++;
         break;
 
       case s_UNITHYD:
         // --- the same Unit Hydrograph can span several lines
-        if ( project_findObject(UNITHYD, id) < 0 )
+        if ( project_findObject(project, UNITHYD, id) < 0 )
         {
-            if ( !project_addObject(UNITHYD, id, project->Nobjects[UNITHYD]) )
+            if ( !project_addObject(project, UNITHYD, id, project->Nobjects[UNITHYD]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
             project->Nobjects[UNITHYD]++;
         }
@@ -277,94 +277,94 @@ int  addObject(Project *project, int objType, char* id)
 
       case s_SNOWMELT:
         // --- the same project->Snowmelt object can appear on several lines
-        if ( project_findObject(SNOWMELT, id) < 0 )
+        if ( project_findObject(project, SNOWMELT, id) < 0 )
         {
-            if ( !project_addObject(SNOWMELT, id, project->Nobjects[SNOWMELT]) )
+            if ( !project_addObject(project, SNOWMELT, id, project->Nobjects[SNOWMELT]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
             project->Nobjects[SNOWMELT]++;
         }
         break;
 
       case s_JUNCTION:
-        if ( !project_addObject(NODE, id, project->Nobjects[NODE]) )
+        if ( !project_addObject(project, NODE, id, project->Nobjects[NODE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[NODE]++;
         project->Nnodes[JUNCTION]++;
         break;
 
       case s_OUTFALL:
-        if ( !project_addObject(NODE, id, project->Nobjects[NODE]) )
+        if ( !project_addObject(project, NODE, id, project->Nobjects[NODE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[NODE]++;
         project->Nnodes[OUTFALL]++;
         break;
 
       case s_STORAGE:
-        if ( !project_addObject(NODE, id, project->Nobjects[NODE]) )
+        if ( !project_addObject(project, NODE, id, project->Nobjects[NODE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[NODE]++;
         project->Nnodes[STORAGE]++;
         break;
 
       case s_DIVIDER:
-        if ( !project_addObject(NODE, id, project->Nobjects[NODE]) )
+        if ( !project_addObject(project, NODE, id, project->Nobjects[NODE]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[NODE]++;
         project->Nnodes[DIVIDER]++;
         break;
 
       case s_CONDUIT:
-        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) )
+        if ( !project_addObject(project, LINK, id, project->Nobjects[LINK]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[LINK]++;
         project->Nlinks[CONDUIT]++;
         break;
 
       case s_PUMP:
-        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) ) 
+        if ( !project_addObject(project, LINK, id, project->Nobjects[LINK]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[LINK]++;
         project->Nlinks[PUMP]++;
         break;
 
       case s_ORIFICE:
-        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) ) 
+        if ( !project_addObject(project, LINK, id, project->Nobjects[LINK]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[LINK]++;
         project->Nlinks[ORIFICE]++;
         break;
 
       case s_WEIR:
-        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) ) 
+        if ( !project_addObject(project, LINK, id, project->Nobjects[LINK]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[LINK]++;
         project->Nlinks[WEIR]++;
         break;
 
       case s_OUTLET:
-        if ( !project_addObject(LINK, id, project->Nobjects[LINK]) )
+        if ( !project_addObject(project, LINK, id, project->Nobjects[LINK]) )
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[LINK]++;
         project->Nlinks[OUTLET]++;
         break;
 
       case s_POLLUTANT:
-        if ( !project_addObject(POLLUT, id, project->Nobjects[POLLUT]) ) 
+        if ( !project_addObject(project, POLLUT, id, project->Nobjects[POLLUT]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[POLLUT]++;
         break;
 
       case s_LANDUSE:
-        if ( !project_addObject(LANDUSE, id, project->Nobjects[LANDUSE]) ) 
+        if ( !project_addObject(project, LANDUSE, id, project->Nobjects[LANDUSE]) ) 
             errcode = error_setInpError(ERR_DUP_NAME, id);
         project->Nobjects[LANDUSE]++;
         break;
 
       case s_PATTERN:
         // --- a time pattern can span several lines
-        if ( project_findObject(TIMEPATTERN, id) < 0 )
+        if ( project_findObject(project, TIMEPATTERN, id) < 0 )
         {
-            if ( !project_addObject(TIMEPATTERN, id, project->Nobjects[TIMEPATTERN]) )
+            if ( !project_addObject(project, TIMEPATTERN, id, project->Nobjects[TIMEPATTERN]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
             project->Nobjects[TIMEPATTERN]++;
         }
@@ -372,9 +372,9 @@ int  addObject(Project *project, int objType, char* id)
 
       case s_CURVE:
         // --- a project->Curve can span several lines
-        if ( project_findObject(CURVE, id) < 0 )
+        if ( project_findObject(project, CURVE, id) < 0 )
         {
-            if ( !project_addObject(CURVE, id, project->Nobjects[CURVE]) )
+            if ( !project_addObject(project, CURVE, id, project->Nobjects[CURVE]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
             project->Nobjects[CURVE]++;
 
@@ -387,9 +387,9 @@ int  addObject(Project *project, int objType, char* id)
 
       case s_TIMESERIES:
         // --- a Time Series can span several lines
-        if ( project_findObject(TSERIES, id) < 0 )
+        if ( project_findObject(project, TSERIES, id) < 0 )
         {
-            if ( !project_addObject(TSERIES, id, project->Nobjects[TSERIES]) )
+            if ( !project_addObject(project, TSERIES, id, project->Nobjects[TSERIES]) )
                 errcode = error_setInpError(ERR_DUP_NAME, id);
             project->Nobjects[TSERIES]++;
         }
@@ -406,7 +406,7 @@ int  addObject(Project *project, int objType, char* id)
             id = strtok(NULL, SEPSTR);
             if ( id ) 
             {
-                if ( !project_addObject(TRANSECT, id, project->Nobjects[TRANSECT]) )
+                if ( !project_addObject(project, TRANSECT, id, project->Nobjects[TRANSECT]) )
                     errcode = error_setInpError(ERR_DUP_NAME, id);
                 project->Nobjects[TRANSECT]++;
             }
@@ -415,9 +415,9 @@ int  addObject(Project *project, int objType, char* id)
 
       case s_LID_CONTROL:
         // --- an LID object can span several lines
-        if ( project_findObject(LID, id) < 0 )
+        if ( project_findObject(project, LID, id) < 0 )
         {
-            if ( !project_addObject(LID, id, project->Nobjects[LID]) )
+            if ( !project_addObject(project, LID, id, project->Nobjects[LID]) )
             {
                 errcode = error_setInpError(ERR_DUP_NAME, id);
             }
@@ -568,7 +568,7 @@ int  parseLine(Project *project, int sect, char *line)
         return table_readTimeseries(project, Tok, Ntokens);
 
       case s_CONTROL:
-        return readControl(Tok, Ntokens);
+        return readControl(project, Tok, Ntokens);
 
       case s_REPORT:
         return report_readOptions(project, Tok, Ntokens);
@@ -588,7 +588,7 @@ int  parseLine(Project *project, int sect, char *line)
 
 //=============================================================================
 
-int readControl(char* tok[], int ntoks)
+int readControl(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -609,7 +609,7 @@ int readControl(char* tok[], int ntoks)
     // --- if line begins a new control rule, add rule ID to the database
     if ( keyword == 0 )
     {
-        if ( !project_addObject(CONTROL, tok[1], Mobjects[CONTROL]) )
+        if ( !project_addObject(project, CONTROL, tok[1], Mobjects[CONTROL]) )
         {
             return error_setInpError(ERR_DUP_NAME, Tok[1]);
         }
@@ -626,7 +626,7 @@ int readControl(char* tok[], int ntoks)
 
 //=============================================================================
 
-int readOption(char* line)
+int readOption(Project *project, char* line)
 //
 //  Input:   line = line of input data
 //  Output:  returns error code
@@ -635,7 +635,7 @@ int readOption(char* line)
 {
     Ntokens = getTokens(line);
     if ( Ntokens < 2 ) return 0;
-    return project_readOption(Tok[0], Tok[1]);
+    return project_readOption(project, Tok[0], Tok[1]);
 }
 
 //=============================================================================

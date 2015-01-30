@@ -206,7 +206,7 @@ void validateTreeLayout(Project *project)
           case DIVIDER:
             if ( project->Node[j].degree > 2 )
             {
-                report_writeErrorMsg(ERR_DIVIDER, project->Node[j].ID);
+                report_writeErrorMsg(project, ERR_DIVIDER, project->Node[j].ID);
             }
             break;
 
@@ -214,7 +214,7 @@ void validateTreeLayout(Project *project)
           case OUTFALL:
             if ( project->Node[j].degree > 0 )
             {
-                report_writeErrorMsg(ERR_OUTFALL, project->Node[j].ID);
+                report_writeErrorMsg(project, ERR_OUTFALL, project->Node[j].ID);
             }
             break;
 
@@ -225,7 +225,7 @@ void validateTreeLayout(Project *project)
           default:
             if ( project->Node[j].degree > 1 )
             {
-                report_writeErrorMsg(ERR_MULTI_OUTLET, project->Node[j].ID);
+                report_writeErrorMsg(project, ERR_MULTI_OUTLET, project->Node[j].ID);
             }
         }
     }
@@ -240,7 +240,7 @@ void validateTreeLayout(Project *project)
               if ( project->Conduit[project->Link[j].subIndex].slope < 0.0 &&
                    project->Link[j].xsect.type != DUMMY )
               {
-                  report_writeErrorMsg(ERR_SLOPE, project->Link[j].ID);
+                  report_writeErrorMsg(project, ERR_SLOPE, project->Link[j].ID);
               }
               break;
 
@@ -250,7 +250,7 @@ void validateTreeLayout(Project *project)
           case OUTLET:
             if ( project->Node[project->Link[j].node1].type != STORAGE )
             {
-                report_writeErrorMsg(ERR_REGULATOR, project->Link[j].ID);
+                report_writeErrorMsg(project, ERR_REGULATOR, project->Link[j].ID);
             }
         }
     }
@@ -289,7 +289,7 @@ void validateGeneralLayout(Project *project)
             if ( project->Link[j].direction < 0 ) i = project->Link[j].node2;
             if ( project->Node[i].degree > 1 )
             {
-                report_writeErrorMsg(ERR_DUMMY_LINK, project->Node[i].ID);
+                report_writeErrorMsg(project, ERR_DUMMY_LINK, project->Node[i].ID);
             }
         }
     }
@@ -304,12 +304,12 @@ void validateGeneralLayout(Project *project)
         {
             if ( project->Node[i].degree + (int)project->Node[i].inflow > 1 )
             {
-                report_writeErrorMsg(ERR_OUTFALL, project->Node[i].ID);
+                report_writeErrorMsg(project, ERR_OUTFALL, project->Node[i].ID);
             }
             else outletCount++;
         }
     }
-    if ( outletCount == 0 ) report_writeErrorMsg(ERR_NO_OUTLETS, "");
+    if ( outletCount == 0 ) report_writeErrorMsg(project, ERR_NO_OUTLETS, "");
 
     // --- reset node inflows back to zero
     for ( i = 0; i < project->Nobjects[NODE]; i++ )

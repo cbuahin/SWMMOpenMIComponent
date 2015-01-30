@@ -25,14 +25,14 @@ static const double MAX_FLOW_BALANCE_ERR   = 10.0;
 //-----------------------------------------------------------------------------
 //  Shared variables   
 //-----------------------------------------------------------------------------
-TRunoffTotals    RunoffTotals;    // overall surface runoff continuity totals
-TLoadingTotals*  LoadingTotals;   // overall WQ washoff continuity totals
-TGwaterTotals    GwaterTotals;    // overall groundwater continuity totals 
-TRoutingTotals   FlowTotals;      // overall routed flow continuity totals 
-TRoutingTotals*  QualTotals;      // overall routed WQ continuity totals 
-TRoutingTotals   StepFlowTotals;  // routed flow totals over time step
-TRoutingTotals   OldStepFlowTotals;
-TRoutingTotals*  StepQualTotals;  // routed WQ totals over time step
+//TRunoffTotals    project->RunoffTotals;    // overall surface runoff continuity totals
+//TLoadingTotals*  project->LoadingTotals;   // overall WQ washoff continuity totals
+//TGwaterTotals    project->GwaterTotals;    // overall groundwater continuity totals 
+//TRoutingTotals   project->FlowTotals;      // overall routed flow continuity totals 
+//TRoutingTotals*  project->QualTotals;      // overall routed WQ continuity totals 
+//TRoutingTotals   project->StepFlowTotals;  // routed flow totals over time step
+//TRoutingTotals   project->OldStepFlowTotals;
+//TRoutingTotals*  project->StepQualTotals;  // routed WQ totals over time step
 
 //-----------------------------------------------------------------------------
 //  Exportable variables
@@ -92,66 +92,66 @@ int massbal_open(Project *project)
     project->QualError   = 0.0;
 
     // --- initialize runoff totals
-    RunoffTotals.rainfall    = 0.0;
-    RunoffTotals.evap        = 0.0;
-    RunoffTotals.infil       = 0.0;
-    RunoffTotals.runoff      = 0.0;
-    RunoffTotals.snowRemoved = 0.0;
-    RunoffTotals.initStorage = 0.0;
-    RunoffTotals.initSnowCover = 0.0;
+    project->RunoffTotals.rainfall    = 0.0;
+    project->RunoffTotals.evap        = 0.0;
+    project->RunoffTotals.infil       = 0.0;
+    project->RunoffTotals.runoff      = 0.0;
+    project->RunoffTotals.snowRemoved = 0.0;
+    project->RunoffTotals.initStorage = 0.0;
+    project->RunoffTotals.initSnowCover = 0.0;
     TotalArea = 0.0;
     for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        RunoffTotals.initStorage += subcatch_getStorage(project,j);
-        RunoffTotals.initSnowCover += snow_getSnowCover(j);
+        project->RunoffTotals.initStorage += subcatch_getStorage(project,j);
+        project->RunoffTotals.initSnowCover += snow_getSnowCover(project, j);
         TotalArea += project->Subcatch[j].area;
     }
 
     // --- initialize groundwater totals
-    GwaterTotals.infil        = 0.0;
-    GwaterTotals.upperEvap    = 0.0;
-    GwaterTotals.lowerEvap    = 0.0;
-    GwaterTotals.lowerPerc    = 0.0;
-    GwaterTotals.gwater       = 0.0;
-    GwaterTotals.initStorage  = 0.0;
-    GwaterTotals.finalStorage = 0.0;
+    project->GwaterTotals.infil        = 0.0;
+    project->GwaterTotals.upperEvap    = 0.0;
+    project->GwaterTotals.lowerEvap    = 0.0;
+    project->GwaterTotals.lowerPerc    = 0.0;
+    project->GwaterTotals.gwater       = 0.0;
+    project->GwaterTotals.initStorage  = 0.0;
+    project->GwaterTotals.finalStorage = 0.0;
     for ( j = 0; j < project->Nobjects[SUBCATCH]; j++ )
     {
-        GwaterTotals.initStorage += gwater_getVolume(project, j) * project->Subcatch[j].area;
+        project->GwaterTotals.initStorage += gwater_getVolume(project, j) * project->Subcatch[j].area;
     }
 
     // --- initialize node flow & storage totals
-    FlowTotals.dwInflow = 0.0;
-    FlowTotals.wwInflow = 0.0;
-    FlowTotals.gwInflow = 0.0;
-    FlowTotals.iiInflow = 0.0;
-    FlowTotals.exInflow = 0.0;
-    FlowTotals.flooding = 0.0;
-    FlowTotals.outflow  = 0.0;
-    FlowTotals.evapLoss = 0.0; 
-    FlowTotals.seepLoss = 0.0;
-    FlowTotals.reacted  = 0.0;
-    FlowTotals.initStorage = 0.0;
+    project->FlowTotals.dwInflow = 0.0;
+    project->FlowTotals.wwInflow = 0.0;
+    project->FlowTotals.gwInflow = 0.0;
+    project->FlowTotals.iiInflow = 0.0;
+    project->FlowTotals.exInflow = 0.0;
+    project->FlowTotals.flooding = 0.0;
+    project->FlowTotals.outflow  = 0.0;
+    project->FlowTotals.evapLoss = 0.0; 
+    project->FlowTotals.seepLoss = 0.0;
+    project->FlowTotals.reacted  = 0.0;
+    project->FlowTotals.initStorage = 0.0;
     for (j = 0; j < project->Nobjects[NODE]; j++)
-        FlowTotals.initStorage += project->Node[j].newVolume;
+        project->FlowTotals.initStorage += project->Node[j].newVolume;
     for (j = 0; j < project->Nobjects[LINK]; j++)
-        FlowTotals.initStorage += project->Link[j].newVolume;
-    StepFlowTotals = FlowTotals;
+        project->FlowTotals.initStorage += project->Link[j].newVolume;
+    project->StepFlowTotals = project->FlowTotals;
 
     // --- add contribution of minimum surface area to initial storage
     if ( project->RouteModel == DW )
     {
 	    for (j = 0; j < project->Nobjects[NODE]; j++)
 	    {
-            if ( project->Node[j].type != STORAGE ) FlowTotals.initStorage +=
+            if ( project->Node[j].type != STORAGE ) project->FlowTotals.initStorage +=
 		        project->Node[j].initDepth * project->MinSurfArea;
 	    }
     }
 
     // --- initialize arrays to null
-    LoadingTotals = NULL;
-    QualTotals = NULL;
-    StepQualTotals = NULL;
+    project->LoadingTotals = NULL;
+    project->QualTotals = NULL;
+    project->StepQualTotals = NULL;
     NodeInflow = NULL;
     NodeOutflow = NULL;
 
@@ -159,33 +159,33 @@ int massbal_open(Project *project)
     n = project->Nobjects[POLLUT];
     if ( n > 0 )
     {
-        LoadingTotals = (TLoadingTotals *) calloc(n, sizeof(TLoadingTotals));
-        if ( LoadingTotals == NULL )
+        project->LoadingTotals = (TLoadingTotals *) calloc(n, sizeof(TLoadingTotals));
+        if ( project->LoadingTotals == NULL )
         {
-             report_writeErrorMsg(ERR_MEMORY, "");
+             report_writeErrorMsg(project, ERR_MEMORY, "");
              return project->ErrorCode;
         }
         for (j = 0; j < n; j++)
         {
-            LoadingTotals[j].initLoad      = massbal_getBuildup(project, j);
-            LoadingTotals[j].buildup       = 0.0;
-            LoadingTotals[j].deposition    = 0.0;
-            LoadingTotals[j].sweeping      = 0.0;
-            LoadingTotals[j].infil         = 0.0;
-            LoadingTotals[j].bmpRemoval    = 0.0;
-            LoadingTotals[j].runoff        = 0.0;
-            LoadingTotals[j].finalLoad     = 0.0;
+            project->LoadingTotals[j].initLoad      = massbal_getBuildup(project, j);
+            project->LoadingTotals[j].buildup       = 0.0;
+            project->LoadingTotals[j].deposition    = 0.0;
+            project->LoadingTotals[j].sweeping      = 0.0;
+            project->LoadingTotals[j].infil         = 0.0;
+            project->LoadingTotals[j].bmpRemoval    = 0.0;
+            project->LoadingTotals[j].runoff        = 0.0;
+            project->LoadingTotals[j].finalLoad     = 0.0;
         }
     }
 
     // --- allocate memory for nodal WQ continuity totals
     if ( n > 0 )
     {
-         QualTotals = (TRoutingTotals *) calloc(n, sizeof(TRoutingTotals));
-         StepQualTotals = (TRoutingTotals *) calloc(n, sizeof(TRoutingTotals));
-         if ( QualTotals == NULL || StepQualTotals == NULL )
+         project->QualTotals = (TRoutingTotals *) calloc(n, sizeof(TRoutingTotals));
+         project->StepQualTotals = (TRoutingTotals *) calloc(n, sizeof(TRoutingTotals));
+         if ( project->QualTotals == NULL || project->StepQualTotals == NULL )
          {
-             report_writeErrorMsg(ERR_MEMORY, "");
+             report_writeErrorMsg(project, ERR_MEMORY, "");
              return project->ErrorCode;
          }
      }
@@ -193,16 +193,16 @@ int massbal_open(Project *project)
     // --- initialize WQ totals
     for (j = 0; j < n; j++)
     {
-        QualTotals[j].dwInflow = 0.0;
-        QualTotals[j].wwInflow = 0.0;
-        QualTotals[j].gwInflow = 0.0;
-        QualTotals[j].exInflow = 0.0;
-        QualTotals[j].flooding = 0.0;
-        QualTotals[j].outflow  = 0.0;
-        QualTotals[j].evapLoss = 0.0;
-        QualTotals[j].seepLoss = 0.0; 
-        QualTotals[j].reacted  = 0.0;
-        QualTotals[j].initStorage = massbal_getStoredMass(project,j);
+        project->QualTotals[j].dwInflow = 0.0;
+        project->QualTotals[j].wwInflow = 0.0;
+        project->QualTotals[j].gwInflow = 0.0;
+        project->QualTotals[j].exInflow = 0.0;
+        project->QualTotals[j].flooding = 0.0;
+        project->QualTotals[j].outflow  = 0.0;
+        project->QualTotals[j].evapLoss = 0.0;
+        project->QualTotals[j].seepLoss = 0.0; 
+        project->QualTotals[j].reacted  = 0.0;
+        project->QualTotals[j].initStorage = massbal_getStoredMass(project,j);
     }
 
     // --- initialize totals used over a single time step
@@ -214,13 +214,13 @@ int massbal_open(Project *project)
         NodeInflow = (double *) calloc(project->Nobjects[NODE], sizeof(double));
         if ( NodeInflow == NULL )
         {
-             report_writeErrorMsg(ERR_MEMORY, "");
+             report_writeErrorMsg(project, ERR_MEMORY, "");
              return project->ErrorCode;
         }
         NodeOutflow = (double *) calloc(project->Nobjects[NODE], sizeof(double));
         if ( NodeOutflow == NULL )
         {
-             report_writeErrorMsg(ERR_MEMORY, "");
+             report_writeErrorMsg(project, ERR_MEMORY, "");
              return project->ErrorCode;
         }
         for (j = 0; j < project->Nobjects[NODE]; j++) NodeInflow[j] = project->Node[j].newVolume;
@@ -230,16 +230,16 @@ int massbal_open(Project *project)
 
 //=============================================================================
 
-void massbal_close()
+void massbal_close(Project *project)
 //
 //  Input:   none
 //  Output:  none
 //  Purpose: frees memory used by mass balance system.
 //
 {
-    FREE(LoadingTotals);
-    FREE(QualTotals);
-    FREE(StepQualTotals);
+    FREE(project->LoadingTotals);
+    FREE(project->QualTotals);
+    FREE(project->StepQualTotals);
     FREE(NodeInflow);
     FREE(NodeOutflow);
 }
@@ -260,13 +260,13 @@ void massbal_report(Project *project)
     {
         if ( massbal_getRunoffError(project) > MAX_RUNOFF_BALANCE_ERR ||
              project->RptFlags.continuity == TRUE
-           ) report_writeRunoffError(&RunoffTotals, TotalArea);
+           ) report_writeRunoffError(&project->RunoffTotals, TotalArea);
 
         if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality )
         {
             if ( massbal_getLoadingError(project) > MAX_RUNOFF_BALANCE_ERR ||
                  project->RptFlags.continuity == TRUE
-               ) report_writeLoadingError(LoadingTotals);
+               ) report_writeLoadingError(project->LoadingTotals);
         }
     }
 
@@ -279,7 +279,7 @@ void massbal_report(Project *project)
             {
                 if ( project->Subcatch[j].groundwater ) gwArea += project->Subcatch[j].area;
             }
-            if ( gwArea > 0.0 ) report_writeGwaterError(&GwaterTotals, gwArea);
+            if ( gwArea > 0.0 ) report_writeGwaterError(&project->GwaterTotals, gwArea);
        }
     }
 
@@ -287,13 +287,13 @@ void massbal_report(Project *project)
     {
         if ( massbal_getFlowError(project) > MAX_FLOW_BALANCE_ERR ||
              project->RptFlags.continuity == TRUE
-           ) report_writeFlowError(&FlowTotals);
+           ) report_writeFlowError(&project->FlowTotals);
     
         if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality )
         {
             if ( massbal_getQualError(project) > MAX_FLOW_BALANCE_ERR ||
                  project->RptFlags.continuity == TRUE
-               ) report_writeQualError(QualTotals);
+               ) report_writeQualError(project->QualTotals);
         }
     }
 }
@@ -323,7 +323,7 @@ double massbal_getBuildup(Project *project, int p)
 
 //=============================================================================
 
-void massbal_updateRunoffTotals(double vRainfall, double vEvap, double vInfil,
+void massbal_updateRunoffTotals(Project *project, double vRainfall, double vEvap, double vInfil,
                                 double vRunoff)
 //
 //  Input:   vRain   = rainfall volume (ft3)
@@ -334,15 +334,15 @@ void massbal_updateRunoffTotals(double vRainfall, double vEvap, double vInfil,
 //  Purpose: updates runoff totals after current time step.
 //
 {
-    RunoffTotals.rainfall += vRainfall;
-    RunoffTotals.evap     += vEvap;
-    RunoffTotals.infil    += vInfil;
-    RunoffTotals.runoff   += vRunoff;
+    project->RunoffTotals.rainfall += vRainfall;
+    project->RunoffTotals.evap     += vEvap;
+    project->RunoffTotals.infil    += vInfil;
+    project->RunoffTotals.runoff   += vRunoff;
 }
 
 //=============================================================================
 
-void massbal_updateGwaterTotals(double vInfil, double vUpperEvap, double vLowerEvap,
+void massbal_updateGwaterTotals(Project *project, double vInfil, double vUpperEvap, double vLowerEvap,
                                 double vLowerPerc, double vGwater)
 //
 //  Input:   vInfil = volume depth of infiltrated water (ft)
@@ -354,11 +354,11 @@ void massbal_updateGwaterTotals(double vInfil, double vUpperEvap, double vLowerE
 //  Purpose: updates groundwater totals after current time step.
 //
 {
-    GwaterTotals.infil     += vInfil;
-    GwaterTotals.upperEvap += vUpperEvap;
-    GwaterTotals.lowerEvap += vLowerEvap;
-    GwaterTotals.lowerPerc += vLowerPerc;
-    GwaterTotals.gwater    += vGwater;
+    project->GwaterTotals.infil     += vInfil;
+    project->GwaterTotals.upperEvap += vUpperEvap;
+    project->GwaterTotals.lowerEvap += vLowerEvap;
+    project->GwaterTotals.lowerPerc += vLowerPerc;
+    project->GwaterTotals.gwater    += vGwater;
 }
 
 //=============================================================================
@@ -371,33 +371,33 @@ void massbal_initTimeStepTotals(Project *project)
 //
 {
     int j;
-    OldStepFlowTotals = StepFlowTotals;
-    StepFlowTotals.dwInflow  = 0.0;
-    StepFlowTotals.wwInflow  = 0.0;
-    StepFlowTotals.gwInflow  = 0.0;
-    StepFlowTotals.iiInflow  = 0.0;
-    StepFlowTotals.exInflow  = 0.0;
-    StepFlowTotals.flooding  = 0.0;
-    StepFlowTotals.outflow   = 0.0;
-    StepFlowTotals.evapLoss  = 0.0;
-    StepFlowTotals.seepLoss  = 0.0;
-    StepFlowTotals.reacted   = 0.0;
+    project->OldStepFlowTotals = project->StepFlowTotals;
+    project->StepFlowTotals.dwInflow  = 0.0;
+    project->StepFlowTotals.wwInflow  = 0.0;
+    project->StepFlowTotals.gwInflow  = 0.0;
+    project->StepFlowTotals.iiInflow  = 0.0;
+    project->StepFlowTotals.exInflow  = 0.0;
+    project->StepFlowTotals.flooding  = 0.0;
+    project->StepFlowTotals.outflow   = 0.0;
+    project->StepFlowTotals.evapLoss  = 0.0;
+    project->StepFlowTotals.seepLoss  = 0.0;
+    project->StepFlowTotals.reacted   = 0.0;
     for (j=0; j<project->Nobjects[POLLUT]; j++)
     {
-        StepQualTotals[j].dwInflow  = 0.0;
-        StepQualTotals[j].wwInflow  = 0.0;
-        StepQualTotals[j].gwInflow  = 0.0;
-        StepQualTotals[j].iiInflow  = 0.0;
-        StepQualTotals[j].exInflow  = 0.0;
-        StepQualTotals[j].flooding  = 0.0;
-        StepQualTotals[j].outflow   = 0.0;
-        StepQualTotals[j].reacted   = 0.0;
+        project->StepQualTotals[j].dwInflow  = 0.0;
+        project->StepQualTotals[j].wwInflow  = 0.0;
+        project->StepQualTotals[j].gwInflow  = 0.0;
+        project->StepQualTotals[j].iiInflow  = 0.0;
+        project->StepQualTotals[j].exInflow  = 0.0;
+        project->StepQualTotals[j].flooding  = 0.0;
+        project->StepQualTotals[j].outflow   = 0.0;
+        project->StepQualTotals[j].reacted   = 0.0;
     }
 }
 
 //=============================================================================
 
-void massbal_addInflowFlow(int type, double q)
+void massbal_addInflowFlow(Project *project, int type, double q)
 //
 //  Input:   type = type of inflow
 //           q    = inflow rate (cfs)
@@ -407,17 +407,17 @@ void massbal_addInflowFlow(int type, double q)
 {
     switch (type)
     {
-      case DRY_WEATHER_INFLOW: StepFlowTotals.dwInflow += q; break;
-      case WET_WEATHER_INFLOW: StepFlowTotals.wwInflow += q; break;
-      case GROUNDWATER_INFLOW: StepFlowTotals.gwInflow += q; break;
-      case RDII_INFLOW:        StepFlowTotals.iiInflow += q; break;
-      case EXTERNAL_INFLOW:    StepFlowTotals.exInflow += q; break;
+      case DRY_WEATHER_INFLOW: project->StepFlowTotals.dwInflow += q; break;
+      case WET_WEATHER_INFLOW: project->StepFlowTotals.wwInflow += q; break;
+      case GROUNDWATER_INFLOW: project->StepFlowTotals.gwInflow += q; break;
+      case RDII_INFLOW:        project->StepFlowTotals.iiInflow += q; break;
+      case EXTERNAL_INFLOW:    project->StepFlowTotals.exInflow += q; break;
     }
 }
 
 //=============================================================================
 
-void massbal_updateLoadingTotals(int type, int p, double w)
+void massbal_updateLoadingTotals(Project *project, int type, int p, double w)
 //
 //  Input:   type = type of inflow
 //           p    = pollutant index
@@ -428,13 +428,13 @@ void massbal_updateLoadingTotals(int type, int p, double w)
 {
     switch (type)
     {
-      case BUILDUP_LOAD:     LoadingTotals[p].buildup    += w; break;
-      case DEPOSITION_LOAD:  LoadingTotals[p].deposition += w; break;
-      case SWEEPING_LOAD:    LoadingTotals[p].sweeping   += w; break;
-      case INFIL_LOAD:       LoadingTotals[p].infil      += w; break;
-      case BMP_REMOVAL_LOAD: LoadingTotals[p].bmpRemoval += w; break;
-      case RUNOFF_LOAD:      LoadingTotals[p].runoff     += w; break;
-      case FINAL_LOAD:       LoadingTotals[p].finalLoad  += w; break;
+      case BUILDUP_LOAD:     project->LoadingTotals[p].buildup    += w; break;
+      case DEPOSITION_LOAD:  project->LoadingTotals[p].deposition += w; break;
+      case SWEEPING_LOAD:    project->LoadingTotals[p].sweeping   += w; break;
+      case INFIL_LOAD:       project->LoadingTotals[p].infil      += w; break;
+      case BMP_REMOVAL_LOAD: project->LoadingTotals[p].bmpRemoval += w; break;
+      case RUNOFF_LOAD:      project->LoadingTotals[p].runoff     += w; break;
+      case FINAL_LOAD:       project->LoadingTotals[p].finalLoad  += w; break;
     }
 }
 
@@ -452,17 +452,17 @@ void massbal_addInflowQual(Project *project, int type, int p, double w)
     if ( p < 0 || p >= project->Nobjects[POLLUT] ) return;
     switch (type)
     {
-      case DRY_WEATHER_INFLOW: StepQualTotals[p].dwInflow += w; break;
-      case WET_WEATHER_INFLOW: StepQualTotals[p].wwInflow += w; break;
-      case GROUNDWATER_INFLOW: StepQualTotals[p].gwInflow += w; break;
-      case EXTERNAL_INFLOW:    StepQualTotals[p].exInflow += w; break;
-      case RDII_INFLOW:        StepQualTotals[p].iiInflow += w; break;
+      case DRY_WEATHER_INFLOW: project->StepQualTotals[p].dwInflow += w; break;
+      case WET_WEATHER_INFLOW: project->StepQualTotals[p].wwInflow += w; break;
+      case GROUNDWATER_INFLOW: project->StepQualTotals[p].gwInflow += w; break;
+      case EXTERNAL_INFLOW:    project->StepQualTotals[p].exInflow += w; break;
+      case RDII_INFLOW:        project->StepQualTotals[p].iiInflow += w; break;
    }
 }
 
 //=============================================================================
 
-void massbal_addOutflowFlow(double q, int isFlooded)
+void massbal_addOutflowFlow(Project *project, double q, int isFlooded)
 //
 //  Input:   q = outflow flow rate (cfs)
 //           isFlooded = TRUE if outflow represents internal flooding
@@ -472,10 +472,10 @@ void massbal_addOutflowFlow(double q, int isFlooded)
 {
     if ( q >= 0.0 )
     {
-        if ( isFlooded ) StepFlowTotals.flooding += q;
-        else             StepFlowTotals.outflow += q;
+        if ( isFlooded ) project->StepFlowTotals.flooding += q;
+        else             project->StepFlowTotals.outflow += q;
     }
-    else StepFlowTotals.exInflow -= q;
+    else project->StepFlowTotals.exInflow -= q;
 }
 
 //=============================================================================
@@ -492,10 +492,10 @@ void massbal_addOutflowQual(Project *project, int p, double w, int isFlooded)
     if ( p < 0 || p >= project->Nobjects[POLLUT] ) return;
     if ( w >= 0.0 )
     {
-        if ( isFlooded ) StepQualTotals[p].flooding += w;
-        else             StepQualTotals[p].outflow += w;
+        if ( isFlooded ) project->StepQualTotals[p].flooding += w;
+        else             project->StepQualTotals[p].outflow += w;
     }
-    else StepQualTotals[p].exInflow -= w;
+    else project->StepQualTotals[p].exInflow -= w;
 }
 
 //=============================================================================
@@ -509,12 +509,12 @@ void massbal_addReactedMass(Project *project, int p, double w)
 //
 {
     if ( p < 0 || p >= project->Nobjects[POLLUT] ) return;
-    StepQualTotals[p].reacted += w;
+    project->StepQualTotals[p].reacted += w;
 }
 
 //=============================================================================
 
-void massbal_addNodeLosses(double evapLoss, double seepLoss)
+void massbal_addNodeLosses(Project *project, double evapLoss, double seepLoss)
 //
 //  Input:   evapLoss = evaporation loss from all nodes (ft3/sec)
 //           seepLoss = seepage loss from all nodes (ft3/sec)
@@ -522,13 +522,13 @@ void massbal_addNodeLosses(double evapLoss, double seepLoss)
 //  Purpose: adds node losses over current time step to routing totals.
 //
 {
-    StepFlowTotals.evapLoss += evapLoss;
-    StepFlowTotals.seepLoss += seepLoss;
+    project->StepFlowTotals.evapLoss += evapLoss;
+    project->StepFlowTotals.seepLoss += seepLoss;
 }
 
 //=============================================================================
 
-void massbal_addLinkLosses(double evapLoss, double seepLoss)
+void massbal_addLinkLosses(Project *project, double evapLoss, double seepLoss)
 //
 //  Input:   evapLoss = evaporation loss from all links (ft3/sec)
 //           infilLoss = infiltration loss from all links (ft3/sec)
@@ -536,8 +536,8 @@ void massbal_addLinkLosses(double evapLoss, double seepLoss)
 //  Purpose: adds link losses over current time step to routing totals.
 //
 {
-    StepFlowTotals.evapLoss += evapLoss;
-    StepFlowTotals.seepLoss += seepLoss;
+    project->StepFlowTotals.evapLoss += evapLoss;
+    project->StepFlowTotals.seepLoss += seepLoss;
 }
 
 //=============================================================================
@@ -550,26 +550,26 @@ void massbal_updateRoutingTotals(Project *project, double tStep)
 //
 {
     int j;
-    FlowTotals.dwInflow += StepFlowTotals.dwInflow * tStep;
-    FlowTotals.wwInflow += StepFlowTotals.wwInflow * tStep;
-    FlowTotals.gwInflow += StepFlowTotals.gwInflow * tStep;
-    FlowTotals.iiInflow += StepFlowTotals.iiInflow * tStep;
-    FlowTotals.exInflow += StepFlowTotals.exInflow * tStep;
-    FlowTotals.flooding += StepFlowTotals.flooding * tStep;
-    FlowTotals.outflow  += StepFlowTotals.outflow * tStep;
-    FlowTotals.evapLoss += StepFlowTotals.evapLoss * tStep;
-    FlowTotals.seepLoss += StepFlowTotals.seepLoss * tStep;
+    project->FlowTotals.dwInflow += project->StepFlowTotals.dwInflow * tStep;
+    project->FlowTotals.wwInflow += project->StepFlowTotals.wwInflow * tStep;
+    project->FlowTotals.gwInflow += project->StepFlowTotals.gwInflow * tStep;
+    project->FlowTotals.iiInflow += project->StepFlowTotals.iiInflow * tStep;
+    project->FlowTotals.exInflow += project->StepFlowTotals.exInflow * tStep;
+    project->FlowTotals.flooding += project->StepFlowTotals.flooding * tStep;
+    project->FlowTotals.outflow  += project->StepFlowTotals.outflow * tStep;
+    project->FlowTotals.evapLoss += project->StepFlowTotals.evapLoss * tStep;
+    project->FlowTotals.seepLoss += project->StepFlowTotals.seepLoss * tStep;
 
     for (j = 0; j < project->Nobjects[POLLUT]; j++)
     {
-        QualTotals[j].dwInflow += StepQualTotals[j].dwInflow * tStep;
-        QualTotals[j].wwInflow += StepQualTotals[j].wwInflow * tStep;
-        QualTotals[j].gwInflow += StepQualTotals[j].gwInflow * tStep;
-        QualTotals[j].iiInflow += StepQualTotals[j].iiInflow * tStep;
-        QualTotals[j].exInflow += StepQualTotals[j].exInflow * tStep;
-        QualTotals[j].flooding += StepQualTotals[j].flooding * tStep;
-        QualTotals[j].outflow  += StepQualTotals[j].outflow * tStep;
-        QualTotals[j].reacted  += StepQualTotals[j].reacted * tStep;
+        project->QualTotals[j].dwInflow += project->StepQualTotals[j].dwInflow * tStep;
+        project->QualTotals[j].wwInflow += project->StepQualTotals[j].wwInflow * tStep;
+        project->QualTotals[j].gwInflow += project->StepQualTotals[j].gwInflow * tStep;
+        project->QualTotals[j].iiInflow += project->StepQualTotals[j].iiInflow * tStep;
+        project->QualTotals[j].exInflow += project->StepQualTotals[j].exInflow * tStep;
+        project->QualTotals[j].flooding += project->StepQualTotals[j].flooding * tStep;
+        project->QualTotals[j].outflow  += project->StepQualTotals[j].outflow * tStep;
+        project->QualTotals[j].reacted  += project->StepQualTotals[j].reacted * tStep;
     }
 
     for ( j = 0; j < project->Nobjects[NODE]; j++)
@@ -632,7 +632,7 @@ double massbal_getStorage(Project *project, char isFinalStorage)
 
 //=============================================================================
 
-void massbal_getSysFlows(double f, double sysFlows[])
+void massbal_getSysFlows(Project *project, double f, double sysFlows[])
 //
 //  Input:   f = time weighting factor
 //  Output:  sysFlows = array of total system flows
@@ -640,20 +640,20 @@ void massbal_getSysFlows(double f, double sysFlows[])
 //
 {
     double f1 = 1.0 - f;
-    sysFlows[SYS_DWFLOW] = (f1 * OldStepFlowTotals.dwInflow +
-                             f * StepFlowTotals.dwInflow) * UCF(FLOW);
-    sysFlows[SYS_GWFLOW] = (f1 * OldStepFlowTotals.gwInflow +
-                             f * StepFlowTotals.gwInflow) * UCF(FLOW);
-    sysFlows[SYS_IIFLOW] = (f1 * OldStepFlowTotals.iiInflow +
-                             f * StepFlowTotals.iiInflow) * UCF(FLOW);
-    sysFlows[SYS_EXFLOW] = (f1 * OldStepFlowTotals.exInflow +
-                             f * StepFlowTotals.exInflow) * UCF(FLOW);
-    sysFlows[SYS_FLOODING] = (f1 * OldStepFlowTotals.flooding +
-                               f * StepFlowTotals.flooding) * UCF(FLOW);
-    sysFlows[SYS_OUTFLOW] = (f1 * OldStepFlowTotals.outflow +
-                              f * StepFlowTotals.outflow) * UCF(FLOW);
-    sysFlows[SYS_STORAGE] = (f1 * OldStepFlowTotals.finalStorage +
-                              f * StepFlowTotals.finalStorage) * UCF(VOLUME);
+    sysFlows[SYS_DWFLOW] = (f1 * project->OldStepFlowTotals.dwInflow +
+                             f * project->StepFlowTotals.dwInflow) * UCF(FLOW);
+    sysFlows[SYS_GWFLOW] = (f1 * project->OldStepFlowTotals.gwInflow +
+                             f * project->StepFlowTotals.gwInflow) * UCF(FLOW);
+    sysFlows[SYS_IIFLOW] = (f1 * project->OldStepFlowTotals.iiInflow +
+                             f * project->StepFlowTotals.iiInflow) * UCF(FLOW);
+    sysFlows[SYS_EXFLOW] = (f1 * project->OldStepFlowTotals.exInflow +
+                             f * project->StepFlowTotals.exInflow) * UCF(FLOW);
+    sysFlows[SYS_FLOODING] = (f1 * project->OldStepFlowTotals.flooding +
+                               f * project->StepFlowTotals.flooding) * UCF(FLOW);
+    sysFlows[SYS_OUTFLOW] = (f1 * project->OldStepFlowTotals.outflow +
+                              f * project->StepFlowTotals.outflow) * UCF(FLOW);
+    sysFlows[SYS_STORAGE] = (f1 * project->OldStepFlowTotals.finalStorage +
+                              f * project->StepFlowTotals.finalStorage) * UCF(VOLUME);
 }
 
 //=============================================================================
@@ -670,42 +670,42 @@ double massbal_getRunoffError(Project *project)
     double totalOutflow;
 
     // --- find final storage on all subcatchments
-    RunoffTotals.finalStorage = 0.0;
-    RunoffTotals.finalSnowCover = 0.0;
+    project->RunoffTotals.finalStorage = 0.0;
+    project->RunoffTotals.finalSnowCover = 0.0;
     for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        RunoffTotals.finalStorage += subcatch_getStorage(project, j);
-        RunoffTotals.finalSnowCover += snow_getSnowCover(j);
+        project->RunoffTotals.finalStorage += subcatch_getStorage(project, j);
+        project->RunoffTotals.finalSnowCover += snow_getSnowCover(project, j);
     }
 
     // --- get snow removed from system
-    RunoffTotals.snowRemoved = project->Snow.removed;
+    project->RunoffTotals.snowRemoved = project->Snow.removed;
 
     // --- compute % difference between total inflow and outflow
-    totalInflow  = RunoffTotals.rainfall +
-                   RunoffTotals.initStorage +
-                   RunoffTotals.initSnowCover;
-    totalOutflow = RunoffTotals.evap +
-                   RunoffTotals.infil +
-                   RunoffTotals.runoff +
-                   RunoffTotals.snowRemoved +
-                   RunoffTotals.finalStorage +
-                   RunoffTotals.finalSnowCover;
-    RunoffTotals.pctError = 0.0;
+    totalInflow  = project->RunoffTotals.rainfall +
+                   project->RunoffTotals.initStorage +
+                   project->RunoffTotals.initSnowCover;
+    totalOutflow = project->RunoffTotals.evap +
+                   project->RunoffTotals.infil +
+                   project->RunoffTotals.runoff +
+                   project->RunoffTotals.snowRemoved +
+                   project->RunoffTotals.finalStorage +
+                   project->RunoffTotals.finalSnowCover;
+    project->RunoffTotals.pctError = 0.0;
     if ( fabs(totalInflow - totalOutflow) < 1.0 )
     {
-        RunoffTotals.pctError = TINY;
+        project->RunoffTotals.pctError = TINY;
     }
     else if ( totalInflow > 0.0 )
     {
-        RunoffTotals.pctError = 100.0 * (1.0 - totalOutflow / totalInflow);
+        project->RunoffTotals.pctError = 100.0 * (1.0 - totalOutflow / totalInflow);
     }
     else if ( totalOutflow > 0.0 )
     {
-        RunoffTotals.pctError = 100.0 * (totalInflow / totalOutflow - 1.0);
+        project->RunoffTotals.pctError = 100.0 * (totalInflow / totalOutflow - 1.0);
     }
-    project->RunoffError = RunoffTotals.pctError;
-    return RunoffTotals.pctError;
+    project->RunoffError = project->RunoffTotals.pctError;
+    return project->RunoffTotals.pctError;
 }
 
 //=============================================================================
@@ -725,47 +725,47 @@ double massbal_getLoadingError(Project *project)
     for (j = 0; j < project->Nobjects[POLLUT]; j++)
     {
         // --- get final pollutant loading remaining on land surface
-        LoadingTotals[j].finalLoad += massbal_getBuildup(project, j);
+        project->LoadingTotals[j].finalLoad += massbal_getBuildup(project, j);
 
         // --- compute total load added to study area
-        loadIn = LoadingTotals[j].initLoad +
-                 LoadingTotals[j].buildup +
-                 LoadingTotals[j].deposition;
+        loadIn = project->LoadingTotals[j].initLoad +
+                 project->LoadingTotals[j].buildup +
+                 project->LoadingTotals[j].deposition;
     
         // --- compute total load removed from study area
-        loadOut = LoadingTotals[j].sweeping +
-                  LoadingTotals[j].infil +
-                  LoadingTotals[j].bmpRemoval +
-                  LoadingTotals[j].runoff +
-                  LoadingTotals[j].finalLoad;
+        loadOut = project->LoadingTotals[j].sweeping +
+                  project->LoadingTotals[j].infil +
+                  project->LoadingTotals[j].bmpRemoval +
+                  project->LoadingTotals[j].runoff +
+                  project->LoadingTotals[j].finalLoad;
 
         // --- compute mass balance error
-        LoadingTotals[j].pctError = 0.0;
+        project->LoadingTotals[j].pctError = 0.0;
         if ( fabs(loadIn - loadOut) < 0.001 )
         {
-            LoadingTotals[j].pctError = TINY;
+            project->LoadingTotals[j].pctError = TINY;
         }
         else if ( loadIn > 0.0 )
         {
-            LoadingTotals[j].pctError = 100.0 * (1.0 - loadOut / loadIn);
+            project->LoadingTotals[j].pctError = 100.0 * (1.0 - loadOut / loadIn);
         }
         else if ( loadOut > 0.0 )
         {
-            LoadingTotals[j].pctError = 100.0 * (loadIn / loadOut - 1.0);
+            project->LoadingTotals[j].pctError = 100.0 * (loadIn / loadOut - 1.0);
         }
-        maxError = MAX(maxError, LoadingTotals[j].pctError);
+        maxError = MAX(maxError, project->LoadingTotals[j].pctError);
 
         // --- report total counts as log10
         if ( project->Pollut[j].units == COUNT )
         {
-            LoadingTotals[j].initLoad   = LOG10(LoadingTotals[j].initLoad);
-            LoadingTotals[j].buildup    = LOG10(LoadingTotals[j].buildup);
-            LoadingTotals[j].deposition = LOG10(LoadingTotals[j].deposition);
-            LoadingTotals[j].sweeping   = LOG10(LoadingTotals[j].sweeping);
-            LoadingTotals[j].infil      = LOG10(LoadingTotals[j].infil);
-            LoadingTotals[j].bmpRemoval = LOG10(LoadingTotals[j].bmpRemoval);
-            LoadingTotals[j].runoff     = LOG10(LoadingTotals[j].runoff);
-            LoadingTotals[j].finalLoad  = LOG10(LoadingTotals[j].finalLoad);
+            project->LoadingTotals[j].initLoad   = LOG10(project->LoadingTotals[j].initLoad);
+            project->LoadingTotals[j].buildup    = LOG10(project->LoadingTotals[j].buildup);
+            project->LoadingTotals[j].deposition = LOG10(project->LoadingTotals[j].deposition);
+            project->LoadingTotals[j].sweeping   = LOG10(project->LoadingTotals[j].sweeping);
+            project->LoadingTotals[j].infil      = LOG10(project->LoadingTotals[j].infil);
+            project->LoadingTotals[j].bmpRemoval = LOG10(project->LoadingTotals[j].bmpRemoval);
+            project->LoadingTotals[j].runoff     = LOG10(project->LoadingTotals[j].runoff);
+            project->LoadingTotals[j].finalLoad  = LOG10(project->LoadingTotals[j].finalLoad);
         }
     }
     return maxError;
@@ -785,35 +785,35 @@ double massbal_getGwaterError(Project *project)
     double totalOutflow;
 
     // --- find final storage in groundwater
-    GwaterTotals.finalStorage = 0.0;
+    project->GwaterTotals.finalStorage = 0.0;
     for ( j = 0; j < project->Nobjects[SUBCATCH]; j++ )
     {
-        GwaterTotals.finalStorage += gwater_getVolume(project, j) * project->Subcatch[j].area;
+        project->GwaterTotals.finalStorage += gwater_getVolume(project, j) * project->Subcatch[j].area;
     }
 
     // --- compute % difference between total inflow and outflow
-    totalInflow  = GwaterTotals.infil +
-                   GwaterTotals.initStorage;
-    totalOutflow = GwaterTotals.upperEvap +
-                   GwaterTotals.lowerEvap +
-                   GwaterTotals.lowerPerc +
-                   GwaterTotals.gwater +
-                   GwaterTotals.finalStorage;
-    GwaterTotals.pctError = 0.0;
+    totalInflow  = project->GwaterTotals.infil +
+                   project->GwaterTotals.initStorage;
+    totalOutflow = project->GwaterTotals.upperEvap +
+                   project->GwaterTotals.lowerEvap +
+                   project->GwaterTotals.lowerPerc +
+                   project->GwaterTotals.gwater +
+                   project->GwaterTotals.finalStorage;
+    project->GwaterTotals.pctError = 0.0;
     if ( fabs(totalInflow - totalOutflow) < 1.0 )
     {
-        GwaterTotals.pctError = TINY;
+        project->GwaterTotals.pctError = TINY;
     }
     else if ( totalInflow > 0.0 )
     {
-        GwaterTotals.pctError = 100.0 * (1.0 - totalOutflow / totalInflow);
+        project->GwaterTotals.pctError = 100.0 * (1.0 - totalOutflow / totalInflow);
     }
     else if ( totalOutflow > 0.0 )
     {
-        GwaterTotals.pctError = 100.0 * (totalInflow / totalOutflow - 1.0);
+        project->GwaterTotals.pctError = 100.0 * (totalInflow / totalOutflow - 1.0);
     }
-    project->GwaterError = GwaterTotals.pctError;
-    return GwaterTotals.pctError;
+    project->GwaterError = project->GwaterTotals.pctError;
+    return project->GwaterTotals.pctError;
 }
 
 //=============================================================================
@@ -829,36 +829,36 @@ double massbal_getFlowError(Project *project)
     double totalOutflow;
 
     // --- get final volume of nodes and links
-    FlowTotals.finalStorage = massbal_getStorage(project,TRUE);
+    project->FlowTotals.finalStorage = massbal_getStorage(project,TRUE);
 
     // --- compute % difference between total inflow and outflow
-    totalInflow  = FlowTotals.dwInflow +
-                   FlowTotals.wwInflow +
-                   FlowTotals.gwInflow +
-                   FlowTotals.iiInflow +
-                   FlowTotals.exInflow +
-                   FlowTotals.initStorage;
-    totalOutflow = FlowTotals.flooding +
-                   FlowTotals.outflow +
-                   FlowTotals.evapLoss +
-                   FlowTotals.seepLoss + 
-                   FlowTotals.reacted + 
-                   FlowTotals.finalStorage;
-    FlowTotals.pctError = 0.0;
+    totalInflow  = project->FlowTotals.dwInflow +
+                   project->FlowTotals.wwInflow +
+                   project->FlowTotals.gwInflow +
+                   project->FlowTotals.iiInflow +
+                   project->FlowTotals.exInflow +
+                   project->FlowTotals.initStorage;
+    totalOutflow = project->FlowTotals.flooding +
+                   project->FlowTotals.outflow +
+                   project->FlowTotals.evapLoss +
+                   project->FlowTotals.seepLoss + 
+                   project->FlowTotals.reacted + 
+                   project->FlowTotals.finalStorage;
+    project->FlowTotals.pctError = 0.0;
     if ( fabs(totalInflow - totalOutflow) < 1.0 )
     {
-        FlowTotals.pctError = TINY;
+        project->FlowTotals.pctError = TINY;
     }
     else if ( totalInflow > 0.0 )
     {
-        FlowTotals.pctError = 100.0 * (1.0 - totalOutflow / totalInflow);
+        project->FlowTotals.pctError = 100.0 * (1.0 - totalOutflow / totalInflow);
     }
     else if ( totalOutflow > 0.0 )
     {
-        FlowTotals.pctError = 100.0 * (totalInflow / totalOutflow - 1.0);
+        project->FlowTotals.pctError = 100.0 * (totalInflow / totalOutflow - 1.0);
     }
-    project->FlowError = FlowTotals.pctError;
-    return FlowTotals.pctError;
+    project->FlowError = project->FlowTotals.pctError;
+    return project->FlowTotals.pctError;
 }
 
 //=============================================================================
@@ -880,68 +880,68 @@ double massbal_getQualError(Project *project)
     for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- get final mass stored in nodes and links
-        QualTotals[p].finalStorage = massbal_getStoredMass(project, p);
+        project->QualTotals[p].finalStorage = massbal_getStoredMass(project, p);
 
         // --- compute % difference between total inflow and outflow
-        totalInflow  = QualTotals[p].dwInflow +
-                       QualTotals[p].wwInflow +
-                       QualTotals[p].gwInflow +
-                       QualTotals[p].iiInflow +
-                       QualTotals[p].exInflow +
-                       QualTotals[p].initStorage;
-        totalOutflow = QualTotals[p].flooding +
-                       QualTotals[p].outflow +
-                       QualTotals[p].reacted +
-                       QualTotals[p].finalStorage;
-        QualTotals[p].pctError = 0.0;
+        totalInflow  = project->QualTotals[p].dwInflow +
+                       project->QualTotals[p].wwInflow +
+                       project->QualTotals[p].gwInflow +
+                       project->QualTotals[p].iiInflow +
+                       project->QualTotals[p].exInflow +
+                       project->QualTotals[p].initStorage;
+        totalOutflow = project->QualTotals[p].flooding +
+                       project->QualTotals[p].outflow +
+                       project->QualTotals[p].reacted +
+                       project->QualTotals[p].finalStorage;
+        project->QualTotals[p].pctError = 0.0;
         if ( fabs(totalInflow - totalOutflow) < 0.001 )
         {
-            QualTotals[p].pctError = TINY;
+            project->QualTotals[p].pctError = TINY;
         }
         else if ( totalInflow > 0.0 )
         {
-            QualTotals[p].pctError = 100.0 * (1.0 - totalOutflow / totalInflow);
+            project->QualTotals[p].pctError = 100.0 * (1.0 - totalOutflow / totalInflow);
         }
         else if ( totalOutflow > 0.0 )
         {
-            QualTotals[p].pctError = 100.0 * (totalInflow / totalOutflow - 1.0);
+            project->QualTotals[p].pctError = 100.0 * (totalInflow / totalOutflow - 1.0);
         }
 
         // --- update max. error among all pollutants
-        if ( fabs(QualTotals[p].pctError) > fabs(maxQualError) )
+        if ( fabs(project->QualTotals[p].pctError) > fabs(maxQualError) )
         {
-            maxQualError = QualTotals[p].pctError;
+            maxQualError = project->QualTotals[p].pctError;
         }
 
         // --- convert totals to reporting units (lbs, kg, or Log(Count))
         cf = LperFT3;
         if ( project->Pollut[p].units == COUNT )
         {
-            QualTotals[p].dwInflow     = LOG10(cf * QualTotals[p].dwInflow);
-            QualTotals[p].wwInflow     = LOG10(cf * QualTotals[p].wwInflow);
-            QualTotals[p].gwInflow     = LOG10(cf * QualTotals[p].gwInflow);
-            QualTotals[p].iiInflow     = LOG10(cf * QualTotals[p].iiInflow);
-            QualTotals[p].exInflow     = LOG10(cf * QualTotals[p].exInflow);
-            QualTotals[p].flooding     = LOG10(cf * QualTotals[p].flooding);
-            QualTotals[p].outflow      = LOG10(cf * QualTotals[p].outflow);
-            QualTotals[p].reacted      = LOG10(cf * QualTotals[p].reacted);
-            QualTotals[p].initStorage  = LOG10(cf * QualTotals[p].initStorage);
-            QualTotals[p].finalStorage = LOG10(cf * QualTotals[p].finalStorage);
+            project->QualTotals[p].dwInflow     = LOG10(cf * project->QualTotals[p].dwInflow);
+            project->QualTotals[p].wwInflow     = LOG10(cf * project->QualTotals[p].wwInflow);
+            project->QualTotals[p].gwInflow     = LOG10(cf * project->QualTotals[p].gwInflow);
+            project->QualTotals[p].iiInflow     = LOG10(cf * project->QualTotals[p].iiInflow);
+            project->QualTotals[p].exInflow     = LOG10(cf * project->QualTotals[p].exInflow);
+            project->QualTotals[p].flooding     = LOG10(cf * project->QualTotals[p].flooding);
+            project->QualTotals[p].outflow      = LOG10(cf * project->QualTotals[p].outflow);
+            project->QualTotals[p].reacted      = LOG10(cf * project->QualTotals[p].reacted);
+            project->QualTotals[p].initStorage  = LOG10(cf * project->QualTotals[p].initStorage);
+            project->QualTotals[p].finalStorage = LOG10(cf * project->QualTotals[p].finalStorage);
         }
         else
         {
             cf = cf * UCF(MASS);
             if ( project->Pollut[p].units == UG ) cf /= 1000.0;
-            QualTotals[p].dwInflow     *= cf;
-            QualTotals[p].wwInflow     *= cf; 
-            QualTotals[p].gwInflow     *= cf; 
-            QualTotals[p].iiInflow     *= cf; 
-            QualTotals[p].exInflow     *= cf; 
-            QualTotals[p].flooding     *= cf; 
-            QualTotals[p].outflow      *= cf; 
-            QualTotals[p].reacted      *= cf; 
-            QualTotals[p].initStorage  *= cf; 
-            QualTotals[p].finalStorage *= cf; 
+            project->QualTotals[p].dwInflow     *= cf;
+            project->QualTotals[p].wwInflow     *= cf; 
+            project->QualTotals[p].gwInflow     *= cf; 
+            project->QualTotals[p].iiInflow     *= cf; 
+            project->QualTotals[p].exInflow     *= cf; 
+            project->QualTotals[p].flooding     *= cf; 
+            project->QualTotals[p].outflow      *= cf; 
+            project->QualTotals[p].reacted      *= cf; 
+            project->QualTotals[p].initStorage  *= cf; 
+            project->QualTotals[p].finalStorage *= cf; 
         }
     }
     project->QualError = maxQualError;
@@ -949,7 +949,7 @@ double massbal_getQualError(Project *project)
 }
 //=============================================================================
 
-double massbal_getStepFlowError()
+double massbal_getStepFlowError(Project *project)
 //
 //  Input:   none
 //  Output:  returns fractional difference between total inflow and outflow.
@@ -960,16 +960,16 @@ double massbal_getStepFlowError()
     double totalOutflow;
 
     // --- compute % difference between total inflow and outflow
-    totalInflow  = StepFlowTotals.dwInflow +
-                   StepFlowTotals.wwInflow +
-                   StepFlowTotals.gwInflow +
-                   StepFlowTotals.iiInflow +
-                   StepFlowTotals.exInflow;
-    totalOutflow = StepFlowTotals.flooding +
-                   StepFlowTotals.outflow +
-                   StepFlowTotals.evapLoss +
-                   StepFlowTotals.seepLoss +
-                   StepFlowTotals.reacted;
+    totalInflow  = project->StepFlowTotals.dwInflow +
+                   project->StepFlowTotals.wwInflow +
+                   project->StepFlowTotals.gwInflow +
+                   project->StepFlowTotals.iiInflow +
+                   project->StepFlowTotals.exInflow;
+    totalOutflow = project->StepFlowTotals.flooding +
+                   project->StepFlowTotals.outflow +
+                   project->StepFlowTotals.evapLoss +
+                   project->StepFlowTotals.seepLoss +
+                   project->StepFlowTotals.reacted;
     if ( totalInflow > 0.0 )       return 1.0 - totalOutflow / totalInflow;
     else if ( totalOutflow > 0.0 ) return totalInflow / totalOutflow - 1.0;
     else return 0.0;

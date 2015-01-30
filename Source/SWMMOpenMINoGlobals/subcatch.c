@@ -112,18 +112,18 @@ int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
     if ( ntoks < 8 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that named subcatch exists
-    id = project_findID(SUBCATCH, tok[0]);
+    id = project_findID(project, SUBCATCH, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- check that rain gage exists
-    k = project_findObject(GAGE, tok[1]);
+    k = project__findObject(project, GAGE, tok[1]);
     if ( k < 0 ) return error_setInpError(ERR_NAME, tok[1]);
     x[0] = k;
 
     // --- check that outlet node or subcatch exists
-    m = project_findObject(NODE, tok[2]);
+    m = project__findObject(project, NODE, tok[2]);
     x[1] = m;
-    m = project_findObject(SUBCATCH, tok[2]);
+    m = project__findObject(project, SUBCATCH, tok[2]);
     x[2] = m;
     if ( x[1] < 0.0 && x[2] < 0.0 )
         return error_setInpError(ERR_NAME, tok[2]);
@@ -139,7 +139,7 @@ int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
     x[8] = -1;
     if ( ntoks > 8 )
     {
-        k = project_findObject(SNOWMELT, tok[8]);
+        k = project__findObject(project, SNOWMELT, tok[8]);
         if ( k < 0 ) return error_setInpError(ERR_NAME, tok[8]);
         x[8] = k;
     }
@@ -185,7 +185,7 @@ int subcatch_readSubareaParams(Project *project, char* tok[], int ntoks)
     if ( ntoks < 7 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that named subcatch exists
-    j = project_findObject(SUBCATCH, tok[0]);
+    j = project__findObject(project, SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- read in Mannings n, depression storage, & PctZero values
@@ -273,14 +273,14 @@ int subcatch_readLanduseParams(Project *project, char* tok[], int ntoks)
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that named subcatch exists
-    j = project_findObject(SUBCATCH, tok[0]);
+    j = project__findObject(project, SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- process each pair of landuse - percent items
     for ( k = 2; k <= ntoks; k = k+2)
     {
         // --- check that named land use exists and is followed by a percent
-        m = project_findObject(LANDUSE, tok[k-1]);
+        m = project__findObject(project, LANDUSE, tok[k-1]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[k-1]);
         if ( k+1 > ntoks ) return error_setInpError(ERR_ITEMS, "");
         if ( ! getDouble(tok[k], &f) )
@@ -313,14 +313,14 @@ int subcatch_readInitBuildup(Project *project, char* tok[], int ntoks)
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that named subcatch exists
-    j = project_findObject(SUBCATCH, tok[0]);
+    j = project__findObject(project, SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- process each pair of pollutant - init. load items
     for ( k = 2; k <= ntoks; k = k+2)
     {
         // --- check for valid pollutant name and loading value
-        m = project_findObject(POLLUT, tok[k-1]);
+        m = project__findObject(project, POLLUT, tok[k-1]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[k-1]);
         if ( k+1 > ntoks ) return error_setInpError(ERR_ITEMS, "");
         if ( ! getDouble(tok[k], &x) )
@@ -347,7 +347,7 @@ void  subcatch_validate(Project *project, int j)
 
     // --- check for ambiguous outlet name
     if ( project->Subcatch[j].outNode >= 0 && project->Subcatch[j].outSubcatch >= 0 )
-        report_writeErrorMsg(ERR_SUBCATCH_OUTLET, project->Subcatch[j].ID);
+        report_writeErrorMsg(project, ERR_SUBCATCH_OUTLET, project->Subcatch[j].ID);
 
     // --- validate subcatchment's groundwater component 
     gwater_validate(project, j);
@@ -684,7 +684,7 @@ double subcatch_getRunoff(Project *project, int j, double tStep)
     {
         outflowVol = 0.0;
     }
-    massbal_updateRunoffTotals(rainVol, evapVol, infilVol, outflowVol);
+    massbal_updateRunoffTotals(project, rainVol, evapVol, infilVol, outflowVol);
 
     // --- return area-averaged runoff (ft/s)
     return runoff / area;
@@ -805,7 +805,7 @@ void subcatch_getBuildup(Project *project, int j, double tStep)
                          tStep);
             newBuildup = MAX(newBuildup, oldBuildup);
             project->Subcatch[j].landFactor[i].buildup[p] = newBuildup;
-            massbal_updateLoadingTotals(BUILDUP_LOAD, p, 
+            massbal_updateLoadingTotals(project, BUILDUP_LOAD, p,
                                        (newBuildup - oldBuildup));
        }
     }
@@ -859,7 +859,7 @@ void subcatch_sweepBuildup(Project *project, int j, DateTime aDate)
                 project->Subcatch[j].landFactor[i].buildup[p] = newBuildup;
 
                 // --- update mass balance totals
-                massbal_updateLoadingTotals(SWEEPING_LOAD, p,
+                massbal_updateLoadingTotals(project, SWEEPING_LOAD, p,
                                             oldBuildup - newBuildup);
             }
         }
@@ -937,7 +937,7 @@ void  subcatch_getWashoff(Project *project, int j, double runoff, double tStep)
         // --- update overall runoff mass balance if runoff goes to
         //     conveyance system
         if ( project->Subcatch[j].outNode >= 0 || project->Subcatch[j].outSubcatch == j )
-            massbal_updateLoadingTotals(RUNOFF_LOAD, p, massLoad);
+            massbal_updateLoadingTotals(project, RUNOFF_LOAD, p, massLoad);
         
         // --- save new outflow runoff concentration (in mass/L)
         if ( runoff > MIN_RUNOFF )
@@ -969,13 +969,13 @@ void updatePondedQual(Project *project, int j, double wRunon[], double pondedQua
     {
         // --- update mass balance for direct deposition
         wPpt = project->Pollut[p].pptConcen * LperFT3 * Vrain;                          //(5.1.006 - MT)
-        massbal_updateLoadingTotals(DEPOSITION_LOAD, p, wPpt * project->Pollut[p].mcf);
+        massbal_updateLoadingTotals(project, DEPOSITION_LOAD, p, wPpt * project->Pollut[p].mcf);
 
         // --- surface is dry and has no inflow -- add any remaining mass
         //     to overall mass balance's FINAL_LOAD category
         if ( isDry )
         {
-            massbal_updateLoadingTotals(FINAL_LOAD, p,
+            massbal_updateLoadingTotals(project, FINAL_LOAD, p,
                 pondedQual[p] * project->Pollut[p].mcf);
             pondedQual[p] = 0.0;
             OutflowLoad[p] = 0.0;
@@ -989,7 +989,7 @@ void updatePondedQual(Project *project, int j, double wRunon[], double pondedQua
             // --- mass lost to infiltration
             wInfil = c * Vinfil;
             wInfil = MIN(wInfil, w1);
-            massbal_updateLoadingTotals(INFIL_LOAD, p, wInfil * project->Pollut[p].mcf);
+            massbal_updateLoadingTotals(project, INFIL_LOAD, p, wInfil * project->Pollut[p].mcf);
             w1 -= wInfil;
 
             // --- mass lost to outflow
@@ -998,7 +998,7 @@ void updatePondedQual(Project *project, int j, double wRunon[], double pondedQua
 
             // --- reduce outflow load by average BMP removal
             bmpRemoval = landuse_getAvgBmpEffic(j, p) * OutflowLoad[p];
-            massbal_updateLoadingTotals(BMP_REMOVAL_LOAD, p,
+            massbal_updateLoadingTotals(project, BMP_REMOVAL_LOAD, p,
                 bmpRemoval*project->Pollut[p].mcf);
             OutflowLoad[p] -= bmpRemoval;
 
