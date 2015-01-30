@@ -120,7 +120,7 @@ int table_readTimeseries(Project *project, char* tok[], int ntoks)
     // --- check if time series data is in an external file
     if ( strcomp(tok[1], w_FILE ) )
     {
-        sstrncpy(Tseries[j].file.name, tok[2], MAXFNAME);
+        sstrncpy(project->Tseries[j].file.name, tok[2], MAXFNAME);
         project->Tseries[j].file.mode = USE_FILE;
         return 0;
     }
@@ -155,7 +155,7 @@ int table_readTimeseries(Project *project, char* tok[], int ntoks)
                 return error_setInpError(ERR_NUMBER, tok[k]);
 
             // --- save date + time in x
-            x = Tseries[j].lastDate + t;
+            x = project->Tseries[j].lastDate + t;
 
             // --- next token must be a numeric value
             k++;
@@ -169,7 +169,7 @@ int table_readTimeseries(Project *project, char* tok[], int ntoks)
                 return error_setInpError(ERR_NUMBER, tok[k]);
 
             // --- add date/time & value to time series
-            table_addEntry(&Tseries[j], x, y);
+            table_addEntry(&project->Tseries[j], x, y);
 
             // --- start over looking first for a date
             k++;
