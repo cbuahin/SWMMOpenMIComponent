@@ -151,6 +151,8 @@
         TTransect* Transect;                 // Array of transect data
         TShape*    Shape;                    // Array of custom conduit shapes
         
+        HTtable* Htable[MAX_OBJ_TYPES]; // Hash tables for object ID names
+        char     MemPoolAllocated;      // TRUE if memory pool allocated
         
         TLidProc*  LidProcs;            // array of LID processes
         int        LidCount;            // number of LID processes

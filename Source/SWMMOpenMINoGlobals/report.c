@@ -1300,7 +1300,7 @@ void  report_LinkHeader(char *id)
 //      ERROR REPORTING
 //=============================================================================
 
-void report_writeErrorMsg(int code, char* s)
+void report_writeErrorMsg(Project *project, int code, char* s)
 //
 //  Input:   code = error code
 //           s = error message text
@@ -1318,7 +1318,7 @@ void report_writeErrorMsg(int code, char* s)
 
 //=============================================================================
 
-void report_writeErrorCode()
+void report_writeErrorCode(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -1336,7 +1336,7 @@ void report_writeErrorCode()
 
 //=============================================================================
 
-void report_writeInputErrorMsg(int k, int sect, char* line, long lineCount)
+void report_writeInputErrorMsg(Project *project, int k, int sect, char* line, long lineCount)
 //
 //  Input:   k = error code
 //           sect = number of input data section where error occurred
@@ -1357,7 +1357,7 @@ void report_writeInputErrorMsg(int k, int sect, char* line, long lineCount)
 
 //=============================================================================
 
-void report_writeWarningMsg(char* msg, char* id)
+void report_writeWarningMsg(Project *project, char* msg, char* id)
 //
 //  Input:   msg = text of warning message
 //           id = ID name of object that message refers to
@@ -1370,7 +1370,7 @@ void report_writeWarningMsg(char* msg, char* id)
 
 //=============================================================================
 
-void report_writeTseriesErrorMsg(int code, TTable *tseries)
+void report_writeTseriesErrorMsg(Project *project, int code, TTable *tseries)
 //
 //  Input:   tseries = pointer to a time series
 //  Output:  none

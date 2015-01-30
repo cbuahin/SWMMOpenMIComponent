@@ -16,15 +16,15 @@
 //-----------------------------------------------------------------------------
 //   Project Manager Methods
 //-----------------------------------------------------------------------------
-void     project_open(char *f1, char *f2, char *f3);
-void     project_close(void);
+Project *    project_open(char *f1, char *f2, char *f3);
+void     project_close(Project *project);
 void     project_readInput(Project *project);
-int      project_readOption(char* s1, char* s2);
-void     project_validate(void);
-int      project_init(void);
-int      project_addObject(int type, char* id, int n);
-int      project_findObject(int type, char* id);
-char*    project_findID(int type, char* id);
+int      project_readOption(Project *project, char* s1, char* s2);
+void     project_validate(Project *project);
+int      project_init(Project *project);
+int      project_addObject(Project *project, int type, char* id, int n);
+int      project_findObject(Project *project, int type, char* id);
+char*    project_findID(Project *project, int type, char* id);
 double** project_createMatrix(int nrows, int ncols);
 void     project_freeMatrix(double** m);
 
@@ -58,11 +58,11 @@ void    report_writeMaxStats(TMaxStats massBalErrs[], TMaxStats CourantCrit[],
 void    report_writeMaxFlowTurns(TMaxStats flowTurns[], int nMaxStats);
 void    report_writeSysStats(TSysStats* sysStats);
 void    report_writeReport(void);
-void    report_writeErrorMsg(int code, char* msg);
-void    report_writeErrorCode(void);
-void    report_writeInputErrorMsg(int k, int sect, char* line, long lineCount);
-void    report_writeWarningMsg(char* msg, char* id); 
-void    report_writeTseriesErrorMsg(int code, TTable *tseries);
+void    report_writeErrorMsg(Project *project, int code, char* msg);
+void    report_writeErrorCode(Project *project);
+void    report_writeInputErrorMsg(Project *project, int k, int sect, char* line, long lineCount);
+void    report_writeWarningMsg(Project *project, char* msg, char* id);
+void    report_writeTseriesErrorMsg(Project *project, int code, TTable *tseries);
 
 void    inputrpt_writeInput(Project *project);
 void    statsrpt_writeReport(Project *project);

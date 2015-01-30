@@ -198,7 +198,7 @@ int input_readData(Project *project)
                 // --- SPECIAL CASE FOR TRANSECTS
                 //     finish processing the last set of transect data
                 if ( sect == s_TRANSECT )
-                    transect_validate(project->Nobjects[TRANSECT]-1);
+                    transect_validate(project, project->Nobjects[TRANSECT]-1);
 
                 // --- begin a new input section
                 sect = newsect;
@@ -466,7 +466,7 @@ int  parseLine(Project *project, int sect, char *line)
         return subcatch_readSubareaParams(project, Tok, Ntokens);
 
       case s_INFIL:
-        return infil_readParams(project->InfilModel, Tok, Ntokens);
+        return infil_readParams(project, project->InfilModel, Tok, Ntokens);
 
       case s_AQUIFER:
         j = Mobjects[AQUIFER];
@@ -514,7 +514,7 @@ int  parseLine(Project *project, int sect, char *line)
         return link_readXsectParams(project, Tok, Ntokens);
 
       case s_TRANSECT:
-        return transect_readParams(&Mobjects[TRANSECT], Tok, Ntokens);
+        return transect_readParams(project, &Mobjects[TRANSECT], Tok, Ntokens);
 
       case s_LOSSES:
         return link_readLossParams(project, Tok, Ntokens);
@@ -562,10 +562,10 @@ int  parseLine(Project *project, int sect, char *line)
         return treatmnt_readExpression(Tok, Ntokens);
 
       case s_CURVE:
-        return table_readCurve(Tok, Ntokens);
+        return table_readCurve(project, Tok, Ntokens);
 
       case s_TIMESERIES:
-        return table_readTimeseries(Tok, Ntokens);
+        return table_readTimeseries(project, Tok, Ntokens);
 
       case s_CONTROL:
         return readControl(Tok, Ntokens);
@@ -577,7 +577,7 @@ int  parseLine(Project *project, int sect, char *line)
         return iface_readFileParams(project, Tok, Ntokens);
 
       case s_LID_CONTROL:
-        return lid_readProcParams(Tok, Ntokens);
+        return lid_readProcParams(project, Tok, Ntokens);
 
       case s_LID_USAGE:
         return lid_readGroupParams(project, Tok, Ntokens);

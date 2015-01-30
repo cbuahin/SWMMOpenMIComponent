@@ -129,7 +129,7 @@ int infil_readParams(Project *project, int m, char* tok[], int ntoks)
     double x[5];
 
     // --- check that subcatchment exists
-    j = project_findObject(SUBCATCH, tok[0]);
+    j = project_findObject(project, SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- number of input tokens depends on infiltration model m

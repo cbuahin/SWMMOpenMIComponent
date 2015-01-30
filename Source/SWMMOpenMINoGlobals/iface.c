@@ -489,7 +489,7 @@ int  getIfaceFilePolluts(Project *project)
             sscanf(line, "%s %s", s1, s2);
             if ( project->Nobjects[POLLUT] > 0 )
             {
-                j = project_findObject(POLLUT, s1);
+                j = project_findObject(project, POLLUT, s1);
                 if ( j < 0 ) continue;
                 if ( !strcomp(s2, QualUnitsWords[project->Pollut[j].units]) )
                     return ERR_ROUTING_FILE_NOMATCH;
@@ -528,7 +528,7 @@ int getIfaceFileNodes(Project *project)
         if ( feof(project->Finflows.file) ) return ERR_ROUTING_FILE_FORMAT;
         fgets(line, MAXLINE, project->Finflows.file);
         sscanf(line, "%s", s);
-        IfaceNodes[i] = project_findObject(NODE, s);
+        IfaceNodes[i] = project_findObject(project, NODE, s);
     }
 
     // --- skip over column headings line
