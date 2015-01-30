@@ -470,7 +470,7 @@ double subcatch_getFracPerv(Project *project, int j)
     if ( project->Subcatch[j].lidArea > 0.0 )
     {
         fracPerv = (fracPerv * (project->Subcatch[j].area - project->Subcatch[j].lidArea) +
-                    lid_getPervArea(j)) / project->Subcatch[j].area;
+                    lid_getPervArea(project, j)) / project->Subcatch[j].area;
         fracPerv = MIN(fracPerv, 1.0);
     }
     return fracPerv;
@@ -576,7 +576,7 @@ void subcatch_getRunon(Project *project, int j)
         pervArea = project->Subcatch[j].subArea[PERV].fArea *
             (project->Subcatch[j].area - project->Subcatch[j].lidArea);
         if ( pervArea > 0.0 ) project->Subcatch[j].subArea[PERV].inflow +=
-            lid_getFlowToPerv(j) / pervArea;
+            lid_getFlowToPerv(project, j) / pervArea;
     }
 }
 
@@ -1196,7 +1196,7 @@ double getSubareaInfil(Project *project, int j, TSubarea* subarea, double precip
     double infil = 0.0;                     // actual infiltration rate (ft/sec)
 
     // --- compute infiltration rate 
-    infil = infil_getInfil(j, project->InfilModel, tStep, precip,
+    infil = infil_getInfil(project, j, project->InfilModel, tStep, precip,
                            subarea->inflow, subarea->depth);
 
     // --- limit infiltration rate by available void space in unsaturated
