@@ -292,12 +292,12 @@ int lid_readProcParams(Project *project, char* toks[], int ntoks)
     if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that LID exists in database
-    j = project_findObject(LID, toks[0]);
+    j = project_findObject(project, LID, toks[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, toks[0]);
 
     // --- assign ID if not done yet
     if ( project->LidProcs[j].ID == NULL )
-        project->LidProcs[j].ID = project_findID(LID, toks[0]);
+        project->LidProcs[j].ID = project_findID(project, LID, toks[0]);
 
     // --- check if second token is the type of LID
     m = findmatch(toks[1], LidTypeWords);
@@ -355,11 +355,11 @@ int lid_readGroupParams(Project *project, char* toks[], int ntoks)
     if ( ntoks < 8 ) return error_setInpError(ERR_ITEMS, "");
 
     //... find subcatchment
-    j = project_findObject(SUBCATCH, toks[0]);
+    j = project_findObject(project, SUBCATCH, toks[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, toks[0]);
 
     //... find LID process in list of LID processes
-    k = project_findObject(LID, toks[1]);
+    k = project_findObject(project, LID, toks[1]);
     if ( k < 0 ) return error_setInpError(ERR_NAME, toks[1]);
 
     //... get number of replicates
@@ -745,7 +745,7 @@ void validateLidProc(Project *project, int j)
     //... check that LID type was supplied
     if ( project->LidProcs[j].lidType < 0 )
     {
-            report_writeErrorMsg(ERR_LID_TYPE, project->LidProcs[j].ID);
+            report_writeErrorMsg(project, ERR_LID_TYPE, project->LidProcs[j].ID);
             return;
     }
 
@@ -769,7 +769,7 @@ void validateLidProc(Project *project, int j)
     }
     if ( layerMissing )
     {
-        report_writeErrorMsg(ERR_LID_LAYER, project->LidProcs[j].ID);
+        report_writeErrorMsg(project, ERR_LID_LAYER, project->LidProcs[j].ID);
         return;
     }
 
@@ -781,7 +781,7 @@ void validateLidProc(Project *project, int j)
         ||   project->LidProcs[j].pavement.voidFrac   <= 0.0
         ||   project->LidProcs[j].pavement.voidFrac   >  1.0
         ||   project->LidProcs[j].pavement.impervFrac >  1.0 )
-            report_writeErrorMsg(ERR_LID_PARAMS, project->LidProcs[j].ID);
+            report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[j].ID);
     }
 
     //... check soil layer parameters
@@ -792,7 +792,7 @@ void validateLidProc(Project *project, int j)
         ||   project->LidProcs[j].soil.wiltPoint     >= project->LidProcs[j].soil.fieldCap
         ||   project->LidProcs[j].soil.kSat          <= 0.0
         ||   project->LidProcs[j].soil.kSlope        <  0.0 )
-            report_writeErrorMsg(ERR_LID_PARAMS, project->LidProcs[j].ID);
+            report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[j].ID);
     }
 
     //... check storage layer parameters
@@ -800,12 +800,12 @@ void validateLidProc(Project *project, int j)
     {
         if ( project->LidProcs[j].storage.voidFrac <= 0.0 ||
              project->LidProcs[j].storage.voidFrac > 1.0 )
-            report_writeErrorMsg(ERR_LID_PARAMS, project->LidProcs[j].ID);
+            report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[j].ID);
     }
 
     //... check underdrain parameters
     if ( project->LidProcs[j].drain.offset > project->LidProcs[j].storage.thickness )
-        report_writeErrorMsg(ERR_LID_PARAMS, project->LidProcs[j].ID);
+        report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[j].ID);
 
     //... compute the surface layer's overland flow constant (alpha)
     if ( project->LidProcs[j].lidType == VEG_SWALE )
@@ -813,7 +813,7 @@ void validateLidProc(Project *project, int j)
         if ( project->LidProcs[j].surface.roughness * 
              project->LidProcs[j].surface.surfSlope <= 0.0 ||
              project->LidProcs[j].surface.thickness == 0.0
-           ) report_writeErrorMsg(ERR_LID_PARAMS, project->LidProcs[j].ID);
+           ) report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[j].ID);
         else project->LidProcs[j].surface.alpha = 
             1.49 * sqrt(project->LidProcs[j].surface.surfSlope) /
                 project->LidProcs[j].surface.roughness;
@@ -920,7 +920,7 @@ void validateLidGroup(Project *project, int j)
                    (1.0 - lidUnit->initSat);
             if ( grnampt_setParams(&(lidUnit->soilInfil), p) == FALSE )
             {
-                report_writeErrorMsg(ERR_LID_PARAMS, project->LidProcs[k].ID);
+                report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[k].ID);
             }
         }
         
@@ -934,12 +934,12 @@ void validateLidGroup(Project *project, int j)
                 p[2] = GAInfil[j].IMDmax;
                 if ( grnampt_setParams(&(lidUnit->soilInfil), p) == FALSE )
                 {
-                    report_writeErrorMsg(ERR_LID_PARAMS, project->LidProcs[k].ID);
+                    report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[k].ID);
                 }
             }
             if ( lidUnit->fullWidth <= 0.0 )
             {
-                report_writeErrorMsg(ERR_LID_PARAMS, project->LidProcs[k].ID);
+                report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[k].ID);
             }
         }
         lidList = lidList->nextLidUnit;
@@ -948,11 +948,11 @@ void validateLidGroup(Project *project, int j)
     //... check contributing area fractions
     if ( totalLidArea > 1.001 * totalArea )
     {
-        report_writeErrorMsg(ERR_LID_AREAS, project->Subcatch[j].ID);
+        report_writeErrorMsg(project, ERR_LID_AREAS, project->Subcatch[j].ID);
     }
     if ( fromImperv > 1.001 )
     {
-        report_writeErrorMsg(ERR_LID_CAPTURE_AREA, project->Subcatch[j].ID);
+        report_writeErrorMsg(project, ERR_LID_CAPTURE_AREA, project->Subcatch[j].ID);
     }
 
     //... Make subcatchment LID area equal total area if the two are close
