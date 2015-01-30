@@ -17,11 +17,11 @@
 #include "headers.h"
 #include "lid.h"
 
-#define WRITE(x) (report_writeLine((x)))
+#define WRITE(x,y) (report_writeLine((x),(y)))
 
 //=============================================================================
 
-void inputrpt_writeInput()
+void inputrpt_writeInput(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -33,10 +33,10 @@ void inputrpt_writeInput()
     int lidCount = 0;
     if ( project->ErrorCode ) return;
 
-    WRITE("");
-    WRITE("*************");
-    WRITE("Element Count");
-    WRITE("*************");
+    WRITE(project,"");
+    WRITE(project,"*************");
+    WRITE(project,"Element Count");
+    WRITE(project,"*************");
     fprintf(project->Frpt.file, "\n  Number of rain gages ...... %d", project->Nobjects[GAGE]);
     fprintf(project->Frpt.file, "\n  Number of subcatchments ... %d", project->Nobjects[SUBCATCH]);
     fprintf(project->Frpt.file, "\n  Number of nodes ........... %d", project->Nobjects[NODE]);
@@ -46,11 +46,11 @@ void inputrpt_writeInput()
 
     if ( project->Nobjects[POLLUT] > 0 )
     {
-        WRITE("");
-        WRITE("");
-        WRITE("*****************");
-        WRITE("Pollutant Summary");
-        WRITE("*****************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"*****************");
+        WRITE(project,"Pollutant Summary");
+        WRITE(project,"*****************");
         fprintf(project->Frpt.file,
     "\n                               Ppt.      GW         Kdecay");
         fprintf(project->Frpt.file,
@@ -60,21 +60,21 @@ void inputrpt_writeInput()
         for (i = 0; i < project->Nobjects[POLLUT]; i++)
         {
             fprintf(project->Frpt.file, "\n  %-20s %5s%10.2f%10.2f%10.2f", project->Pollut[i].ID,
-                QualUnitsWords[project->Pollut[i].units], Pollut[i].pptConcen,
-                project->Pollut[i].gwConcen, Pollut[i].kDecay*SECperDAY);
+                QualUnitsWords[project->Pollut[i].units], project->Pollut[i].pptConcen,
+                project->Pollut[i].gwConcen, project->Pollut[i].kDecay*SECperDAY);
             if ( project->Pollut[i].coPollut >= 0 )
                 fprintf(project->Frpt.file, "    %-s  (%.2f)",
-                    project->Pollut[Pollut[i].coPollut].ID, Pollut[i].coFraction);
+                    project->Pollut[project->Pollut[i].coPollut].ID, project->Pollut[i].coFraction);
         }
     }
 
     if ( project->Nobjects[LANDUSE] > 0 )
     {
-        WRITE("");
-        WRITE("");
-        WRITE("***************");
-        WRITE("project->Landuse Summary");
-        WRITE("***************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"***************");
+        WRITE(project,"Landuse Summary");
+        WRITE(project,"***************");
         fprintf(project->Frpt.file,
     "\n                         Sweeping   Maximum      Last");
         fprintf(project->Frpt.file,
@@ -84,18 +84,18 @@ void inputrpt_writeInput()
         for (i=0; i<project->Nobjects[LANDUSE]; i++)
         {
             fprintf(project->Frpt.file, "\n  %-20s %10.2f%10.2f%10.2f", project->Landuse[i].ID,
-                project->Landuse[i].sweepInterval, Landuse[i].sweepRemoval,
+                project->Landuse[i].sweepInterval, project->Landuse[i].sweepRemoval,
                 project->Landuse[i].sweepDays0);
         }
     }
 
     if ( project->Nobjects[GAGE] > 0 )
     {
-        WRITE("");
-        WRITE("");
-        WRITE("****************");
-        WRITE("Raingage Summary");
-        WRITE("****************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"****************");
+        WRITE(project,"Raingage Summary");
+        WRITE(project,"****************");
     fprintf(project->Frpt.file,
 "\n                                                      Data       Recording");
     fprintf(project->Frpt.file,
@@ -107,23 +107,23 @@ void inputrpt_writeInput()
             if ( project->Gage[i].tSeries >= 0 )
             {
                 fprintf(project->Frpt.file, "\n  %-20s %-30s ",
-                    project->Gage[i].ID, project->Tseries[Gage[i].tSeries].ID);
+                    project->Gage[i].ID, project->Tseries[project->Gage[i].tSeries].ID);
                 fprintf(project->Frpt.file, "%-10s %3d min.",
                     RainTypeWords[project->Gage[i].rainType],
                     (project->Gage[i].rainInterval)/60);
             }
             else fprintf(project->Frpt.file, "\n  %-20s %-30s",
-                project->Gage[i].ID, Gage[i].fname);
+                project->Gage[i].ID, project->Gage[i].fname);
         }
     }
 
     if ( project->Nobjects[SUBCATCH] > 0 )
     {
-        WRITE("");
-        WRITE("");
-        WRITE("********************");
-        WRITE("Subcatchment Summary");
-        WRITE("********************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"********************");
+        WRITE(project,"Subcatchment Summary");
+        WRITE(project,"********************");
         fprintf(project->Frpt.file,
 "\n  Name                       Area     Width   %%Imperv    %%Slope Rain project->Gage            project->Outlet              ");
         fprintf(project->Frpt.file,
@@ -131,29 +131,29 @@ void inputrpt_writeInput()
         for (i = 0; i < project->Nobjects[SUBCATCH]; i++)
         {
             fprintf(project->Frpt.file,"\n  %-20s %10.2f%10.2f%10.2f%10.4f %-20s ",
-                project->Subcatch[i].ID, Subcatch[i].area*UCF(LANDAREA),
-                project->Subcatch[i].width*UCF(LENGTH),  Subcatch[i].fracImperv*100.0,
-                project->Subcatch[i].slope*100.0, project->Gage[Subcatch[i].gage].ID);
+                project->Subcatch[i].ID, project->Subcatch[i].area*UCF(LANDAREA),
+                project->Subcatch[i].width*UCF(LENGTH),  project->Subcatch[i].fracImperv*100.0,
+                project->Subcatch[i].slope*100.0, project->Gage[project->Subcatch[i].gage].ID);
             if ( project->Subcatch[i].outNode >= 0 )
             {
                 fprintf(project->Frpt.file, "%-20s", project->Node[project->Subcatch[i].outNode].ID);
             }
             else if ( project->Subcatch[i].outSubcatch >= 0 )
             {
-                fprintf(project->Frpt.file, "%-20s", project->Subcatch[Subcatch[i].outSubcatch].ID);
+                fprintf(project->Frpt.file, "%-20s", project->Subcatch[project->Subcatch[i].outSubcatch].ID);
             }
             if ( project->Subcatch[i].lidArea ) lidCount++;
         }
     }
-    if ( lidCount > 0 ) lid_writeSummary();
+    if ( lidCount > 0 ) lid_writeSummary(project);
 
     if ( project->Nobjects[NODE] > 0 )
     {
-        WRITE("");
-        WRITE("");
-        WRITE("************");
-        WRITE("project->Node Summary");
-        WRITE("************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"************");
+        WRITE(project,"Node Summary");
+        WRITE(project,"************");
         fprintf(project->Frpt.file,
 "\n                                           Invert      Max.    Ponded    External");
         fprintf(project->Frpt.file,
@@ -167,7 +167,7 @@ void inputrpt_writeInput()
                 project->Node[i].invertElev*UCF(LENGTH),
                 project->Node[i].fullDepth*UCF(LENGTH),
                 project->Node[i].pondedArea*UCF(LENGTH)*UCF(LENGTH));
-            if ( project->Node[i].extInflow || Node[i].dwfInflow || Node[i].rdiiInflow )
+            if ( project->Node[i].extInflow || project->Node[i].dwfInflow || project->Node[i].rdiiInflow )
             {
                 fprintf(project->Frpt.file, "    Yes");
             }
@@ -176,11 +176,11 @@ void inputrpt_writeInput()
 
     if ( project->Nobjects[LINK] > 0 )
     {
-        WRITE("");
-        WRITE("");
-        WRITE("************");
-        WRITE("project->Link Summary");
-        WRITE("************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"************");
+        WRITE(project,"Link Summary");
+        WRITE(project,"************");
         fprintf(project->Frpt.file,
 "\n  Name             From project->Node        To Node          Type            Length    %%Slope Roughness");
         fprintf(project->Frpt.file,
@@ -190,10 +190,10 @@ void inputrpt_writeInput()
             // --- list end nodes in their original orientation
             if ( project->Link[i].direction == 1 )
                 fprintf(project->Frpt.file, "\n  %-16s %-16s %-16s ",
-                    project->Link[i].ID, project->Node[Link[i].node1].ID, Node[Link[i].node2].ID);
+                    project->Link[i].ID, project->Node[project->Link[i].node1].ID, project->Node[project->Link[i].node2].ID);
             else
                 fprintf(project->Frpt.file, "\n  %-16s %-16s %-16s ",
-                    project->Link[i].ID, project->Node[Link[i].node2].ID, Node[Link[i].node1].ID);
+                    project->Link[i].ID, project->Node[project->Link[i].node2].ID, project->Node[project->Link[i].node1].ID);
 
             // --- list link type
             if ( project->Link[i].type == PUMP )
@@ -216,11 +216,11 @@ void inputrpt_writeInput()
             }
         }
 
-        WRITE("");
-        WRITE("");
-        WRITE("*********************");
-        WRITE("Cross Section Summary");
-        WRITE("*********************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"*********************");
+        WRITE(project,"Cross Section Summary");
+        WRITE(project,"*********************");
         fprintf(project->Frpt.file,
 "\n                                        Full     Full     Hyd.     Max.   No. of     Full");
         fprintf(project->Frpt.file,    
@@ -253,11 +253,11 @@ void inputrpt_writeInput()
 
     if (project->Nobjects[SHAPE] > 0)
     {
-        WRITE("");
-        WRITE("");
-        WRITE("*************");
-        WRITE("project->Shape Summary");
-        WRITE("*************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"*************");
+        WRITE(project,"Shape Summary");
+        WRITE(project,"*************");
         for (i = 0; i < project->Nobjects[SHAPE]; i++)
         {
             k = project->Shape[i].curve;
@@ -282,18 +282,18 @@ void inputrpt_writeInput()
             }
         }
     }
-    WRITE("");
+    WRITE(project,"");
 
     if (project->Nobjects[TRANSECT] > 0)
     {
-        WRITE("");
-        WRITE("");
-        WRITE("****************");
-        WRITE("project->Transect Summary");
-        WRITE("****************");
+        WRITE(project,"");
+        WRITE(project,"");
+        WRITE(project,"****************");
+        WRITE(project,"Transect Summary");
+        WRITE(project,"****************");
         for (i = 0; i < project->Nobjects[TRANSECT]; i++)
         {
-            fprintf(project->Frpt.file, "\n\n  project->Transect %s", Transect[i].ID);
+            fprintf(project->Frpt.file, "\n\n  project->Transect %s", project->Transect[i].ID);
             fprintf(project->Frpt.file, "\n  Area:  ");
             for ( m = 1; m < N_TRANSECT_TBL; m++)
             {
@@ -314,5 +314,5 @@ void inputrpt_writeInput()
             }
         }
     }
-    WRITE("");
+    WRITE(project,"");
 }

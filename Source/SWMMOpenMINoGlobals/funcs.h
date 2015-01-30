@@ -64,7 +64,7 @@ void    report_writeInputErrorMsg(int k, int sect, char* line, long lineCount);
 void    report_writeWarningMsg(char* msg, char* id); 
 void    report_writeTseriesErrorMsg(int code, TTable *tseries);
 
-void    inputrpt_writeInput(void);
+void    inputrpt_writeInput(Project *project);
 void    statsrpt_writeReport(Project *project);
 
 //-----------------------------------------------------------------------------
