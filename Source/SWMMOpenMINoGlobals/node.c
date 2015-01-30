@@ -877,8 +877,8 @@ double storage_getOutflow(Project *project, int j, int i)
 
     // --- if partially full, return normal flow
     k = project->Link[i].subIndex;
-    a = xsect_getAofY(&project->Link[i].xsect, y);
-    return project->Conduit[k].beta * xsect_getSofA(&project->Link[i].xsect, a);
+    a = xsect_getAofY(project, &project->Link[i].xsect, y);
+    return project->Conduit[k].beta * xsect_getSofA(project, &project->Link[i].xsect, a);
 }
 
 //=============================================================================

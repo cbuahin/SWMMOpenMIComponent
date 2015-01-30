@@ -110,7 +110,7 @@ foreach my $var (@varNames){
 	print "Replacing all occurrences of '${var}' with 'project->${var}'... ";	
 	# `sed -i '' 's/\<$var\>/project->$var/' ./SWMMOpenMINoGlobals/*`;
 
-	`sed -i '' 's/[[:<:]]${var}[[:>:]]/project->${var}/' ./SWMMOpenMINoGlobals/*`;
+	`sed -i '' 's/[[:<:]]${var}[[:>:]]/project->${var}/g' ./SWMMOpenMINoGlobals/*`;
 
 	say 'done';
 

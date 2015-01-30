@@ -32,9 +32,9 @@ static void   findSurfArea(Project *project, int link, double q, double length, 
 static double findLocalLosses(Project *project, int link, double a1, double a2, double aMid,
 	double q);
 
-static double getWidth(TXsect* xsect, double y);
-static double getArea(TXsect* xsect, double y);
-static double getHydRad(TXsect* xsect, double y);
+static double getWidth(Project *project, TXsect* xsect, double y);
+static double getArea(Project *project, TXsect* xsect, double y);
+static double getHydRad(Project *project, TXsect* xsect, double y);
 
 static double checkNormalFlow(Project *project, int j, double q, double y1, double y2,
 	double a1, double r1);
@@ -119,14 +119,14 @@ void  dwflow_findConduitFlow(Project *project, int j, int steps, double omega, d
 	findSurfArea(project, j, qLast, length, &h1, &h2, &y1, &y2);
 
 	// --- compute area at each end of conduit & hyd. radius at upstream end
-	a1 = getArea(xsect, y1);
-	a2 = getArea(xsect, y2);
-	r1 = getHydRad(xsect, y1);
+	a1 = getArea(project, xsect, y1);
+	a2 = getArea(project, xsect, y2);
+	r1 = getHydRad(project, xsect, y1);
 
 	// --- compute area & hyd. radius at midpoint
 	yMid = 0.5 * (y1 + y2);
-	aMid = getArea(xsect, yMid);
-	rMid = getHydRad(xsect, yMid);
+	aMid = getArea(project, xsect, yMid);
+	rMid = getHydRad(project, xsect, yMid);
 
 	// --- alternate approach not currently used, but might produce better
 	//     Bernoulli energy balance for steady flows
@@ -553,7 +553,7 @@ double findLocalLosses(Project *project, int j, double a1, double a2, double aMi
 
 //=============================================================================
 
-double getWidth(TXsect* xsect, double y)
+double getWidth(Project *project, TXsect* xsect, double y)
 //
 //  Input:   xsect = ptr. to conduit cross section
 //           y     = flow depth (ft)
@@ -564,12 +564,12 @@ double getWidth(TXsect* xsect, double y)
 	double yNorm = y / xsect->yFull;
 	if (yNorm > 0.96 &&
 		!xsect_isOpen(xsect->type)) y = 0.96*xsect->yFull;
-	return xsect_getWofY(xsect, y);
+	return xsect_getWofY(project, xsect, y);
 }
 
 //=============================================================================
 
-double getArea(TXsect* xsect, double y)
+double getArea(Project *project, TXsect* xsect, double y)
 //
 //  Input:   xsect = ptr. to conduit cross section
 //           y     = flow depth (ft)
@@ -579,13 +579,13 @@ double getArea(TXsect* xsect, double y)
 {
 	double area;                        // flow area (ft2)
 	y = MIN(y, xsect->yFull);
-	area = xsect_getAofY(xsect, y);
+	area = xsect_getAofY(project, xsect, y);
 	return area;
 }
 
 //=============================================================================
 
-double getHydRad(TXsect* xsect, double y)
+double getHydRad(Project *project, TXsect* xsect, double y)
 //
 //  Input:   xsect = ptr. to conduit cross section
 //           y     = flow depth (ft)
@@ -595,7 +595,7 @@ double getHydRad(TXsect* xsect, double y)
 {
 	double hRadius;                     // hyd. radius (ft)
 	y = MIN(y, xsect->yFull);
-	hRadius = xsect_getRofY(xsect, y);
+	hRadius = xsect_getRofY(project, xsect, y);
 	return hRadius;
 }
 

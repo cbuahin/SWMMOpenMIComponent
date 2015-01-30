@@ -17,13 +17,15 @@
 #define GLOBALS_H
 
 #include "hash.h"
+#include "lid.h"
+#include "infil.h"
 
 
 #ifdef __cplusplus
  extern "C" {
 #endif 
 
-typedef struct
+    struct Project
     {
 
         int J1;
@@ -148,12 +150,33 @@ typedef struct
         TTable*    Tseries;                  // Array of time series tables
         TTransect* Transect;                 // Array of transect data
         TShape*    Shape;                    // Array of custom conduit shapes
+        
+        
+        TLidProc*  LidProcs;            // array of LID processes
+        int        LidCount;            // number of LID processes
+        TLidGroup* LidGroups;           // array of LID process groups
+        int        GroupCount;          // number of LID groups (subcatchments)
+        
+        double     EvapRate;            // evaporation rate (ft/s)
+        double     NativeInfil;         // native soil infil. rate (ft/s)
+        double     MaxNativeInfil;      // native soil infil. rate limit (ft/s)
+        
+        double     TotalEvapVol;        // subcatch. evap loss (ft3)
+        double     TotalPervEvapVol;    // evap loss over pervious area (ft3)
+        double     TotalInfilVol;       // subcatch infiltration loss (ft3)
+        double     NextReportTime;
+        int        SaveResults;         // = 1 if detailed results to be saved
 
-//typedef int (*swmm_retrieve_openmi_items)(int, char*, char* , double* );
-//
-//  swmm_retrieve_openmi_items retrieve_openmi_exchangeItems;
 
-    } Project;
+        //to do set to null
+        THorton*   HortInfil;
+        TGrnAmpt*  GAInfil;
+        TCurveNum* CNInfil ;
+        
+
+    };
+     
+     typedef struct Project Project;
     
 #ifdef __cplusplus
 }   // matches the linkage specification from above */ 

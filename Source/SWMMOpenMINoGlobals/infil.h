@@ -12,6 +12,7 @@
 #ifndef INFIL_H
 #define INFIL_H
 
+struct Project;
 
 //---------------------
 // Enumerated Constants
@@ -85,18 +86,18 @@ extern TCurveNum* CNInfil;
 //-----------------------------------------------------------------------------
 //   Infiltration Methods
 //-----------------------------------------------------------------------------
-void    infil_create(int subcatchCount, int model);
-void    infil_delete(void);
-int     infil_readParams(int model, char* tok[], int ntoks);
+void    infil_create(struct Project *project, int subcatchCount, int model);
+void    infil_delete(struct Project *project);
+int     infil_readParams(struct Project *project, int model, char* tok[], int ntoks);
 void    infil_initState(int area, int model);
 void    infil_getState(int j, int m, double x[]);
 void    infil_setState(int j, int m, double x[]);
-double  infil_getInfil(int area, int model, double tstep, double rainfall,
+double  infil_getInfil(struct Project *project, int area, int model, double tstep, double rainfall,
         double runon, double depth);
 
 int     grnampt_setParams(TGrnAmpt *infil, double p[]);
 void    grnampt_initState(TGrnAmpt *infil);
-double  grnampt_getInfil(Project *project, TGrnAmpt *infil, double tstep, double irate,
+double  grnampt_getInfil(struct Project *project, TGrnAmpt *infil, double tstep, double irate,
         double depth);
 
 #endif

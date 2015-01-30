@@ -17,14 +17,14 @@
 #include "stdlib.h"
 #include "headers.h"
 #include "infil.h"
-#include "globals.h"
 
-//-----------------------------------------------------------------------------
-//  Local Variables
-//-----------------------------------------------------------------------------
-THorton*   HortInfil = NULL;
-TGrnAmpt*  GAInfil   = NULL;
-TCurveNum* CNInfil   = NULL;
+
+////-----------------------------------------------------------------------------
+////  Local Variables
+////-----------------------------------------------------------------------------
+//THorton*   HortInfil = NULL;
+//TGrnAmpt*  GAInfil   = NULL;
+//TCurveNum* CNInfil   = NULL;
 
 //-----------------------------------------------------------------------------
 //  External Functions (declared in infil.h)
@@ -71,7 +71,7 @@ static double curvenum_getInfil(Project* project, TCurveNum *infil, double tstep
 
 //=============================================================================
 
-void infil_create(int subcatchCount, int model)
+void infil_create(Project *project, int subcatchCount, int model)
 //
 //  Purpose: creates an array of infiltration objects.
 //  Input:   n = number of subcatchments
@@ -114,7 +114,7 @@ void infil_delete()
 
 //=============================================================================
 
-int infil_readParams(int m, char* tok[], int ntoks)
+int infil_readParams(Project *project, int m, char* tok[], int ntoks)
 //
 //  Input:   m = infiltration method code
 //           tok[] = array of string tokens
@@ -231,7 +231,7 @@ void infil_setState(int j, int m, double x[])
 
 //=============================================================================
 
-double infil_getInfil(int j, int m, double tstep, double rainfall,
+double infil_getInfil(Project *project, int j, int m, double tstep, double rainfall,
                       double runon, double depth)
 //
 //  Input:   j = subcatchment index
@@ -254,7 +254,7 @@ double infil_getInfil(int j, int m, double tstep, double rainfall,
                                     depth);
 
       case GREEN_AMPT:
-        return grnampt_getInfil(&GAInfil[j], tstep, rainfall+runon, depth);
+        return grnampt_getInfil(project, &GAInfil[j], tstep, rainfall+runon, depth);
 
       case CURVE_NUMBER:
         depth += runon / tstep;

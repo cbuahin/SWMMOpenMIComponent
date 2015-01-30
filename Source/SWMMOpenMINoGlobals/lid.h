@@ -18,6 +18,8 @@
 #include <string.h>
 #include "infil.h"
 
+struct Project;
+
 //-----------------------------------------------------------------------------
 //  Enumerations
 //-----------------------------------------------------------------------------
@@ -152,24 +154,42 @@ typedef struct
     TWaterBalance  waterBalance;     // water balance quantites
 }  TLidUnit;
 
+// LID List - list of LID units contained in an LID group
+struct LidList
+{
+    TLidUnit*        lidUnit;     // ptr. to a LID unit
+    struct LidList*  nextLidUnit;
+};
+typedef struct LidList TLidList;
+
+// LID Group - collection of LID units applied to a specific subcatchment
+struct LidGroup
+{
+    double         pervArea;      // amount of pervious area in group (ft2)
+    double         flowToPerv;    // total flow sent to pervious area (cfs)
+    double         impervRunoff;  // impervious area runoff volume (ft3)
+    TLidList*      lidList;       // list of LID units in the group
+};
+typedef struct LidGroup* TLidGroup;
+
 //-----------------------------------------------------------------------------
 //   LID Methods
 //-----------------------------------------------------------------------------
-void     lid_create(Project *project, int lidCount, int subcatchCount);
-void     lid_delete(void);
-int      lid_readProcParams(char* tok[], int ntoks);
-int      lid_readGroupParams(Project *project, char* tok[], int ntoks);
-void     lid_validate(Project *project);
-void     lid_initState(Project *project);
-double   lid_getPervArea(int subcatch);
-double   lid_getFlowToPerv(int subcatch);
-double   lid_getStoredVolume(Project *project, int subcatch);
-double   lid_getSurfaceDepth(Project *project, int subcatch);
-double   lid_getDepthOnPavement(Project *project, int subcatch, double impervDepth);
-double   lid_getRunoff(Project *project, int subcatch, double *outflow, double *evapVol,
+void     lid_create(struct Project *project, int lidCount, int subcatchCount);
+void     lid_delete(struct Project *project);
+int      lid_readProcParams(struct Project *project, char* tok[], int ntoks);
+int      lid_readGroupParams(struct Project *project, char* tok[], int ntoks);
+void     lid_validate(struct Project *project);
+void     lid_initState(struct Project *project);
+double   lid_getPervArea(struct Project *project, int subcatch);
+double   lid_getFlowToPerv(struct Project *project, int subcatch);
+double   lid_getStoredVolume(struct Project *project, int subcatch);
+double   lid_getSurfaceDepth(struct Project *project, int subcatch);
+double   lid_getDepthOnPavement(struct Project *project, int subcatch, double impervDepth);
+double   lid_getRunoff(struct Project *project, int subcatch, double *outflow, double *evapVol,
          double *pervEvapVol, double *infilVol, double tStep);
-void     lid_writeSummary(Project *project);
-void     lid_writeWaterBalance(Project *project);
+void     lid_writeSummary(struct Project *project);
+void     lid_writeWaterBalance(struct Project *project);
 //-----------------------------------------------------------------------------
 void     lidproc_initWaterBalance(TLidUnit *lidUnit, double initVol);
 double   lidproc_getOutflow(TLidUnit* theUnit, TLidProc* theProc, double inflow,
