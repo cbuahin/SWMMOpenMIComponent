@@ -51,15 +51,15 @@ extern float* SubcatchResults;         // Results vector defined in OUTPUT.C
 //-----------------------------------------------------------------------------
 // Local functions
 //-----------------------------------------------------------------------------
-static double runoff_getTimeStep(DateTime currentDate);
-static void   runoff_initFile(void);
-static void   runoff_readFromFile(void);
-static void   runoff_saveToFile(float tStep);
+static double runoff_getTimeStep(Project *project, DateTime currentDate);
+static void   runoff_initFile(Project *project);
+static void   runoff_readFromFile(Project *project);
+static void   runoff_saveToFile(Project *project, float tStep);
 
 
 //=============================================================================
 
-int runoff_open()
+int runoff_open(Project *project)
 //
 //  Input:   none
 //  Output:  returns the global error code
@@ -72,7 +72,7 @@ int runoff_open()
     Nsteps = 0;
 
     // --- open the Ordinary Differential Equation solver
-    if ( !odesolve_open(MAXODES) ) report_writeErrorMsg(ERR_ODE_SOLVER, "");
+    if ( !odesolve_open(MAXODES) ) report_writeErrorMsg(project, ERR_ODE_SOLVER, "");
 
     // --- allocate memory for pollutant washoff loads
     OutflowLoad = NULL;
@@ -80,37 +80,37 @@ int runoff_open()
     if ( project->Nobjects[POLLUT] > 0 )
     {
         OutflowLoad = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
-        if ( !OutflowLoad ) report_writeErrorMsg(ERR_MEMORY, "");
+        if ( !OutflowLoad ) report_writeErrorMsg(project, ERR_MEMORY, "");
         WashoffLoad = (double *) calloc(project->Nobjects[POLLUT], sizeof(double));
-        if ( !WashoffLoad ) report_writeErrorMsg(ERR_MEMORY, "");
+        if ( !WashoffLoad ) report_writeErrorMsg(project, ERR_MEMORY, "");
     }
 
     // --- see if a runoff interface file should be opened
     switch ( project->Frunoff.mode )
     {
       case USE_FILE:
-        if ( (project->Frunoff.file = fopen(Frunoff.name, "r+b")) == NULL)
-            report_writeErrorMsg(ERR_RUNOFF_FILE_OPEN, project->Frunoff.name);
-        else runoff_initFile();
+        if ( (project->Frunoff.file = fopen(project->Frunoff.name, "r+b")) == NULL)
+            report_writeErrorMsg(project, ERR_RUNOFF_FILE_OPEN, project->Frunoff.name);
+        else runoff_initFile(project);
         break;
       case SAVE_FILE:
-        if ( (project->Frunoff.file = fopen(Frunoff.name, "w+b")) == NULL)
-            report_writeErrorMsg(ERR_RUNOFF_FILE_OPEN, project->Frunoff.name);
-        else runoff_initFile();
+        if ( (project->Frunoff.file = fopen(project->Frunoff.name, "w+b")) == NULL)
+            report_writeErrorMsg(project, ERR_RUNOFF_FILE_OPEN, project->Frunoff.name);
+        else runoff_initFile(project);
         break;
     }
 
     // --- see if a climate file should be opened
     if ( project->Frunoff.mode != USE_FILE && project->Fclimate.mode == USE_FILE )
     {
-        climate_openFile();
+        climate_openFile(project);
     }
     return project->ErrorCode;
 }
 
 //=============================================================================
 
-void runoff_close()
+void runoff_close(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -137,12 +137,12 @@ void runoff_close()
     }
 
     // --- close climate file if in use
-    if ( project->Fclimate.file ) fclose(Fclimate.file);
+    if ( project->Fclimate.file ) fclose(project->Fclimate.file);
 }
 
 //=============================================================================
 
-void runoff_execute()
+void runoff_execute(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -160,10 +160,10 @@ void runoff_execute()
 		return;
 
     // --- convert elapsed runoff time in milliseconds to a calendar date
-    currentDate = getDateTime(project->NewRunoffTime);
+    currentDate = getDateTime(project, project->NewRunoffTime);
 
     // --- update climatological conditions
-    climate_setState(currentDate);
+    climate_setState(project, currentDate);
 
     // --- if no subcatchments then simply update runoff elapsed time
     if ( project->Nobjects[SUBCATCH] == 0 )
@@ -179,7 +179,7 @@ void runoff_execute()
     IsRaining = FALSE;
     for (j = 0; j < project->Nobjects[GAGE]; j++)
     {
-        gage_setState(j, currentDate);
+        gage_setState(project, j, currentDate);
         if ( project->Gage[j].rainfall > 0.0 )
 			IsRaining = TRUE;
     }
@@ -187,7 +187,7 @@ void runoff_execute()
     // --- read runoff results from interface file if applicable
     if ( project->Frunoff.mode == USE_FILE )
     {
-        runoff_readFromFile();
+        runoff_readFromFile(project);
         return;
     }
 	
@@ -207,7 +207,7 @@ void runoff_execute()
 
 
     // --- get runoff time step (in seconds)
-    runoffStep = runoff_getTimeStep(currentDate);
+    runoffStep = runoff_getTimeStep(project, currentDate);
 
     if ( runoffStep <= 0.0 )
     {
@@ -222,17 +222,17 @@ void runoff_execute()
     // --- update old state of each subcatchment, 
 	for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
 	{
-		subcatch_setOldState(j);
+		subcatch_setOldState(project, j);
 	}
 
     // --- determine runon from upstream subcatchments, and implement snow removal
     for (j = 0; j < project->Nobjects[SUBCATCH]; j++)
     {
-        subcatch_getRunon(j);
+        subcatch_getRunon(project, j);
 
 		if (!project->IgnoreSnowmelt)
 		{
-			snow_plowSnow(j, runoffStep);
+			snow_plowSnow(project, j, runoffStep);
 		}
     }
     
@@ -248,7 +248,7 @@ void runoff_execute()
         // --- find total runoff rate (in ft/sec) over the subcatchment
         //     (the amount that actually leaves the subcatchment (in cfs)
         //     is also computed and is stored in project->Subcatch[j].newRunoff)
-        runoff = subcatch_getRunoff(j, runoffStep);
+        runoff = subcatch_getRunoff(project, j, runoffStep);
 
         // --- update state of study area surfaces
 		if (runoff > 0.0)
@@ -267,28 +267,28 @@ void runoff_execute()
 
         // --- now assign 'runoff' to runoff that leaves the subcatchment
         if (project->Subcatch[j].area > 0.0)
-            runoff = project->Subcatch[j].newRunoff / Subcatch[j].area;
+            runoff = project->Subcatch[j].newRunoff / project->Subcatch[j].area;
 
         // --- add to pollutant buildup if runoff is negligible
         if ( runoff < MIN_RUNOFF ) 
-			subcatch_getBuildup(j, runoffStep); 
+			subcatch_getBuildup(project, j, runoffStep);
 
         // --- reduce buildup by street sweeping
         if ( canSweep && project->Subcatch[j].rainfall <= MIN_RUNOFF)
-            subcatch_sweepBuildup(j, currentDate);
+            subcatch_sweepBuildup(project, j, currentDate);
 
         // --- compute pollutant washoff 
-        subcatch_getWashoff(j, runoff, runoffStep);
+        subcatch_getWashoff(project, j, runoff, runoffStep);
     }
 
     // --- update tracking of system-wide max. runoff rate
-    stats_updateMaxRunoff();
+    stats_updateMaxRunoff(project);
 
     // --- save runoff results to interface file if one is used
     Nsteps++;
     if ( project->Frunoff.mode == SAVE_FILE )
     {
-        runoff_saveToFile((float)runoffStep);
+        runoff_saveToFile(project, (float)runoffStep);
     }
 
     // --- reset subcatchment runon to 0
@@ -300,7 +300,7 @@ void runoff_execute()
 
 //=============================================================================
 
-double runoff_getTimeStep(DateTime currentDate)
+double runoff_getTimeStep(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current simulation date/time
 //  Output:  time step (sec)
@@ -313,11 +313,11 @@ double runoff_getTimeStep(DateTime currentDate)
 
     // --- find shortest time until next evaporation or rainfall value
     //     (this represents the maximum possible time step)
-    timeStep = datetime_timeDiff(climate_getNextEvap(currentDate), currentDate);
+    timeStep = datetime_timeDiff(climate_getNextEvap(project, currentDate), currentDate);
     if ( timeStep < maxStep ) maxStep = timeStep;
     for (j = 0; j < project->Nobjects[GAGE]; j++)
     {
-        timeStep = datetime_timeDiff(gage_getNextRainDate(j, currentDate),
+        timeStep = datetime_timeDiff(gage_getNextRainDate(project, j, currentDate),
                    currentDate);
         if ( timeStep > 0 && timeStep < maxStep ) maxStep = timeStep;
     }
@@ -333,7 +333,7 @@ double runoff_getTimeStep(DateTime currentDate)
 
 //=============================================================================
 
-void runoff_initFile(void)
+void runoff_initFile(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -367,7 +367,7 @@ void runoff_initFile(void)
         fread(fStamp, sizeof(char), strlen(fileStamp), project->Frunoff.file);
         if ( strcmp(fStamp, fileStamp) != 0 )
         {
-            report_writeErrorMsg(ERR_RUNOFF_FILE_FORMAT, "");
+            report_writeErrorMsg(project, ERR_RUNOFF_FILE_FORMAT, "");
             return;
         }
         nSubcatch = -1;
@@ -382,14 +382,14 @@ void runoff_initFile(void)
         ||   flowUnits != project->FlowUnits
         ||   MaxSteps  <= 0 )
         {
-             report_writeErrorMsg(ERR_RUNOFF_FILE_FORMAT, "");
+             report_writeErrorMsg(project, ERR_RUNOFF_FILE_FORMAT, "");
         }
     }
 }
 
 //=============================================================================
 
-void  runoff_saveToFile(float tStep)
+void  runoff_saveToFile(Project *project, float tStep)
 //
 //  Input:   tStep = runoff time step (sec)
 //  Output:  none
@@ -403,14 +403,14 @@ void  runoff_saveToFile(float tStep)
     fwrite(&tStep, sizeof(float), 1, project->Frunoff.file);
     for (j=0; j<project->Nobjects[SUBCATCH]; j++)
     {
-        subcatch_getResults(j, 1.0, SubcatchResults);
+        subcatch_getResults(project, j, 1.0, SubcatchResults);
         fwrite(SubcatchResults, sizeof(float), n, project->Frunoff.file);
     }
 }
 
 //=============================================================================
 
-void  runoff_readFromFile(void)
+void  runoff_readFromFile(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -426,12 +426,12 @@ void  runoff_readFromFile(void)
     // --- make sure not past end of file
     if ( Nsteps > MaxSteps )
     {
-         report_writeErrorMsg(ERR_RUNOFF_FILE_END, "");
+         report_writeErrorMsg(project, ERR_RUNOFF_FILE_END, "");
          return;
     }
 
     // --- replace old state with current one for all subcatchments
-    for (j = 0; j < project->Nobjects[SUBCATCH]; j++) subcatch_setOldState(j);
+    for (j = 0; j < project->Nobjects[SUBCATCH]; j++) subcatch_setOldState(project, j);
 
     // --- read runoff time step
     kount = 0;
@@ -449,19 +449,19 @@ void  runoff_readFromFile(void)
         // --- extract hydrologic results, converting units where necessary
         //     (results were saved to file in user's units)
         project->Subcatch[j].newSnowDepth = SubcatchResults[SUBCATCH_SNOWDEPTH] /
-                                   UCF(RAINDEPTH);
+                                   UCF(project, RAINDEPTH);
         project->Subcatch[j].evapLoss     = SubcatchResults[SUBCATCH_EVAP] /
-                                   UCF(RAINFALL);
+                                   UCF(project, RAINFALL);
         project->Subcatch[j].infilLoss    = SubcatchResults[SUBCATCH_INFIL] /
-                                   UCF(RAINFALL);
+                                   UCF(project, RAINFALL);
         project->Subcatch[j].newRunoff    = SubcatchResults[SUBCATCH_RUNOFF] /
-                                   UCF(FLOW);
+                                   UCF(project, FLOW);
         gw = project->Subcatch[j].groundwater;
         if ( gw )
         {
-            gw->newFlow    = SubcatchResults[SUBCATCH_GW_FLOW] / UCF(FLOW);
+            gw->newFlow    = SubcatchResults[SUBCATCH_GW_FLOW] / UCF(project, FLOW);
             gw->lowerDepth = project->Aquifer[gw->aquifer].bottomElev -
-                             (SubcatchResults[SUBCATCH_GW_ELEV] / UCF(LENGTH));
+                             (SubcatchResults[SUBCATCH_GW_ELEV] / UCF(project, LENGTH));
             gw->theta      = SubcatchResults[SUBCATCH_SOIL_MOIST];
         }
 
@@ -475,7 +475,7 @@ void  runoff_readFromFile(void)
     // --- report error if not enough values were read
     if ( kount < 1 + project->Nobjects[SUBCATCH] * nResults )
     {
-         report_writeErrorMsg(ERR_RUNOFF_FILE_READ, "");
+         report_writeErrorMsg(project, ERR_RUNOFF_FILE_READ, "");
          return;
     }
 

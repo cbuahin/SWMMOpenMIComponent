@@ -30,7 +30,7 @@
 
 //=============================================================================
 
-int inflow_readExtInflow(char* tok[], int ntoks)
+int inflow_readExtInflow(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -54,11 +54,11 @@ int inflow_readExtInflow(char* tok[], int ntoks)
 
     // --- find index of node receiving the inflow
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
-    j = project_findObject(NODE, tok[0]);
+    j = project_findObject(project, NODE, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- find index of inflow pollutant or use -1 for FLOW
-    param = project_findObject(POLLUT, tok[1]);
+    param = project_findObject(project, POLLUT, tok[1]);
     if ( param < 0 )
     {
         if ( match(tok[1], w_FLOW) ) param = -1;
@@ -68,7 +68,7 @@ int inflow_readExtInflow(char* tok[], int ntoks)
     // --- find index of inflow time series (if supplied) in data base
     if ( strlen(tok[2]) > 0 )
     {
-        tseries = project_findObject(TSERIES, tok[2]);
+        tseries = project_findObject(project, TSERIES, tok[2]);
         if ( tseries < 0 ) return error_setInpError(ERR_NAME, tok[2]);
         project->Tseries[tseries].refersTo = EXTERNAL_INFLOW;
     }
@@ -77,7 +77,7 @@ int inflow_readExtInflow(char* tok[], int ntoks)
     if ( param == -1 )
     {
         type = FLOW_INFLOW;
-        cf = 1.0/UCF(FLOW);
+        cf = 1.0/UCF(project, FLOW);
     }
 
     // --- do the same for a pollutant inflow
@@ -115,7 +115,7 @@ int inflow_readExtInflow(char* tok[], int ntoks)
     // --- get baseline time pattern
     if ( ntoks >= 8 )
     {
-        basePat = project_findObject(TIMEPATTERN, tok[7]);
+        basePat = project_findObject(project, TIMEPATTERN, tok[7]);
         if ( basePat < 0 ) return error_setInpError(ERR_NAME, tok[7]);
     } 
 
@@ -152,7 +152,7 @@ int inflow_readExtInflow(char* tok[], int ntoks)
 
 //=============================================================================
 
-void inflow_deleteExtInflows(int j)
+void inflow_deleteExtInflows(Project *project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
@@ -172,7 +172,7 @@ void inflow_deleteExtInflows(int j)
 
 //=============================================================================
 
-double inflow_getExtInflow(TExtInflow* inflow, DateTime aDate)
+double inflow_getExtInflow(Project *project, TExtInflow* inflow, DateTime aDate)
 //
 //  Input:   inflow = external inflow data structure
 //           aDate = current simulation date/time
@@ -194,7 +194,7 @@ double inflow_getExtInflow(TExtInflow* inflow, DateTime aDate)
         month = datetime_monthOfYear(aDate) - 1;
         day   = datetime_dayOfWeek(aDate) - 1;
         hour  = datetime_hourOfDay(aDate);
-        blv  *= inflow_getPatternFactor(p, month, day, hour);
+        blv  *= inflow_getPatternFactor(project, p, month, day, hour);
     }
     if ( k >= 0 ) tsv = table_tseriesLookup(&project->Tseries[k], aDate, FALSE) * sf;
     return cf * (tsv + blv);
@@ -202,7 +202,7 @@ double inflow_getExtInflow(TExtInflow* inflow, DateTime aDate)
 
 //=============================================================================
 
-int inflow_readDwfInflow(char* tok[], int ntoks)
+int inflow_readDwfInflow(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -223,11 +223,11 @@ int inflow_readDwfInflow(char* tok[], int ntoks)
 
     // --- find index of node receiving the inflow
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
-    j = project_findObject(NODE, tok[0]);
+    j = project_findObject(project, NODE, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- find index of inflow pollutant (-1 for FLOW) 
-    k = project_findObject(POLLUT, tok[1]);
+    k = project_findObject(project, POLLUT, tok[1]);
     if ( k < 0 )
     {
         if ( match(tok[1], w_FLOW) ) k = -1;
@@ -237,7 +237,7 @@ int inflow_readDwfInflow(char* tok[], int ntoks)
     // --- get avg. value of DWF inflow
     if ( !getDouble(tok[2], &x) )
         return error_setInpError(ERR_NUMBER, tok[2]);
-    if ( k == -1 ) x /= UCF(FLOW);
+    if ( k == -1 ) x /= UCF(project, FLOW);
 
     // --- get time patterns assigned to the inflow
     for (i=0; i<4; i++) pats[i] = -1;
@@ -245,7 +245,7 @@ int inflow_readDwfInflow(char* tok[], int ntoks)
     {
         if ( i >= ntoks ) break;
         if ( strlen(tok[i]) == 0 ) continue;
-        m = project_findObject(TIMEPATTERN, tok[i]);
+        m = project_findObject(project, TIMEPATTERN, tok[i]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[i]);
         pats[i-3] = m;
     }
@@ -276,7 +276,7 @@ int inflow_readDwfInflow(char* tok[], int ntoks)
 
 //=============================================================================
 
-void inflow_deleteDwfInflows(int j)
+void inflow_deleteDwfInflows(Project *project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
@@ -296,7 +296,7 @@ void inflow_deleteDwfInflows(int j)
 
 //=============================================================================
 
-void   inflow_initDwfInflow(TDwfInflow* inflow)
+void   inflow_initDwfInflow(Project *project, TDwfInflow* inflow)
 //
 //  Input:   inflow = dry weather inflow data structure
 //  Output:  none
@@ -326,7 +326,7 @@ void   inflow_initDwfInflow(TDwfInflow* inflow)
 
 //=============================================================================
 
-double inflow_getDwfInflow(TDwfInflow* inflow, int month, int day, int hour)
+double inflow_getDwfInflow(Project *project, TDwfInflow* inflow, int month, int day, int hour)
 //
 //  Input:   inflow = dry weather inflow data structure
 //           month = current month of year of simulation
@@ -340,26 +340,26 @@ double inflow_getDwfInflow(TDwfInflow* inflow, int month, int day, int hour)
     double f = 1.0;                    // pattern factor
 
     p1 = inflow->patterns[MONTHLY_PATTERN];
-    if ( p1 >= 0 ) f *= inflow_getPatternFactor(p1, month, day, hour);
+    if ( p1 >= 0 ) f *= inflow_getPatternFactor(project, p1, month, day, hour);
     p1 = inflow->patterns[DAILY_PATTERN];
-    if ( p1 >= 0 ) f *= inflow_getPatternFactor(p1, month, day, hour);
+    if ( p1 >= 0 ) f *= inflow_getPatternFactor(project, p1, month, day, hour);
     p1 = inflow->patterns[HOURLY_PATTERN];
     p2 = inflow->patterns[WEEKEND_PATTERN];
     if ( p2 >= 0 )
     {
         if ( day == 0 || day == 6 )
-            f *= inflow_getPatternFactor(p2, month, day, hour);
+            f *= inflow_getPatternFactor(project, p2, month, day, hour);
         else if ( p1 >= 0 )
-            f *= inflow_getPatternFactor(p1, month, day, hour);
+            f *= inflow_getPatternFactor(project, p1, month, day, hour);
     }
-    else if ( p1 >= 0 ) f *= inflow_getPatternFactor(p1, month, day, hour);
+    else if ( p1 >= 0 ) f *= inflow_getPatternFactor(project, p1, month, day, hour);
     return f * inflow->avgValue;
 
 }
 
 //=============================================================================
 
-void inflow_initDwfPattern(int j)
+void inflow_initDwfPattern(Project *project, int j)
 //
 //  Input:   j = time pattern index
 //  Output:  none
@@ -375,7 +375,7 @@ void inflow_initDwfPattern(int j)
 
 //=============================================================================
 
-int inflow_readDwfPattern(char* tok[], int ntoks)
+int inflow_readDwfPattern(Project *project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -392,7 +392,7 @@ int inflow_readDwfPattern(char* tok[], int ntoks)
     if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that pattern exists in database
-    j = project_findObject(TIMEPATTERN, tok[0]);
+    j = project_findObject(project, TIMEPATTERN, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- check if this is first line of pattern
@@ -400,7 +400,7 @@ int inflow_readDwfPattern(char* tok[], int ntoks)
     if ( project->Pattern[j].ID == NULL )
     {
         // --- assign ID pointer & pattern type
-        project->Pattern[j].ID = project_findID(TIMEPATTERN, tok[0]);
+        project->Pattern[j].ID = project_findID(project, TIMEPATTERN, tok[0]);
         k = findmatch(tok[1], PatternTypeWords);
         if ( k < 0 ) return error_setInpError(ERR_KEYWORD, tok[1]);
         project->Pattern[j].type = k;
@@ -421,7 +421,7 @@ int inflow_readDwfPattern(char* tok[], int ntoks)
 
 //=============================================================================
 
-double inflow_getPatternFactor(int p, int month, int day, int hour)
+double inflow_getPatternFactor(Project *project, int p, int month, int day, int hour)
 //
 //  Input:   p = time pattern index
 //           month = current month of year of simulation

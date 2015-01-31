@@ -159,15 +159,15 @@ static double getSubmergedFlow(int code, double h, TCulvert* culvert);
 static double getTransitionFlow(int code, double h, double h1, double h2,
 	          TCulvert* culvert);
 static double getForm1Flow(double h, TCulvert* culvert);
-static double form1Eqn(double yc, void* p);
+static double form1Eqn(Project *project, double yc, void* p);
 
-static void report_CulvertControl(int j, double q0, double q, int condition,
+static void report_CulvertControl(Project *project, int j, double q0, double q, int condition,
 	        double yRatio);                                                  //for debugging only
 
 
 //=============================================================================
 
-double culvert_getInflow(int j, double q0, double h)
+double culvert_getInflow(Project *project, int j, double q0, double h)
 //
 //  Input:   j  = link index
 //           q0 = unmodified flow rate (cfs)
@@ -208,7 +208,7 @@ double culvert_getInflow(int j, double q0, double h)
 
     // --- find head relative to culvert's upstream invert
     //     (can be greater than yFull when inlet is submerged) 
-    y = h - (project->Node[project->Link[j].node1].invertElev + Link[j].offset1);
+    y = h - (project->Node[project->Link[j].node1].invertElev + project->Link[j].offset1);
 
     // --- check for submerged flow (based on FHWA criteria of Q/AD > 4)
     y2 = culvert.yFull * (16.0 * Params[code][C] + Params[code][Y] - culvert.scf);
@@ -358,7 +358,7 @@ double getForm1Flow(double h, TCulvert* culvert)
 
 //=============================================================================
 
-double form1Eqn(double yc, void* p)
+double form1Eqn(Project *project, double yc, void* p)
 //
 //  Input:   yc = critical depth
 //           p  = pointer to a TCulvert object
@@ -380,8 +380,8 @@ double form1Eqn(double yc, void* p)
     double ac, wc, yh;
 	TCulvert* culvert = (TCulvert *)p;
 
-	ac = xsect_getAofY(culvert->xsect, yc);
-    wc = xsect_getWofY(culvert->xsect, yc);
+	ac = xsect_getAofY(project, culvert->xsect, yc);
+    wc = xsect_getWofY(project, culvert->xsect, yc);
     yh = ac/wc;
     
     culvert->qc = ac * sqrt(GRAVITY * yh);
@@ -391,7 +391,7 @@ double form1Eqn(double yc, void* p)
 
 //=============================================================================
 
-void report_CulvertControl(int j, double q0, double q, int condition, double yRatio)
+void report_CulvertControl(Project *project, int j, double q0, double q, int condition, double yRatio)
 //
 //  Used for debugging only
 //
@@ -399,7 +399,7 @@ void report_CulvertControl(int j, double q0, double q, int condition, double yRa
     static   char* conditionTxt[] = {"transition", "unsubmerged", "submerged"};
     char     theDate[12];
     char     theTime[9];
-	DateTime aDate = getDateTime(project->NewRoutingTime);
+	DateTime aDate = getDateTime(project, project->NewRoutingTime);
     datetime_dateToStr(aDate, theDate);
     datetime_timeToStr(aDate, theTime);
     fprintf(project->Frpt.file,

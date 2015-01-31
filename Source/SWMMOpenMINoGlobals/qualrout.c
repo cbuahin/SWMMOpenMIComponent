@@ -101,7 +101,7 @@ void qualrout_execute(Project *project, double tStep)
         if ( project->Node[j].treatment )
         {
             if ( qIn < ZERO ) qIn = 0.0;
-            treatmnt_setInflow(qIn, project->Node[j].newQual);
+            treatmnt_setInflow(project, qIn, project->Node[j].newQual);
         }
        
         // --- find new quality at the node 
@@ -112,7 +112,7 @@ void qualrout_execute(Project *project, double tStep)
         else findNodeQual(project, j);
 
         // --- apply treatment to new quality values
-        if ( project->Node[j].treatment ) treatmnt_treat(j, qIn, vAvg, tStep);
+        if ( project->Node[j].treatment ) treatmnt_treat(project, j, qIn, vAvg, tStep);
     }
 
     // --- find new water quality in each link

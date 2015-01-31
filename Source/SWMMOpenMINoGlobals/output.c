@@ -183,7 +183,7 @@ int output_open(Project *project)
     for (j=0; j<project->Nobjects[SUBCATCH]; j++)
     {
          if ( !project->Subcatch[j].rptFlag ) continue;
-         SubcatchResults[0] = (REAL4)(project->Subcatch[j].area * UCF(LANDAREA));
+         SubcatchResults[0] = (REAL4)(project->Subcatch[j].area * UCF(project, LANDAREA));
          fwrite(&SubcatchResults[0], sizeof(REAL4), 1, project->Fout.file);
     }
 
@@ -200,8 +200,8 @@ int output_open(Project *project)
     {
         if ( !project->Node[j].rptFlag ) continue;
         k = project->Node[j].type;
-        NodeResults[0] = (REAL4)(project->Node[j].invertElev * UCF(LENGTH));
-        NodeResults[1] = (REAL4)(project->Node[j].fullDepth * UCF(LENGTH));
+        NodeResults[0] = (REAL4)(project->Node[j].invertElev * UCF(project, LENGTH));
+        NodeResults[1] = (REAL4)(project->Node[j].fullDepth * UCF(project, LENGTH));
         fwrite(&k, sizeof(INT4), 1, project->Fout.file);
         fwrite(NodeResults, sizeof(REAL4), 2, project->Fout.file);
     }
@@ -230,8 +230,8 @@ int output_open(Project *project)
         }
         else
         {
-            LinkResults[0] = (REAL4)(project->Link[j].offset1 * UCF(LENGTH));
-            LinkResults[1] = (REAL4)(project->Link[j].offset2 * UCF(LENGTH));
+            LinkResults[0] = (REAL4)(project->Link[j].offset1 * UCF(project, LENGTH));
+            LinkResults[1] = (REAL4)(project->Link[j].offset2 * UCF(project, LENGTH));
             if ( project->Link[j].direction < 0 )
             {
                 x = LinkResults[0];
@@ -239,11 +239,11 @@ int output_open(Project *project)
                 LinkResults[1] = x;
             }
             if ( k == OUTLET ) LinkResults[2] = 0.0f;
-            else LinkResults[2] = (REAL4)(project->Link[j].xsect.yFull * UCF(LENGTH));
+            else LinkResults[2] = (REAL4)(project->Link[j].xsect.yFull * UCF(project, LENGTH));
             if ( k == CONDUIT )
             {
                 m = project->Link[j].subIndex;
-                LinkResults[3] = (REAL4)(project->Conduit[m].length * UCF(LENGTH));
+                LinkResults[3] = (REAL4)(project->Conduit[m].length * UCF(project, LENGTH));
             }
             else LinkResults[3] = 0.0f;
         }
@@ -408,7 +408,7 @@ void output_saveResults(Project *project, double reportTime)
 //
 {
     int i;
-    DateTime reportDate = getDateTime(reportTime);
+    DateTime reportDate = getDateTime(project, reportTime);
     REAL8 date;
 
     if ( reportDate < project->ReportStart ) return;
@@ -494,7 +494,7 @@ void output_saveSubcatchResults(Project *project, double reportTime, FILE* file)
     double   f;
     double   area;
     REAL4    totalArea = 0.0f; 
-    DateTime reportDate = getDateTime(reportTime);
+    DateTime reportDate = getDateTime(project, reportTime);
 
     // --- update reported rainfall at each rain gage
     for ( j=0; j<project->Nobjects[GAGE]; j++ )
@@ -514,7 +514,7 @@ void output_saveSubcatchResults(Project *project, double reportTime, FILE* file)
             fwrite(SubcatchResults, sizeof(REAL4), NsubcatchResults, file);
 
         // --- update system-wide results
-        area = project->Subcatch[j].area * UCF(LANDAREA);
+        area = project->Subcatch[j].area * UCF(project, LANDAREA);
         totalArea += (REAL4)area;
         SysResults[SYS_RAINFALL] +=
             (REAL4)(SubcatchResults[SUBCATCH_RAINFALL] * area);
@@ -523,7 +523,7 @@ void output_saveSubcatchResults(Project *project, double reportTime, FILE* file)
         SysResults[SYS_EVAP] +=
             (REAL4)(SubcatchResults[SUBCATCH_EVAP] * area);
         if ( project->Subcatch[j].groundwater ) SysResults[SYS_EVAP] += 
-            (REAL4)(project->Subcatch[j].groundwater->evapLoss * UCF(EVAPRATE) * area);
+            (REAL4)(project->Subcatch[j].groundwater->evapLoss * UCF(project, EVAPRATE) * area);
         SysResults[SYS_INFIL] +=
             (REAL4)(SubcatchResults[SUBCATCH_INFIL] * area);
         SysResults[SYS_RUNOFF] += (REAL4)SubcatchResults[SUBCATCH_RUNOFF];
@@ -569,12 +569,12 @@ void output_saveNodeResults(Project *project, double reportTime, FILE* file)
     }
 
     // --- update system-wide flows 
-    SysResults[SYS_FLOODING] = (REAL4) (StepFlowTotals.flooding * UCF(FLOW));
-    SysResults[SYS_OUTFLOW]  = (REAL4) (StepFlowTotals.outflow * UCF(FLOW));
-    SysResults[SYS_DWFLOW] = (REAL4)(StepFlowTotals.dwInflow * UCF(FLOW));
-    SysResults[SYS_GWFLOW] = (REAL4)(StepFlowTotals.gwInflow * UCF(FLOW));
-    SysResults[SYS_IIFLOW] = (REAL4)(StepFlowTotals.iiInflow * UCF(FLOW));
-    SysResults[SYS_EXFLOW] = (REAL4)(StepFlowTotals.exInflow * UCF(FLOW));
+    SysResults[SYS_FLOODING] = (REAL4) (StepFlowTotals.flooding * UCF(project, FLOW));
+    SysResults[SYS_OUTFLOW]  = (REAL4) (StepFlowTotals.outflow * UCF(project, FLOW));
+    SysResults[SYS_DWFLOW] = (REAL4)(StepFlowTotals.dwInflow * UCF(project, FLOW));
+    SysResults[SYS_GWFLOW] = (REAL4)(StepFlowTotals.gwInflow * UCF(project, FLOW));
+    SysResults[SYS_IIFLOW] = (REAL4)(StepFlowTotals.iiInflow * UCF(project, FLOW));
+    SysResults[SYS_EXFLOW] = (REAL4)(StepFlowTotals.exInflow * UCF(project, FLOW));
     SysResults[SYS_INFLOW] = SysResults[SYS_RUNOFF] +
                              SysResults[SYS_DWFLOW] +
                              SysResults[SYS_GWFLOW] +
@@ -608,7 +608,7 @@ void output_saveLinkResults(Project *project, double reportTime, FILE* file)
             fwrite(LinkResults, sizeof(REAL4), NlinkResults, file);
 
         // --- update system-wide results
-        z = ((1.0-f)*project->Link[j].oldVolume + f*project->Link[j].newVolume) * UCF(VOLUME);
+        z = ((1.0-f)*project->Link[j].oldVolume + f*project->Link[j].newVolume) * UCF(project, VOLUME);
         SysResults[SYS_STORAGE] += (REAL4)z;
     }
 }

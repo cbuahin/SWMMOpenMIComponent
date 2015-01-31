@@ -189,7 +189,7 @@ int  climate_readParams(Project *project, char* tok[], int ntoks)
         project->Snow.snotmp = x[0];
         project->Snow.tipm   = x[1];
         project->Snow.rnm    = x[2];
-        project->Temp.elev   = x[3] / UCF(LENGTH);
+        project->Temp.elev   = x[3] / UCF(project, LENGTH);
         project->Temp.anglat = x[4];
         project->Temp.dtlong = x[5] / 60.0;
         break;
@@ -647,27 +647,27 @@ void setEvap(Project *project, DateTime theDate)
     switch ( project->Evap.type )
     {
       case CONSTANT_EVAP:
-        project->Evap.rate = project->Evap.monthlyEvap[0] / UCF(EVAPRATE);
+        project->Evap.rate = project->Evap.monthlyEvap[0] / UCF(project, EVAPRATE);
         break;
 
       case MONTHLY_EVAP:
         datetime_decodeDate(theDate, &yr, &mon, &day);
-        project->Evap.rate = project->Evap.monthlyEvap[mon-1] / UCF(EVAPRATE);
+        project->Evap.rate = project->Evap.monthlyEvap[mon-1] / UCF(project, EVAPRATE);
         break;
 
       case TIMESERIES_EVAP:
         if ( theDate >= NextEvapDate )
-            project->Evap.rate = NextEvapRate / UCF(EVAPRATE);
+            project->Evap.rate = NextEvapRate / UCF(project, EVAPRATE);
         break;
 
       case FILE_EVAP:
-        project->Evap.rate = FileValue[EVAP] / UCF(EVAPRATE);
+        project->Evap.rate = FileValue[EVAP] / UCF(project, EVAPRATE);
         datetime_decodeDate(theDate, &yr, &mon, &day);
         project->Evap.rate *= project->Evap.panCoeff[mon-1];
         break;
 
       case TEMPERATURE_EVAP:
-        project->Evap.rate = FileValue[EVAP] / UCF(EVAPRATE);
+        project->Evap.rate = FileValue[EVAP] / UCF(project, EVAPRATE);
         break;
 
       default: project->Evap.rate = 0.0;
@@ -698,7 +698,7 @@ void setWind(Project *project, DateTime theDate)
     {
       case MONTHLY_WIND:
         datetime_decodeDate(theDate, &yr, &mon, &day);
-        project->Wind.ws = project->Wind.aws[mon-1] / UCF(WINDSPEED);
+        project->Wind.ws = project->Wind.aws[mon-1] / UCF(project, WINDSPEED);
         break;
 
       case FILE_WIND:

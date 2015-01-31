@@ -296,7 +296,7 @@ void iface_saveOutletResults(Project *project, DateTime reportDate, FILE* file)
         // --- write node ID, date, flow, and quality to file
         fprintf(file, "\n%-16s", project->Node[i].ID);
         fprintf(file, "%s", theDate);
-        fprintf(file, " %-10f", project->Node[i].inflow * UCF(FLOW));
+        fprintf(file, " %-10f", project->Node[i].inflow * UCF(project, FLOW));
         for ( p = 0; p < project->Nobjects[POLLUT]; p++ )
         {
             fprintf(file, " %-10f", project->Node[i].newQual[p]);

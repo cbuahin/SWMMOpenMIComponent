@@ -149,9 +149,9 @@ int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
     project->Subcatch[j].gage        = (int)x[0];
     project->Subcatch[j].outNode     = (int)x[1];
     project->Subcatch[j].outSubcatch = (int)x[2];
-    project->Subcatch[j].area        = x[3] / UCF(LANDAREA);
+    project->Subcatch[j].area        = x[3] / UCF(project, LANDAREA);
     project->Subcatch[j].fracImperv  = x[4] / 100.0;
-    project->Subcatch[j].width       = x[5] / UCF(LENGTH);
+    project->Subcatch[j].width       = x[5] / UCF(project, LENGTH);
     project->Subcatch[j].slope       = x[6] / 100.0;
     project->Subcatch[j].curbLength  = x[7];
 
@@ -215,8 +215,8 @@ int subcatch_readSubareaParams(Project *project, char* tok[], int ntoks)
     project->Subcatch[j].subArea[PERV].N    = x[1];
 
     project->Subcatch[j].subArea[IMPERV0].dStore = 0.0;
-    project->Subcatch[j].subArea[IMPERV1].dStore = x[2] / UCF(RAINDEPTH);
-    project->Subcatch[j].subArea[PERV].dStore    = x[3] / UCF(RAINDEPTH);
+    project->Subcatch[j].subArea[IMPERV1].dStore = x[2] / UCF(project, RAINDEPTH);
+    project->Subcatch[j].subArea[PERV].dStore    = x[3] / UCF(project, RAINDEPTH);
 
     project->Subcatch[j].subArea[IMPERV0].fArea  = project->Subcatch[j].fracImperv * x[4] / 100.0;
     project->Subcatch[j].subArea[IMPERV1].fArea  = project->Subcatch[j].fracImperv * (1.0 - x[4] / 100.0);
@@ -427,7 +427,7 @@ void  subcatch_initState(Project *project, int j)
     }
 
     // --- initialize pollutant buildup
-	landuse_getInitBuildup(project->Subcatch[j].landFactor,  project->Subcatch[j].initBuildup,
+	landuse_getInitBuildup(project, project->Subcatch[j].landFactor,  project->Subcatch[j].initBuildup,
 		project->Subcatch[j].area, project->Subcatch[j].curbLength);
 }
 
@@ -789,7 +789,7 @@ void subcatch_getBuildup(Project *project, int j, double tStep)
         if ( f == 0.0 ) continue;
 
         // --- get land area (in acres or hectares) & curb length
-        area = f * project->Subcatch[j].area * UCF(LANDAREA);
+        area = f * project->Subcatch[j].area * UCF(project, LANDAREA);
         curb = f * project->Subcatch[j].curbLength;
 
         // --- examine each pollutant
@@ -801,7 +801,7 @@ void subcatch_getBuildup(Project *project, int j, double tStep)
 
             // --- use land use's buildup function to update buildup amount
             oldBuildup = project->Subcatch[j].landFactor[i].buildup[p];        
-            newBuildup = landuse_getBuildup(i, p, area, curb, oldBuildup,
+            newBuildup = landuse_getBuildup(project, i, p, area, curb, oldBuildup,
                          tStep);
             newBuildup = MAX(newBuildup, oldBuildup);
             project->Subcatch[j].landFactor[i].buildup[p] = newBuildup;
@@ -909,7 +909,7 @@ void  subcatch_getWashoff(Project *project, int j, double runoff, double tStep)
         {
             if ( project->Subcatch[j].landFactor[i].fraction > 0.0 )
             {
-                landuse_getWashoff(i, project->Subcatch[j].area, project->Subcatch[j].landFactor,
+                landuse_getWashoff(project, i, project->Subcatch[j].area, project->Subcatch[j].landFactor,
 				    runoff, tStep, WashoffLoad);
             }
         }
@@ -917,7 +917,7 @@ void  subcatch_getWashoff(Project *project, int j, double runoff, double tStep)
         // --- compute contribution from any co-pollutant
         for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
-            WashoffLoad[p] += landuse_getCoPollutLoad(p, WashoffLoad);
+            WashoffLoad[p] += landuse_getCoPollutLoad(project, p, WashoffLoad);
             OutflowLoad[p] += WashoffLoad[p];
         }
 
@@ -997,7 +997,7 @@ void updatePondedQual(Project *project, int j, double wRunon[], double pondedQua
             w1 -= OutflowLoad[p];
 
             // --- reduce outflow load by average BMP removal
-            bmpRemoval = landuse_getAvgBmpEffic(j, p) * OutflowLoad[p];
+            bmpRemoval = landuse_getAvgBmpEffic(project, j, p) * OutflowLoad[p];
             massbal_updateLoadingTotals(project, BMP_REMOVAL_LOAD, p,
                 bmpRemoval*project->Pollut[p].mcf);
             OutflowLoad[p] -= bmpRemoval;
@@ -1061,23 +1061,23 @@ void  subcatch_getResults(Project *project, int j, double f, float x[])
 
     // --- retrieve snow depth
     z = ( f1 * project->Subcatch[j].oldSnowDepth +
-          f * project->Subcatch[j].newSnowDepth ) * UCF(RAINDEPTH);
+          f * project->Subcatch[j].newSnowDepth ) * UCF(project, RAINDEPTH);
     x[SUBCATCH_SNOWDEPTH] = (float)z;
 
     // --- retrieve runoff and losses
-    x[SUBCATCH_EVAP] = (float)(project->Subcatch[j].evapLoss * UCF(EVAPRATE));
-    x[SUBCATCH_INFIL] = (float)(project->Subcatch[j].infilLoss * UCF(RAINFALL));
+    x[SUBCATCH_EVAP] = (float)(project->Subcatch[j].evapLoss * UCF(project, EVAPRATE));
+    x[SUBCATCH_INFIL] = (float)(project->Subcatch[j].infilLoss * UCF(project, RAINFALL));
     runoff = f1 * project->Subcatch[j].oldRunoff + f * project->Subcatch[j].newRunoff;
     if ( runoff < MIN_RUNOFF_FLOW ) runoff = 0.0;
-    x[SUBCATCH_RUNOFF] = (float)(runoff* UCF(FLOW));
+    x[SUBCATCH_RUNOFF] = (float)(runoff* UCF(project, FLOW));
 
     // --- retrieve groundwater results
     gw = project->Subcatch[j].groundwater;
     if ( gw )
     {
-        z = (f1 * gw->oldFlow + f * gw->newFlow) * project->Subcatch[j].area * UCF(FLOW);
+        z = (f1 * gw->oldFlow + f * gw->newFlow) * project->Subcatch[j].area * UCF(project, FLOW);
         x[SUBCATCH_GW_FLOW] = (float)z;
-        z = (project->Aquifer[gw->aquifer].bottomElev + gw->lowerDepth) * UCF(LENGTH);
+        z = (project->Aquifer[gw->aquifer].bottomElev + gw->lowerDepth) * UCF(project, LENGTH);
         x[SUBCATCH_GW_ELEV] = (float)z;
         z = gw->theta;
         x[SUBCATCH_SOIL_MOIST] = (float)z;

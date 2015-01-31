@@ -179,7 +179,7 @@ int dynwave_execute(Project *project, double tStep)
 
 		converged = findNodeDepths(project, tStep);
 
-		setOpenMINodeDepths();
+		setOpenMINodeDepths(project);
 
 		Steps++;
 		if (Steps > 1)

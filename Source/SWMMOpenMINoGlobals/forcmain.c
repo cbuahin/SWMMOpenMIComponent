@@ -35,7 +35,7 @@ static double forcemain_getReynolds(double v, double hrad);
 
 //=============================================================================
 
-double forcemain_getEquivN(int j, int k)
+double forcemain_getEquivN(Project *project, int j, int k)
 //
 //  Input:   j = link index
 //           k = conduit index
@@ -62,7 +62,7 @@ double forcemain_getEquivN(int j, int k)
 
 //=============================================================================
 
-double forcemain_getRoughFactor(int j, double lengthFactor)
+double forcemain_getRoughFactor(Project *project, int j, double lengthFactor)
 //
 //  Input:   j = link index
 //           lengthFactor = factor by which a pipe will be artifically lengthened
@@ -86,7 +86,7 @@ double forcemain_getRoughFactor(int j, double lengthFactor)
 
 //=============================================================================
 
-double forcemain_getFricSlope(int j, double v, double hrad)
+double forcemain_getFricSlope(Project *project, int j, double v, double hrad)
 //
 //  Input:   j = link index
 //           v = flow velocity (ft/sec)

@@ -82,13 +82,13 @@ static MathExpr* FlowExpr;        // user-supplied GW flow expression
 static void   getDxDt(Project *project, double t, double* x, double* dxdt);
 static void   getFluxes(Project *project, double upperVolume, double lowerDepth);
 static void   getEvapRates(Project *project, double theta, double upperDepth);
-static double getUpperPerc(double theta, double upperDepth);
-static double getGWFlow(double lowerDepth);
+static double getUpperPerc(Project *project, double theta, double upperDepth);
+static double getGWFlow(Project *project, double lowerDepth);
 static void   updateMassBal(Project *project, double area,  double tStep);
 
 // Used to process custom GW outflow equations
 static int    getVariableIndex(char* s);
-static double getVariableValue(int varIndex);
+static double getVariableValue(Project *project, int varIndex);
 
 //=============================================================================
 
@@ -137,14 +137,14 @@ int gwater_readAquiferParams(Project *project, int j, char* tok[], int ntoks)
     project->Aquifer[j].porosity       = x[0];
     project->Aquifer[j].wiltingPoint   = x[1];
     project->Aquifer[j].fieldCapacity  = x[2];
-    project->Aquifer[j].conductivity   = x[3] / UCF(RAINFALL);
+    project->Aquifer[j].conductivity   = x[3] / UCF(project, RAINFALL);
     project->Aquifer[j].conductSlope   = x[4];
-    project->Aquifer[j].tensionSlope   = x[5] / UCF(LENGTH);
+    project->Aquifer[j].tensionSlope   = x[5] / UCF(project, LENGTH);
     project->Aquifer[j].upperEvapFrac  = x[6];
-    project->Aquifer[j].lowerEvapDepth = x[7] / UCF(LENGTH);
-    project->Aquifer[j].lowerLossCoeff = x[8] / UCF(RAINFALL);
-    project->Aquifer[j].bottomElev     = x[9] / UCF(LENGTH);
-    project->Aquifer[j].waterTableElev = x[10] / UCF(LENGTH);
+    project->Aquifer[j].lowerEvapDepth = x[7] / UCF(project, LENGTH);
+    project->Aquifer[j].lowerLossCoeff = x[8] / UCF(project, RAINFALL);
+    project->Aquifer[j].bottomElev     = x[9] / UCF(project, LENGTH);
+    project->Aquifer[j].waterTableElev = x[10] / UCF(project, LENGTH);
     project->Aquifer[j].upperMoisture  = x[11];
     project->Aquifer[j].upperEvapPat   = p;
     return 0;
@@ -199,7 +199,7 @@ int gwater_readGroundwaterParams(Project *project, char* tok[], int ntoks)
         {    
             if (! getDouble(tok[m], &x[i]) ) 
                 return error_setInpError(ERR_NUMBER, tok[m]);
-            if ( i < 10 ) x[i] /= UCF(LENGTH);
+            if ( i < 10 ) x[i] /= UCF(project, LENGTH);
         }
     }
 
@@ -215,13 +215,13 @@ int gwater_readGroundwaterParams(Project *project, char* tok[], int ntoks)
     // --- populate the groundwater flow object with its parameters
     gw->aquifer    = k;
     gw->node       = n;
-    gw->surfElev   = x[0] / UCF(LENGTH);
+    gw->surfElev   = x[0] / UCF(project, LENGTH);
     gw->a1         = x[1];
     gw->b1         = x[2];
     gw->a2         = x[3];
     gw->b2         = x[4];
     gw->a3         = x[5];
-    gw->fixedDepth = x[6] / UCF(LENGTH);
+    gw->fixedDepth = x[6] / UCF(project, LENGTH);
     gw->nodeElev   = x[7];                       //already converted to ft.
     gw->bottomElev     = x[8];
     gw->waterTableElev = x[9];
@@ -613,18 +613,18 @@ void  getFluxes(Project *project, double theta, double lowerDepth)
     getEvapRates(project, theta, upperDepth);
 
     // --- find percolation rate from upper to lower zone
-    UpperPerc = getUpperPerc(theta, upperDepth);
+    UpperPerc = getUpperPerc(project, theta, upperDepth);
     UpperPerc = MIN(UpperPerc, MaxUpperPerc);
 
     // --- find loss rate to deep GW
     LowerLoss = A.lowerLossCoeff * lowerDepth / TotalDepth;
 
     // --- find GW flow rate from lower zone to drainage system node
-    GWFlow = getGWFlow(lowerDepth);
+    GWFlow = getGWFlow(project, lowerDepth);
     if ( FlowExpr != NULL )
     {
 	Hgw = lowerDepth;
-	GWFlow += mathexpr_eval(FlowExpr, getVariableValue) / UCF(GWFLOW);
+	GWFlow += mathexpr_eval(FlowExpr, getVariableValue) / UCF(project, GWFLOW);
     }
     if ( GWFlow >= 0.0 ) GWFlow = MIN(GWFlow, MaxGWFlowPos);
     else GWFlow = MAX(GWFlow, MaxGWFlowNeg);
@@ -691,7 +691,7 @@ void getEvapRates(Project *project, double theta, double upperDepth)
     p = A.upperEvapPat;
     if ( p >= 0 )
     {
-        month = datetime_monthOfYear(getDateTime(project->NewRunoffTime));
+        month = datetime_monthOfYear(getDateTime(project, project->NewRunoffTime));
         f = project->Pattern[p].factor[month-1];
     }
     upperFrac *= f;
@@ -724,7 +724,7 @@ void getEvapRates(Project *project, double theta, double upperDepth)
 
 //=============================================================================
 
-double getUpperPerc(double theta, double upperDepth)
+double getUpperPerc(Project *project, double theta, double upperDepth)
 //
 //  Input:   theta      = moisture content of upper zone
 //           upperDepth = depth of upper zone (ft)
@@ -753,7 +753,7 @@ double getUpperPerc(double theta, double upperDepth)
 
 //=============================================================================
 
-double getGWFlow(double lowerDepth)
+double getGWFlow(Project *project, double lowerDepth)
 //
 //  Input:   lowerDepth = depth of lower zone (ft)
 //  Output:  returns groundwater flow rate (ft/sec)
@@ -767,21 +767,21 @@ double getGWFlow(double lowerDepth)
 
     // --- compute groundwater component of flow
     if ( GW->b1 == 0.0 ) t1 = GW->a1;
-    else t1 = GW->a1 * pow( (lowerDepth - Hstar)*UCF(LENGTH), GW->b1);
+    else t1 = GW->a1 * pow( (lowerDepth - Hstar)*UCF(project, LENGTH), GW->b1);
 
     // --- compute surface water component of flow
     if ( GW->b2 == 0.0 ) t2 = GW->a2;
     else if (Hsw > Hstar)
     {
-        t2 = GW->a2 * pow( (Hsw - Hstar)*UCF(LENGTH), GW->b2);
+        t2 = GW->a2 * pow( (Hsw - Hstar)*UCF(project, LENGTH), GW->b2);
     }
     else t2 = 0.0;
 
     // --- compute groundwater/surface water interaction term
-    t3 = GW->a3 * lowerDepth * Hsw * UCF(LENGTH) * UCF(LENGTH);
+    t3 = GW->a3 * lowerDepth * Hsw * UCF(project, LENGTH) * UCF(project, LENGTH);
 
     // --- compute total groundwater flow
-    q = (t1 - t2 + t3) / UCF(GWFLOW); 
+    q = (t1 - t2 + t3) / UCF(project, GWFLOW); 
     if ( q < 0.0 && GW->a3 != 0.0 ) q = 0.0;
     return q;
 }
@@ -804,7 +804,7 @@ int  getVariableIndex(char* s)
 
 //=============================================================================
 
-double getVariableValue(int varIndex)
+double getVariableValue(Project *project, int varIndex)
 //
 //  Input:   varIndex = index of a GW variable
 //  Output:  returns current value of GW variable
@@ -813,9 +813,9 @@ double getVariableValue(int varIndex)
 {
     switch (varIndex)
     {
-	case gwvHGW:  return Hgw * UCF(LENGTH);
-	case gwvHSW:  return Hsw * UCF(LENGTH);
-	case gwvHREF: return Hstar * UCF(LENGTH);
+	case gwvHGW:  return Hgw * UCF(project, LENGTH);
+	case gwvHSW:  return Hsw * UCF(project, LENGTH);
+	case gwvHREF: return Hstar * UCF(project, LENGTH);
 	default:      return 0.0;
     }
 }

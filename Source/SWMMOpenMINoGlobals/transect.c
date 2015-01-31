@@ -50,7 +50,7 @@ static double  Lfactor;                // main channel/flood plain length
 //-----------------------------------------------------------------------------
 static int    setParams(Project *project, int transect, char* id, double x[]);
 static int    setManning(double n[]);
-static int    addStation(double x, double y);
+static int    addStation(Project *project, double x, double y);
 static double getFlow(int k, double a, double wp, int findFlow);
 static void   getGeometry(Project *project, int i, int j, double y);
 static void   getSliceGeom(int k, double y, double yu, double yd, double *w,
@@ -142,7 +142,7 @@ int transect_readParams(Project *project, int* count, char* tok[], int ntoks)
         // --- check that transect was already added to project
         //     (by input_countObjects)
         if ( ntoks < 10 ) return error_setInpError(ERR_ITEMS, "");
-        id = project_findID(TRANSECT, tok[1]);
+        id = project_findID(project, TRANSECT, tok[1]);
         if ( id == NULL ) return error_setInpError(ERR_NAME, tok[1]);
 
         // --- read in rest of numerical values on data line
@@ -172,7 +172,7 @@ int transect_readParams(Project *project, int* count, char* tok[], int ntoks)
                 return error_setInpError(ERR_NUMBER, tok[i]);
             if ( ! getDouble(tok[i+1], &x[2]) )
                 return error_setInpError(ERR_NUMBER, tok[i+1]);
-            errcode = addStation(x[1], x[2]);
+            errcode = addStation(project, x[1], x[2]);
             if ( errcode ) return errcode;
             i += 2;
         }
@@ -198,22 +198,22 @@ void  transect_validate(Project *project, int j)
     if ( j < 0 || j >= Ntransects ) return;
     if ( Nstations < 2 ) 
     {
-        report_writeErrorMsg(ERR_TRANSECT_TOO_FEW, project->Transect[j].ID);
+        report_writeErrorMsg(project, ERR_TRANSECT_TOO_FEW, project->Transect[j].ID);
         return;
     }
     if ( Nstations >= MAXSTATION )
     {
-        report_writeErrorMsg(ERR_TRANSECT_TOO_MANY, project->Transect[j].ID);
+        report_writeErrorMsg(project, ERR_TRANSECT_TOO_MANY, project->Transect[j].ID);
         return;
     }
     if ( Nchannel <= 0.0 )
     {
-        report_writeErrorMsg(ERR_TRANSECT_MANNING, project->Transect[j].ID);
+        report_writeErrorMsg(project, ERR_TRANSECT_MANNING, project->Transect[j].ID);
         return;
     }
     if ( Xleftbank > Xrightbank )
     {
-        report_writeErrorMsg(ERR_TRANSECT_OVERBANK, project->Transect[j].ID);
+        report_writeErrorMsg(project, ERR_TRANSECT_OVERBANK, project->Transect[j].ID);
         return;
     }
 
@@ -232,7 +232,7 @@ void  transect_validate(Project *project, int j)
     }
     if ( ymin >= ymax )
     {
-        report_writeErrorMsg(ERR_TRANSECT_NO_DEPTH, project->Transect[j].ID);
+        report_writeErrorMsg(project, ERR_TRANSECT_NO_DEPTH, project->Transect[j].ID);
         return;
     }
     project->Transect[j].yFull = ymax - ymin;
@@ -324,22 +324,22 @@ int  setParams(Project *project, int j, char* id, double x[])
 {
     if ( j < 0 || j >= Ntransects ) return ERR_NUMBER;
     project->Transect[j].ID = id;                         // ID name
-    Xleftbank = x[3] / UCF(LENGTH);              // left overbank location
-    Xrightbank = x[4] / UCF(LENGTH);             // right overbank location
+    Xleftbank = x[3] / UCF(project, LENGTH);              // left overbank location
+    Xrightbank = x[4] / UCF(project, LENGTH);             // right overbank location
     Lfactor = x[7];                              // channel/bank length
     if ( Lfactor == 0.0 ) Lfactor = 1.0;
     Xfactor = x[8];                              // station location multiplier
     if ( Xfactor == 0.0 ) Xfactor = 1.0;
     Xleftbank *= Xfactor;                        // adjusted left bank
     Xrightbank *= Xfactor;                       // adjusted right bank
-    Yfactor = x[9] / UCF(LENGTH);                // elevation offset
+    Yfactor = x[9] / UCF(project, LENGTH);                // elevation offset
     Nstations = 0;
     return 0;
 }
 
 //=============================================================================
 
-int  addStation(double y, double x)
+int  addStation(Project *project, double y, double x)
 //
 //  Input:   y = station elevation value
 //           x = station distance value
@@ -353,10 +353,10 @@ int  addStation(double y, double x)
     if ( Nstations >= MAXSTATION ) return 0;
 
     // --- add station distance, modified by distance multiplier
-    Station[Nstations] = x * Xfactor / UCF(LENGTH);
+    Station[Nstations] = x * Xfactor / UCF(project, LENGTH);
 
     // --- add station elevation, modified by offset elevation
-    Elev[Nstations] = (y + Yfactor) / UCF(LENGTH);
+    Elev[Nstations] = (y + Yfactor) / UCF(project, LENGTH);
 
     // --- check if station distances are non-increasing
     if ( Nstations > 1

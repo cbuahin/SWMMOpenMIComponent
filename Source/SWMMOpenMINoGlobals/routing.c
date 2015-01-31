@@ -36,20 +36,20 @@ static int* SortedLinks;
 //-----------------------------------------------------------------------------
 // Function declarations
 //-----------------------------------------------------------------------------
-static void addExternalInflows(DateTime currentDate);
-static void addDryWeatherInflows(DateTime currentDate);
-static void addWetWeatherInflows(double routingTime);
-static void addGroundwaterInflows(double routingTime);
-static void addRdiiInflows(DateTime currentDate);
-static void addIfaceInflows(DateTime currentDate);
-static void removeStorageLosses(double tStep);
-static void removeOutflows(void);
-static void removeConduitLosses(void); 
-static int  inflowHasChanged(void);
+static void addExternalInflows(Project *project, DateTime currentDate);
+static void addDryWeatherInflows(Project *project, DateTime currentDate);
+static void addWetWeatherInflows(Project *project, double routingTime);
+static void addGroundwaterInflows(Project *project, double routingTime);
+static void addRdiiInflows(Project *project, DateTime currentDate);
+static void addIfaceInflows(Project *project, DateTime currentDate);
+static void removeStorageLosses(Project *project, double tStep);
+static void removeOutflows(Project *project);
+static void removeConduitLosses(Project *project);
+static int  inflowHasChanged(Project *project);
 
 //=============================================================================
 
-int routing_open()
+int routing_open(Project *project)
 //
 //  Input:   none
 //  Output:  returns an error code
@@ -57,7 +57,7 @@ int routing_open()
 //
 {
     // --- open treatment system
-    if ( !treatmnt_open() ) 
+    if ( !treatmnt_open(project) ) 
 		return project->ErrorCode;
 
     // --- topologically sort the links
@@ -70,22 +70,22 @@ int routing_open()
         SortedLinks = (int *) calloc(project->Nobjects[LINK], sizeof(int));
         if ( !SortedLinks )
         {
-            report_writeErrorMsg(ERR_MEMORY, "");
+            report_writeErrorMsg(project, ERR_MEMORY, "");
             return project->ErrorCode;
         }
-        toposort_sortLinks(SortedLinks);
-        if ( project->ErrorCode ) return ErrorCode;
+        toposort_sortLinks(project, SortedLinks);
+        if ( project->ErrorCode ) return project->ErrorCode;
     }
 
     // --- open any routing interface files
-    iface_openRoutingFiles();
+    iface_openRoutingFiles(project);
    
     return project->ErrorCode;
 }
 
 //=============================================================================
 
-void routing_close(int routingModel)
+void routing_close(Project *project, int routingModel)
 //
 //  Input:   routingModel = routing method code
 //  Output:  none
@@ -93,7 +93,7 @@ void routing_close(int routingModel)
 //
 {
     // --- close any routing interface files
-    iface_closeRoutingFiles();
+    iface_closeRoutingFiles(project);
 
     // --- free allocated memory
     flowrout_close(routingModel);
@@ -103,7 +103,7 @@ void routing_close(int routingModel)
 
 //=============================================================================
 
-double routing_getRoutingStep(int routingModel, double fixedStep)
+double routing_getRoutingStep(Project *project, int routingModel, double fixedStep)
 //
 //  Input:   routingModel = routing method code
 //           fixedStep = user-supplied time step (sec)
@@ -112,12 +112,12 @@ double routing_getRoutingStep(int routingModel, double fixedStep)
 //
 {
     if ( project->Nobjects[LINK] == 0 ) return fixedStep;
-    else return flowrout_getRoutingStep(routingModel, fixedStep);
+    else return flowrout_getRoutingStep(project, routingModel, fixedStep);
 }
 
 //=============================================================================
 
-void routing_execute(int routingModel, double routingStep)
+void routing_execute(Project *project, int routingModel, double routingStep)
 //
 //  Input:   routingModel = routing method code
 //           routingStep = routing time step (sec)
@@ -137,67 +137,67 @@ void routing_execute(int routingModel, double routingStep)
     if ( project->ErrorCode ) 
 		return;
 
-    massbal_updateRoutingTotals(routingStep/2.);
+    massbal_updateRoutingTotals(project,routingStep/2.);
 
     // --- evaluate control rules at current date and elapsed time
-    currentDate = getDateTime(project->NewRoutingTime);
+    currentDate = getDateTime(project, project->NewRoutingTime);
 
 	for (j = 0; j < project->Nobjects[LINK]; j++)
 	{
-		link_setTargetSetting(j);
+		link_setTargetSetting(project, j);
 	}
 
-    controls_evaluate(currentDate, currentDate - project->StartDateTime, routingStep/SECperDAY);
+    controls_evaluate(project, currentDate, currentDate - project->StartDateTime, routingStep/SECperDAY);
 
     for (j=0; j<project->Nobjects[LINK]; j++)
     {
-        if ( project->Link[j].targetSetting != Link[j].setting )
+        if ( project->Link[j].targetSetting != project->Link[j].setting )
         {
-            link_setSetting(j, routingStep);
+            link_setSetting(project, j, routingStep);
             actionCount++;
         } 
     }
 
     // --- update value of elapsed routing time (in milliseconds)
     project->OldRoutingTime = project->NewRoutingTime;
-    project->NewRoutingTime = NewRoutingTime + 1000.0 * routingStep;
-    currentDate = getDateTime(project->NewRoutingTime);
+    project->NewRoutingTime = project->NewRoutingTime + 1000.0 * routingStep;
+    currentDate = getDateTime(project, project->NewRoutingTime);
 
     // --- initialize mass balance totals for time step
-    stepFlowError = massbal_getStepFlowError();
-    massbal_initTimeStepTotals();
+    stepFlowError = massbal_getStepFlowError(project);
+    massbal_initTimeStepTotals(project);
 
     // --- replace old water quality state with new state
     if ( project->Nobjects[POLLUT] > 0 )
     {
 		for (j = 0; j < project->Nobjects[NODE]; j++)
 		{
-			node_setOldQualState(j);
+			node_setOldQualState(project, j);
 		}
 
 		for (j = 0; j < project->Nobjects[LINK]; j++)
 		{
-			link_setOldQualState(j);
+			link_setOldQualState(project, j);
 		}
     }
 
     // --- add lateral inflows to nodes
     for (j = 0; j < project->Nobjects[NODE]; j++)
     {
-        project->Node[j].oldLatFlow  = Node[j].newLatFlow;
+        project->Node[j].oldLatFlow  = project->Node[j].newLatFlow;
         project->Node[j].newLatFlow  = 0.0;
     }
 
 
-    addExternalInflows(currentDate);
-    addDryWeatherInflows(currentDate);
-    addWetWeatherInflows(project->NewRoutingTime);
-    addGroundwaterInflows(project->NewRoutingTime);
-    addRdiiInflows(currentDate);
-    addIfaceInflows(currentDate);
+    addExternalInflows(project, currentDate);
+    addDryWeatherInflows(project, currentDate);
+    addWetWeatherInflows(project, project->NewRoutingTime);
+    addGroundwaterInflows(project, project->NewRoutingTime);
+    addRdiiInflows(project, currentDate);
+    addIfaceInflows(project, currentDate);
 	
 	// add openmi lateral inflows
-	setOpenMILateralInflows();
+	setOpenMILateralInflows(project);
 
     // --- check if can skip steady state periods
     if ( project->SkipSteadyState )
@@ -205,7 +205,7 @@ void routing_execute(int routingModel, double routingStep)
         if ( project->OldRoutingTime == 0.0
         ||   actionCount > 0
         ||   fabs(stepFlowError) > project->SysFlowTol
-        ||   inflowHasChanged() ) inSteadyState = FALSE;
+        ||   inflowHasChanged(project) ) inSteadyState = FALSE;
         else inSteadyState = TRUE;
     }
 
@@ -215,47 +215,47 @@ void routing_execute(int routingModel, double routingStep)
         // --- replace old hydraulic state values with current ones
 		for (j = 0; j < project->Nobjects[LINK]; j++)
 		{
-			link_setOldHydState(j);
+			link_setOldHydState(project, j);
 		}
 
         for (j = 0; j < project->Nobjects[NODE]; j++)
         {
-            node_setOldHydState(j);
-            node_initInflow(j, routingStep);
+            node_setOldHydState(project, j);
+            node_initInflow(project, j, routingStep);
         }
 
         // --- route flow through the drainage network
         if ( project->Nobjects[LINK] > 0 )
         {
-            stepCount = flowrout_execute(SortedLinks, routingModel, routingStep);
+            stepCount = flowrout_execute(project, SortedLinks, routingModel, routingStep);
         }
     }
 
     // --- route quality through the drainage network
     if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality ) 
     {
-        qualrout_execute(routingStep);
+        qualrout_execute(project, routingStep);
     }
 
     // --- remove evaporation, infiltration & outflows from system
-    removeStorageLosses(routingStep);
-    removeConduitLosses();
-    removeOutflows();
+    removeStorageLosses(project, routingStep);
+    removeConduitLosses(project);
+    removeOutflows(project);
 	
     // --- update continuity with new totals
     //     applied over 1/2 of routing step
-    massbal_updateRoutingTotals(routingStep/2.);
+    massbal_updateRoutingTotals(project, routingStep/2.);
 
     // --- update summary statistics
     if ( project->RptFlags.flowStats && project->Nobjects[LINK] > 0 )
     {
-        stats_updateFlowStats(routingStep, currentDate, stepCount, inSteadyState);
+        stats_updateFlowStats(project, routingStep, currentDate, stepCount, inSteadyState);
     }
 }
 
 //=============================================================================
 
-void addExternalInflows(DateTime currentDate)
+void addExternalInflows(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current date/time
 //  Output:  none
@@ -278,7 +278,7 @@ void addExternalInflows(DateTime currentDate)
         {
             if ( inflow->type == FLOW_INFLOW )
             {
-                q = inflow_getExtInflow(inflow, currentDate);
+                q = inflow_getExtInflow(project, inflow, currentDate);
                 break;
             }
             else inflow = inflow->next;
@@ -287,10 +287,10 @@ void addExternalInflows(DateTime currentDate)
 
         // --- add flow inflow to node's lateral inflow
         project->Node[j].newLatFlow += q;
-        massbal_addInflowFlow(EXTERNAL_INFLOW, q);
+        massbal_addInflowFlow(project, EXTERNAL_INFLOW, q);
 
         // --- add on any inflow (i.e., reverse flow) through an outfall
-        if ( project->Node[j].type == OUTFALL && Node[j].oldNetInflow < 0.0 ) 
+        if ( project->Node[j].type == OUTFALL && project->Node[j].oldNetInflow < 0.0 )
         {
             q = q - project->Node[j].oldNetInflow;
         }
@@ -302,10 +302,10 @@ void addExternalInflows(DateTime currentDate)
             if ( inflow->type != FLOW_INFLOW )
             {
                 p = inflow->param;
-                w = inflow_getExtInflow(inflow, currentDate);
+                w = inflow_getExtInflow(project, inflow, currentDate);
                 if ( inflow->type == CONCEN_INFLOW ) w *= q;
                 project->Node[j].newQual[p] += w;
-                massbal_addInflowQual(EXTERNAL_INFLOW, p, w);
+                massbal_addInflowQual(project, EXTERNAL_INFLOW, p, w);
             }
             inflow = inflow->next;
         }
@@ -314,7 +314,7 @@ void addExternalInflows(DateTime currentDate)
 
 //=============================================================================
 
-void addDryWeatherInflows(DateTime currentDate)
+void addDryWeatherInflows(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current date/time
 //  Output:  none
@@ -344,7 +344,7 @@ void addDryWeatherInflows(DateTime currentDate)
         {
             if ( inflow->param < 0 )
             {
-                q = inflow_getDwfInflow(inflow, month, day, hour);
+                q = inflow_getDwfInflow(project, inflow, month, day, hour);
                 break;
             }
             inflow = inflow->next;
@@ -353,7 +353,7 @@ void addDryWeatherInflows(DateTime currentDate)
 
         // --- add flow inflow to node's lateral inflow
         project->Node[j].newLatFlow += q;
-        massbal_addInflowFlow(DRY_WEATHER_INFLOW, q);
+        massbal_addInflowFlow(project, DRY_WEATHER_INFLOW, q);
 
         // --- add default DWF pollutant inflows
         for ( p = 0; p < project->Nobjects[POLLUT]; p++)
@@ -362,7 +362,7 @@ void addDryWeatherInflows(DateTime currentDate)
             {
                 w = q * project->Pollut[p].dwfConcen;
                 project->Node[j].newQual[p] += w;
-                massbal_addInflowQual(DRY_WEATHER_INFLOW, p, w);
+                massbal_addInflowQual(project, DRY_WEATHER_INFLOW, p, w);
             }
         }
 
@@ -373,16 +373,16 @@ void addDryWeatherInflows(DateTime currentDate)
             if ( inflow->param >= 0 )
             {
                 p = inflow->param;
-                w = q * inflow_getDwfInflow(inflow, month, day, hour);
+                w = q * inflow_getDwfInflow(project, inflow, month, day, hour);
                 project->Node[j].newQual[p] += w;
-                massbal_addInflowQual(DRY_WEATHER_INFLOW, p, w);
+                massbal_addInflowQual(project, DRY_WEATHER_INFLOW, p, w);
 
                 // --- subtract off any default inflow
                 if ( project->Pollut[p].dwfConcen > 0.0 )
                 {
                     w = q * project->Pollut[p].dwfConcen;
                     project->Node[j].newQual[p] -= w;
-                    massbal_addInflowQual(DRY_WEATHER_INFLOW, p, -w);
+                    massbal_addInflowQual(project, DRY_WEATHER_INFLOW, p, -w);
                 }
             }
             inflow = inflow->next;
@@ -392,7 +392,7 @@ void addDryWeatherInflows(DateTime currentDate)
 
 //=============================================================================
 
-void addWetWeatherInflows(double routingTime)
+void addWetWeatherInflows(Project *project, double routingTime)
 //
 //  Input:   routingTime = elasped time (millisec)
 //  Output:  none
@@ -405,7 +405,7 @@ void addWetWeatherInflows(double routingTime)
 
     // --- find where current routing time lies between latest runoff times
     if ( project->Nobjects[SUBCATCH] == 0 ) return;
-    f = (routingTime - project->OldRunoffTime) / (project->NewRunoffTime - OldRunoffTime);
+    f = (routingTime - project->OldRunoffTime) / (project->NewRunoffTime - project->OldRunoffTime);
     if ( f < 0.0 ) f = 0.0;
     if ( f > 1.0 ) f = 1.0;
 
@@ -417,16 +417,16 @@ void addWetWeatherInflows(double routingTime)
         if ( j >= 0)
         {
             // add runoff flow to lateral inflow
-            q = subcatch_getWtdOutflow(i, f);     // current runoff flow
+            q = subcatch_getWtdOutflow(project, i, f);     // current runoff flow
             project->Node[j].newLatFlow += q;
-            massbal_addInflowFlow(WET_WEATHER_INFLOW, q);
+            massbal_addInflowFlow(project, WET_WEATHER_INFLOW, q);
 
             // add pollutant load
             for (p = 0; p < project->Nobjects[POLLUT]; p++)
             {
-                w = subcatch_getWtdWashoff(i, p, f);
+                w = subcatch_getWtdWashoff(project, i, p, f);
                 project->Node[j].newQual[p] += w;
-                massbal_addInflowQual(WET_WEATHER_INFLOW, p, w);
+                massbal_addInflowQual(project, WET_WEATHER_INFLOW, p, w);
             }
         }
     }
@@ -434,7 +434,7 @@ void addWetWeatherInflows(double routingTime)
 
 //=============================================================================
 
-void addGroundwaterInflows(double routingTime)
+void addGroundwaterInflows(Project *project, double routingTime)
 //
 //  Input:   routingTime = elasped time (millisec)
 //  Output:  none
@@ -448,7 +448,7 @@ void addGroundwaterInflows(double routingTime)
 
     // --- find where current routing time lies between latest runoff times
     if ( project->Nobjects[SUBCATCH] == 0 ) return;
-    f = (routingTime - project->OldRunoffTime) / (project->NewRunoffTime - OldRunoffTime);
+    f = (routingTime - project->OldRunoffTime) / (project->NewRunoffTime - project->OldRunoffTime);
     if ( f < 0.0 ) f = 0.0;
     if ( f > 1.0 ) f = 1.0;
 
@@ -473,7 +473,7 @@ void addGroundwaterInflows(double routingTime)
 					continue;
 
                 project->Node[j].newLatFlow += q;
-                massbal_addInflowFlow(GROUNDWATER_INFLOW, q);
+                massbal_addInflowFlow(project, GROUNDWATER_INFLOW, q);
 
                 // add pollutant load (for positive inflow)
                 if ( q > 0.0 )
@@ -482,7 +482,7 @@ void addGroundwaterInflows(double routingTime)
                     {
                         w = q * project->Pollut[p].gwConcen;
                         project->Node[j].newQual[p] += w;
-                        massbal_addInflowQual(GROUNDWATER_INFLOW, p, w);
+                        massbal_addInflowQual(project, GROUNDWATER_INFLOW, p, w);
                     }
                 }
             }
@@ -492,7 +492,7 @@ void addGroundwaterInflows(double routingTime)
 
 //=============================================================================
 
-void addRdiiInflows(DateTime currentDate)
+void addRdiiInflows(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current date/time
 //  Output:  none
@@ -504,7 +504,7 @@ void addRdiiInflows(DateTime currentDate)
     int    numRdiiNodes;
 
     // --- see if any nodes have RDII at current date
-    numRdiiNodes = rdii_getNumRdiiFlows(currentDate);
+    numRdiiNodes = rdii_getNumRdiiFlows(project, currentDate);
 
     // --- add RDII flow to each node's lateral inflow
     for (i=0; i<numRdiiNodes; i++)
@@ -513,7 +513,7 @@ void addRdiiInflows(DateTime currentDate)
         if ( j < 0 ) continue;
         if ( fabs(q) < FLOW_TOL ) continue;
         project->Node[j].newLatFlow += q;
-        massbal_addInflowFlow(RDII_INFLOW, q);
+        massbal_addInflowFlow(project, RDII_INFLOW, q);
 
         // add pollutant load (for positive inflow)
         if ( q > 0.0 )
@@ -522,7 +522,7 @@ void addRdiiInflows(DateTime currentDate)
             {
                 w = q * project->Pollut[p].rdiiConcen;
                 project->Node[j].newQual[p] += w;
-                massbal_addInflowQual(RDII_INFLOW, p, w);
+                massbal_addInflowQual(project, RDII_INFLOW, p, w);
             }
         }
     }
@@ -530,7 +530,7 @@ void addRdiiInflows(DateTime currentDate)
 
 //=============================================================================
 
-void addIfaceInflows(DateTime currentDate)
+void addIfaceInflows(Project *project, DateTime currentDate)
 //
 //  Input:   currentDate = current date/time
 //  Output:  none
@@ -543,7 +543,7 @@ void addIfaceInflows(DateTime currentDate)
 
     // --- see if any nodes have interface inflows at current date
     if ( project->Finflows.mode != USE_FILE ) return;
-    numIfaceNodes = iface_getNumIfaceNodes(currentDate);
+    numIfaceNodes = iface_getNumIfaceNodes(project, currentDate);
 
     // --- add interface flow to each node's lateral inflow
     for (i=0; i<numIfaceNodes; i++)
@@ -553,7 +553,7 @@ void addIfaceInflows(DateTime currentDate)
         q = iface_getIfaceFlow(i);
         if ( fabs(q) < FLOW_TOL ) continue;
         project->Node[j].newLatFlow += q;
-        massbal_addInflowFlow(EXTERNAL_INFLOW, q);
+        massbal_addInflowFlow(project, EXTERNAL_INFLOW, q);
 
         // add pollutant load (for positive inflow)
         if ( q > 0.0 )
@@ -562,7 +562,7 @@ void addIfaceInflows(DateTime currentDate)
             {
                 w = q * iface_getIfaceQual(i, p);
                 project->Node[j].newQual[p] += w;
-                massbal_addInflowQual(EXTERNAL_INFLOW, p, w);
+                massbal_addInflowQual(project, EXTERNAL_INFLOW, p, w);
             }
         }
     }
@@ -570,7 +570,7 @@ void addIfaceInflows(DateTime currentDate)
 
 //=============================================================================
 
-int  inflowHasChanged()
+int  inflowHasChanged(Project *project )
 //
 //  Input:   none
 //  Output:  returns TRUE if external inflows or outfall flows have changed
@@ -591,7 +591,7 @@ int  inflowHasChanged()
         else if ( fabs(qNew) > TINY ) diff = 1.0;
         else                    diff = 0.0;
         if ( fabs(diff) > project->LatFlowTol ) return TRUE;
-        if ( project->Node[j].type == OUTFALL || Node[j].degree == 0 )
+        if ( project->Node[j].type == OUTFALL || project->Node[j].degree == 0 )
         {
             qOld = project->Node[j].oldFlowInflow;
             qNew = project->Node[j].inflow;
@@ -606,7 +606,7 @@ int  inflowHasChanged()
 
 //=============================================================================
 
-void removeStorageLosses(double tStep)
+void removeStorageLosses(Project *project, double tStep)
 //
 //  Input:   tStep = routing time step (sec)
 //  Output:  none
@@ -642,12 +642,12 @@ void removeStorageLosses(double tStep)
     }
 
     // --- add loss rates (ft3/sec) to time step's mass balance 
-    massbal_addNodeLosses(evapLoss/tStep, seepLoss/tStep);
+    massbal_addNodeLosses(project, evapLoss/tStep, seepLoss/tStep);
 }
 
 //=============================================================================
 
-void removeConduitLosses()
+void removeConduitLosses(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -668,12 +668,12 @@ void removeConduitLosses()
             seepLoss += project->Conduit[project->Link[i].subIndex].seepLossRate;
 		}
 	}
-    massbal_addLinkLosses(evapLoss, seepLoss);
+    massbal_addLinkLosses(project, evapLoss, seepLoss);
 }
 
 //=============================================================================
 
-void removeOutflows()
+void removeOutflows(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -688,14 +688,14 @@ void removeOutflows()
     for ( i = 0; i < project->Nobjects[NODE]; i++ )
     {
         // --- determine flows leaving the system
-        q = node_getSystemOutflow(i, &isFlooded);
+        q = node_getSystemOutflow(project, i, &isFlooded);
         if ( q != 0.0 )
         {
-            massbal_addOutflowFlow(q, isFlooded);
+            massbal_addOutflowFlow(project, q, isFlooded);
             for ( p = 0; p < project->Nobjects[POLLUT]; p++ )
             {
                 w = q * project->Node[i].newQual[p];
-                massbal_addOutflowQual(p, w, isFlooded);
+                massbal_addOutflowQual(project, p, w, isFlooded);
             }
         }
     }
@@ -703,7 +703,7 @@ void removeOutflows()
 
 //=============================================================================
 
-void setOpenMINodeDepths()
+void setOpenMINodeDepths(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -726,7 +726,7 @@ void setOpenMINodeDepths()
 
 //=============================================================================
 
-void setOpenMINodeDepth(int index)
+void setOpenMINodeDepth(Project *project, int index)
 //
 //  Input:   none
 //  Output:  none
@@ -744,7 +744,7 @@ void setOpenMINodeDepth(int index)
 }
 //=============================================================================
 
-void setOpenMILateralInflows()
+void setOpenMILateralInflows(Project *project)
 //
 //  Input:   none
 //  Output:  none
@@ -762,14 +762,14 @@ void setOpenMILateralInflows()
 		{
 			TNode* node = &project->Node[j];
 			node->newLatFlow += value;
-			massbal_addInflowFlow(EXTERNAL_INFLOW, value);
+			massbal_addInflowFlow(project, EXTERNAL_INFLOW, value);
 		}
 	}
 }
 
 //=============================================================================
 
-void setOpenMILateralInflow(int index)
+void setOpenMILateralInflow(Project *project, int index)
 //
 //  Input:   none
 //  Output:  none
@@ -783,7 +783,7 @@ void setOpenMILateralInflow(int index)
 	{
 		TNode* node = &project->Node[index];
 		node->newLatFlow += value;
-		massbal_addInflowFlow(EXTERNAL_INFLOW, value);
+		massbal_addInflowFlow(project, EXTERNAL_INFLOW, value);
 	}
 }
 

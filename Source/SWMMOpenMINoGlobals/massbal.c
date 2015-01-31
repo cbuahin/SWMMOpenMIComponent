@@ -260,13 +260,13 @@ void massbal_report(Project *project)
     {
         if ( massbal_getRunoffError(project) > MAX_RUNOFF_BALANCE_ERR ||
              project->RptFlags.continuity == TRUE
-           ) report_writeRunoffError(&project->RunoffTotals, TotalArea);
+           ) report_writeRunoffError(project, &project->RunoffTotals, TotalArea);
 
         if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality )
         {
             if ( massbal_getLoadingError(project) > MAX_RUNOFF_BALANCE_ERR ||
                  project->RptFlags.continuity == TRUE
-               ) report_writeLoadingError(project->LoadingTotals);
+               ) report_writeLoadingError(project, project->LoadingTotals);
         }
     }
 
@@ -279,7 +279,7 @@ void massbal_report(Project *project)
             {
                 if ( project->Subcatch[j].groundwater ) gwArea += project->Subcatch[j].area;
             }
-            if ( gwArea > 0.0 ) report_writeGwaterError(&project->GwaterTotals, gwArea);
+            if ( gwArea > 0.0 ) report_writeGwaterError(project, &project->GwaterTotals, gwArea);
        }
     }
 
@@ -287,13 +287,13 @@ void massbal_report(Project *project)
     {
         if ( massbal_getFlowError(project) > MAX_FLOW_BALANCE_ERR ||
              project->RptFlags.continuity == TRUE
-           ) report_writeFlowError(&project->FlowTotals);
+           ) report_writeFlowError(project, &project->FlowTotals);
     
         if ( project->Nobjects[POLLUT] > 0 && !project->IgnoreQuality )
         {
             if ( massbal_getQualError(project) > MAX_FLOW_BALANCE_ERR ||
                  project->RptFlags.continuity == TRUE
-               ) report_writeQualError(project->QualTotals);
+               ) report_writeQualError(project, project->QualTotals);
         }
     }
 }
@@ -641,19 +641,19 @@ void massbal_getSysFlows(Project *project, double f, double sysFlows[])
 {
     double f1 = 1.0 - f;
     sysFlows[SYS_DWFLOW] = (f1 * project->OldStepFlowTotals.dwInflow +
-                             f * project->StepFlowTotals.dwInflow) * UCF(FLOW);
+                             f * project->StepFlowTotals.dwInflow) * UCF(project, FLOW);
     sysFlows[SYS_GWFLOW] = (f1 * project->OldStepFlowTotals.gwInflow +
-                             f * project->StepFlowTotals.gwInflow) * UCF(FLOW);
+                             f * project->StepFlowTotals.gwInflow) * UCF(project, FLOW);
     sysFlows[SYS_IIFLOW] = (f1 * project->OldStepFlowTotals.iiInflow +
-                             f * project->StepFlowTotals.iiInflow) * UCF(FLOW);
+                             f * project->StepFlowTotals.iiInflow) * UCF(project, FLOW);
     sysFlows[SYS_EXFLOW] = (f1 * project->OldStepFlowTotals.exInflow +
-                             f * project->StepFlowTotals.exInflow) * UCF(FLOW);
+                             f * project->StepFlowTotals.exInflow) * UCF(project, FLOW);
     sysFlows[SYS_FLOODING] = (f1 * project->OldStepFlowTotals.flooding +
-                               f * project->StepFlowTotals.flooding) * UCF(FLOW);
+                               f * project->StepFlowTotals.flooding) * UCF(project, FLOW);
     sysFlows[SYS_OUTFLOW] = (f1 * project->OldStepFlowTotals.outflow +
-                              f * project->StepFlowTotals.outflow) * UCF(FLOW);
+                              f * project->StepFlowTotals.outflow) * UCF(project, FLOW);
     sysFlows[SYS_STORAGE] = (f1 * project->OldStepFlowTotals.finalStorage +
-                              f * project->StepFlowTotals.finalStorage) * UCF(VOLUME);
+                              f * project->StepFlowTotals.finalStorage) * UCF(project, VOLUME);
 }
 
 //=============================================================================
@@ -930,7 +930,7 @@ double massbal_getQualError(Project *project)
         }
         else
         {
-            cf = cf * UCF(MASS);
+            cf = cf * UCF(project, MASS);
             if ( project->Pollut[p].units == UG ) cf /= 1000.0;
             project->QualTotals[p].dwInflow     *= cf;
             project->QualTotals[p].wwInflow     *= cf; 

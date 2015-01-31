@@ -87,11 +87,11 @@ static double     StorageVolume;       // volume in storage layer (ft)
 //-----------------------------------------------------------------------------
 // Local Functions
 //-----------------------------------------------------------------------------
-static void   barrelFluxRates(double x[], double f[]);
-static void   biocellFluxRates(double x[], double f[]);
+static void   barrelFluxRates(Project *project, double x[], double f[]);
+static void   biocellFluxRates(Project *project, double x[], double f[]);
 static void   greenRoofFluxRates(double x[], double f[]);
-static void   pavementFluxRates(double x[], double f[]);
-static void   trenchFluxRates(double x[], double f[]);
+static void   pavementFluxRates(Project *project, double x[], double f[]);
+static void   trenchFluxRates(Project *project, double x[], double f[]);
 static void   swaleFluxRates(double x[], double f[]);
 
 static double getSurfaceInfilRate(double theta);
@@ -100,8 +100,8 @@ static double getSurfaceOverflowRate(double* surfaceDepth);
 static double getPavementPermRate(void);
 static double getSoilPercRate(double theta, double storageDepth);
 static double getStorageInfilRate(void);
-static double getStorageDrainRate(double head);
-static void   getStorageOutflows(double head);
+static double getStorageDrainRate(Project *project, double head);
+static void   getStorageOutflows(Project *project, double head);
 static double getDrainMatOutflow(double depth);
 static void   getEvapRates(double surfaceVol, double soilVol,
                            double storageVol);
@@ -137,7 +137,7 @@ void lidproc_initWaterBalance(TLidUnit *lidUnit, double initVol)
 
 //=============================================================================
 
-double lidproc_getOutflow(TLidUnit* lidUnit, TLidProc* lidProc, double inflow,
+double lidproc_getOutflow(Project *project, TLidUnit* lidUnit, TLidProc* lidProc, double inflow,
                           double rain, double evap, double infil,
 			  double maxInfil, double tStep, double* lidEvap,
 			  double* lidInfil)
@@ -208,7 +208,7 @@ double lidproc_getOutflow(TLidUnit* lidUnit, TLidProc* lidProc, double inflow,
     if ( theLidUnit->soilInfil.Ks > 0.0 )
     {
         SurfaceInfil =
-            grnampt_getInfil(&theLidUnit->soilInfil, Tstep,
+            grnampt_getInfil(project, &theLidUnit->soilInfil, Tstep,
                              SurfaceInflow, theLidUnit->surfaceDepth);
     }
     else SurfaceInfil = infil;
@@ -283,7 +283,7 @@ double lidproc_getOutflow(TLidUnit* lidUnit, TLidProc* lidProc, double inflow,
 
 //=============================================================================
 
-void lidproc_saveResults(TLidUnit* lidUnit, int saveResults,
+void lidproc_saveResults(Project *project, TLidUnit* lidUnit, int saveResults,
                          double ucfRainfall, double ucfRainDepth)
 //
 //  Purpose: updates the mass balance for an LID unit and saves
@@ -409,7 +409,7 @@ void greenRoofFluxRates(double x[], double f[])
 
 //=============================================================================
 
-void biocellFluxRates(double x[], double f[])
+void biocellFluxRates(Project *project, double x[], double f[])
 //
 //  Purpose: computes flux rates from the layers of a bio-retention cell LID.
 //  Input:   x = vector of storage levels
@@ -456,7 +456,7 @@ void biocellFluxRates(double x[], double f[])
         head += surfaceDepth;
 
     //... find outflows from infiltration & underdrain
-    getStorageOutflows(head);                                             
+    getStorageOutflows(project, head);
 
     //... make adjustments if no storage layer present
     if ( theLidProc->storage.thickness == 0.0 )
@@ -475,7 +475,7 @@ void biocellFluxRates(double x[], double f[])
 
 //=============================================================================
 
-void trenchFluxRates(double x[], double f[])
+void trenchFluxRates(Project *project, double x[], double f[])
 //
 //  Purpose: computes flux rates from the layers of an infiltration trench LID.
 //  Input:   x = vector of storage levels
@@ -512,7 +512,7 @@ void trenchFluxRates(double x[], double f[])
     //... storage layer flux rate
     head = storageDepth;
     if ( storageDepth >= theLidProc->storage.thickness ) head += surfaceDepth;
-    getStorageOutflows(head);
+    getStorageOutflows(project, head);
     f[STOR] = (StorageInflow - StorageEvap - StorageInfil - StorageDrain) /
               theLidProc->storage.voidFrac;
     f[SOIL] = 0.0;
@@ -520,7 +520,7 @@ void trenchFluxRates(double x[], double f[])
 
 //=============================================================================
 
-void pavementFluxRates(double x[], double f[])
+void pavementFluxRates(Project *project, double x[], double f[])
 //
 //  Purpose: computes flux rates from the layers of a porous pavement LID.
 //  Input:   x = vector of storage levels
@@ -585,7 +585,7 @@ void pavementFluxRates(double x[], double f[])
     if ( pavementTheta >= theLidProc->pavement.voidFrac ) head += surfaceDepth;
 
     //... find infil. & underdrain flow from storage layer
-    getStorageOutflows(head);
+    getStorageOutflows(project, head);
 
     //... adjustments for no storage layer
     if ( theLidProc->storage.thickness == 0.0 )
@@ -720,7 +720,7 @@ void swaleFluxRates(double x[], double f[])
 
 //=============================================================================
 
-void barrelFluxRates(double x[], double f[])
+void barrelFluxRates(Project *project, double x[], double f[])
 //
 //  Purpose: computes flux rates for a rain barrel LID.
 //  Input:   x = vector of storage levels
@@ -739,7 +739,7 @@ void barrelFluxRates(double x[], double f[])
     //... compute outflow if there is no drain delay
     if ( theLidProc->drain.delay == 0.0 || 
 	 theLidUnit->dryTime >= theLidProc->drain.delay )
-        StorageDrain = getStorageDrainRate(storageDepth); 
+        StorageDrain = getStorageDrainRate(project, storageDepth);
 
     //... storage inflow rate limited by remaining empty depth
     StorageInflow = SurfaceInflow;
@@ -893,7 +893,7 @@ double getStorageInfilRate()
 
 //=============================================================================
 
-double  getStorageDrainRate(double head)
+double  getStorageDrainRate(Project *project, double head)
 //
 //  Purpose: computes underdrain flow rate in a LID's storage layer.
 //  Input:   head = head of water above bottom of storage zone (ft)
@@ -910,10 +910,10 @@ double  getStorageDrainRate(double head)
     else
     {
         maxValue = StorageVolume / Tstep;
-        delta *= UCF(RAINDEPTH);
+        delta *= UCF(project, RAINDEPTH);
         outflow = theLidProc->drain.coeff *
                   pow(delta, theLidProc->drain.expon);
-        outflow /= UCF(RAINFALL);
+        outflow /= UCF(project, RAINFALL);
         outflow = MIN(outflow, maxValue);
     }
     return outflow;
@@ -921,13 +921,13 @@ double  getStorageDrainRate(double head)
 
 //=============================================================================
 
-void getStorageOutflows(double head)
+void getStorageOutflows(Project *project, double head)
 {
     double maxRate;
     double totalRate;
     double ratio;
     StorageInfil = getStorageInfilRate();
-    StorageDrain = getStorageDrainRate(head);
+    StorageDrain = getStorageDrainRate(project, head);
     maxRate = StorageVolume / Tstep;
     totalRate = StorageInfil + StorageDrain;
     if ( totalRate > maxRate )

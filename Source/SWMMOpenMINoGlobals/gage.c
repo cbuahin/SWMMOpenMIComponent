@@ -408,9 +408,9 @@ double gage_getPrecip(Project *project, int j, double *rainfall, double *snowfal
     *snowfall = 0.0;
     if ( !project->IgnoreSnowmelt && project->Temp.ta <= project->Snow.snotmp )
     {
-       *snowfall = project->Gage[j].rainfall * project->Gage[j].snowFactor / UCF(RAINFALL);
+       *snowfall = project->Gage[j].rainfall * project->Gage[j].snowFactor / UCF(project, RAINFALL);
     }
-    else *rainfall = project->Gage[j].rainfall / UCF(RAINFALL);
+    else *rainfall = project->Gage[j].rainfall / UCF(project, RAINFALL);
     return (*rainfall) + (*snowfall);
 } 
 

@@ -433,8 +433,8 @@ int addLidUnit(Project *project, int j, int k, int n, double x[], char* fname)
     //... assign parameter values to LID unit
     lidUnit->lidIndex     = k;
     lidUnit->number       = n;
-    lidUnit->area         = x[0] / SQR(UCF(LENGTH));
-    lidUnit->fullWidth    = x[1] / UCF(LENGTH);
+    lidUnit->area         = x[0] / SQR(UCF(project, LENGTH));
+    lidUnit->fullWidth    = x[1] / UCF(project, LENGTH);
     lidUnit->initSat      = x[2] / 100.0;
     lidUnit->fromImperv   = x[3] / 100.0;
     lidUnit->toPerv       = (x[4] > 0.0);
@@ -489,7 +489,7 @@ int readSurfaceData(Project *project, int j, char* toks[], int ntoks)
     if ( x[1] >= 1.0 ) return error_setInpError(ERR_NUMBER, toks[3]);           
     if ( x[0] == 0.0 ) x[1] = 0.0;
 
-    project->LidProcs[j].surface.thickness     = x[0] / UCF(RAINDEPTH);
+    project->LidProcs[j].surface.thickness     = x[0] / UCF(project, RAINDEPTH);
     project->LidProcs[j].surface.voidFrac      = 1.0 - x[1];
     project->LidProcs[j].surface.roughness     = x[2];
     project->LidProcs[j].surface.surfSlope     = x[3] / 100.0;
@@ -525,10 +525,10 @@ int readPavementData(Project *project, int j, char* toks[], int ntoks)
     //... convert void ratio to void fraction
     x[1] = x[1]/(x[1] + 1.0);
 
-    project->LidProcs[j].pavement.thickness    = x[0] / UCF(RAINDEPTH);
+    project->LidProcs[j].pavement.thickness    = x[0] / UCF(project, RAINDEPTH);
     project->LidProcs[j].pavement.voidFrac     = x[1];
     project->LidProcs[j].pavement.impervFrac   = x[2];
-    project->LidProcs[j].pavement.kSat         = x[3] / UCF(RAINFALL);
+    project->LidProcs[j].pavement.kSat         = x[3] / UCF(project, RAINFALL);
     project->LidProcs[j].pavement.clogFactor   = x[4];
     return 0;
 }
@@ -557,13 +557,13 @@ int readSoilData(Project *project, int j, char* toks[], int ntoks)
         if ( ! getDouble(toks[i], &x[i-2]) || x[i-2] < 0.0 )
             return error_setInpError(ERR_NUMBER, toks[i]);
     }
-    project->LidProcs[j].soil.thickness = x[0] / UCF(RAINDEPTH);
+    project->LidProcs[j].soil.thickness = x[0] / UCF(project, RAINDEPTH);
     project->LidProcs[j].soil.porosity  = x[1];
     project->LidProcs[j].soil.fieldCap  = x[2];
     project->LidProcs[j].soil.wiltPoint = x[3];
-    project->LidProcs[j].soil.kSat      = x[4] / UCF(RAINFALL);
+    project->LidProcs[j].soil.kSat      = x[4] / UCF(project, RAINFALL);
     project->LidProcs[j].soil.kSlope    = x[5];
-    project->LidProcs[j].soil.suction   = x[6] / UCF(RAINDEPTH);
+    project->LidProcs[j].soil.suction   = x[6] / UCF(project, RAINDEPTH);
     return 0;
 }
 
@@ -597,9 +597,9 @@ int readStorageData(Project *project, int j, char* toks[], int ntoks)
     x[1] = x[1]/(x[1] + 1.0);
 
     //... save parameters to LID storage layer structure
-    project->LidProcs[j].storage.thickness   = x[0] / UCF(RAINDEPTH);
+    project->LidProcs[j].storage.thickness   = x[0] / UCF(project, RAINDEPTH);
     project->LidProcs[j].storage.voidFrac    = x[1];
-    project->LidProcs[j].storage.kSat        = x[2] / UCF(RAINFALL);
+    project->LidProcs[j].storage.kSat        = x[2] / UCF(project, RAINFALL);
     project->LidProcs[j].storage.clogFactor  = x[3];
     return 0;
 }
@@ -633,7 +633,7 @@ int readDrainData(Project *project, int j, char* toks[], int ntoks)
     //... save parameters to LID drain layer structure
     project->LidProcs[j].drain.coeff  = x[0];
     project->LidProcs[j].drain.expon  = x[1];
-    project->LidProcs[j].drain.offset = x[2] / UCF(RAINDEPTH);
+    project->LidProcs[j].drain.offset = x[2] / UCF(project, RAINDEPTH);
     project->LidProcs[j].drain.delay  = x[3] * 3600.0;
     return 0;
 }
@@ -666,7 +666,7 @@ int readDrainMatData(Project *project, int j, char* toks[], int ntoks)
     }
 
     //... save parameters to LID drain layer structure
-    project->LidProcs[j].drainMat.thickness = x[0] / UCF(RAINDEPTH);;
+    project->LidProcs[j].drainMat.thickness = x[0] / UCF(project, RAINDEPTH);;
     project->LidProcs[j].drainMat.voidFrac  = x[1];
     project->LidProcs[j].drainMat.roughness = x[2];
     return 0;
@@ -709,8 +709,8 @@ void lid_writeSummary(Project *project)
             pctArea = lidUnit->area * lidUnit->number / project->Subcatch[j].area * 100.0;
             fprintf(project->Frpt.file, "\n  %-16s %-16s", project->Subcatch[j].ID, project->LidProcs[k].ID);
             fprintf(project->Frpt.file, "%6d  %10.2f  %10.2f  %10.2f  %10.2f",
-                lidUnit->number, lidUnit->area * SQR(UCF(LENGTH)),
-                lidUnit->fullWidth * UCF(LENGTH), pctArea,
+                lidUnit->number, lidUnit->area * SQR(UCF(project, LENGTH)),
+                lidUnit->fullWidth * UCF(project, LENGTH), pctArea,
                 lidUnit->fromImperv*100.0);
             lidList = lidList->nextLidUnit;
         }
@@ -914,11 +914,11 @@ void validateLidGroup(Project *project, int j)
         lidUnit->soilInfil.Ks = 0.0;
         if ( project->LidProcs[k].soil.thickness > 0.0 )
         {
-            p[0] = project->LidProcs[k].soil.suction * UCF(RAINDEPTH);
-            p[1] = project->LidProcs[k].soil.kSat * UCF(RAINFALL);
+            p[0] = project->LidProcs[k].soil.suction * UCF(project, RAINDEPTH);
+            p[1] = project->LidProcs[k].soil.kSat * UCF(project, RAINFALL);
             p[2] = (project->LidProcs[k].soil.porosity - project->LidProcs[k].soil.wiltPoint) *
                    (1.0 - lidUnit->initSat);
-            if ( grnampt_setParams(&(lidUnit->soilInfil), p) == FALSE )
+            if ( grnampt_setParams(project, &(lidUnit->soilInfil), p) == FALSE )
             {
                 report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[k].ID);
             }
@@ -929,10 +929,10 @@ void validateLidGroup(Project *project, int j)
         {
             if ( project->InfilModel == GREEN_AMPT )
             {
-                p[0] = GAInfil[j].S * UCF(RAINDEPTH);
-                p[1] = GAInfil[j].Ks * UCF(RAINFALL);
+                p[0] = GAInfil[j].S * UCF(project, RAINDEPTH);
+                p[1] = GAInfil[j].Ks * UCF(project, RAINFALL);
                 p[2] = GAInfil[j].IMDmax;
-                if ( grnampt_setParams(&(lidUnit->soilInfil), p) == FALSE )
+                if ( grnampt_setParams(project, &(lidUnit->soilInfil), p) == FALSE )
                 {
                     report_writeErrorMsg(project, ERR_LID_PARAMS, project->LidProcs[k].ID);
                 }
@@ -1375,7 +1375,7 @@ void evalLidUnit(Project *project, TLidUnit* lidUnit, double rainfall, double ru
     inflow = (inflow / lidUnitArea) + rainfall + runon;
 
     //... outflow from the LID unit (in ft/s)
-    outflow = lidproc_getOutflow(lidUnit, lidProc, inflow, rainfall,
+    outflow = lidproc_getOutflow(project, lidUnit, lidProc, inflow, rainfall,
 		                         project->EvapRate, project->NativeInfil, project->MaxNativeInfil,
 								 tStep, &lidEvap, &lidInfil);
     *lidOutflow += outflow * lidUnitArea;
@@ -1394,7 +1394,7 @@ void evalLidUnit(Project *project, TLidUnit* lidUnit, double rainfall, double ru
     else lidUnit->dryTime += tStep;
 
     //... update water balance and save results
-    lidproc_saveResults(lidUnit, project->SaveResults, UCF(RAINFALL), UCF(RAINDEPTH));
+    lidproc_saveResults(project, lidUnit, project->SaveResults, UCF(project, RAINFALL), UCF(project, RAINDEPTH));
 }
 
 //=============================================================================
@@ -1408,7 +1408,7 @@ void lid_writeWaterBalance(Project *project)
 {
     int        j;
     int        k = 0;
-    double     ucf = UCF(RAINDEPTH);
+    double     ucf = UCF(project, RAINDEPTH);
     double     inflow;
     double     outflow;
     double     err;

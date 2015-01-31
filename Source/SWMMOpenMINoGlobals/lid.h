@@ -192,10 +192,10 @@ void     lid_writeSummary(struct Project *project);
 void     lid_writeWaterBalance(struct Project *project);
 //-----------------------------------------------------------------------------
 void     lidproc_initWaterBalance(TLidUnit *lidUnit, double initVol);
-double   lidproc_getOutflow(TLidUnit* theUnit, TLidProc* theProc, double inflow,
+double   lidproc_getOutflow(struct Project *project, TLidUnit* theUnit, TLidProc* theProc, double inflow,
 	     double rain, double evap, double infil, double maxInfil, double tStep,
          double* lidEvap, double* lidInfil);
-void     lidproc_saveResults(TLidUnit* theUnit, int saveResults,
+void     lidproc_saveResults(struct Project *project, TLidUnit* theUnit, int saveResults,
          double ucfRainfall, double ucfRainDepth);
 
 #endif

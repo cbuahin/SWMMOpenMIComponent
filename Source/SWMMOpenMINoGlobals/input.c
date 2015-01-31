@@ -521,33 +521,33 @@ int  parseLine(Project *project, int sect, char *line)
 
       case s_POLLUTANT:
         j = Mobjects[POLLUT];
-        err = landuse_readPollutParams(j, Tok, Ntokens);
+        err = landuse_readPollutParams(project, j, Tok, Ntokens);
         Mobjects[POLLUT]++;
         return err;
 
       case s_LANDUSE:
         j = Mobjects[LANDUSE];
-        err = landuse_readParams(j, Tok, Ntokens);
+        err = landuse_readParams(project, j, Tok, Ntokens);
         Mobjects[LANDUSE]++;
         return err;
 
       case s_BUILDUP:
-        return landuse_readBuildupParams(Tok, Ntokens);
+        return landuse_readBuildupParams(project, Tok, Ntokens);
 
       case s_WASHOFF:
-        return landuse_readWashoffParams(Tok, Ntokens);
+        return landuse_readWashoffParams(project, Tok, Ntokens);
 
       case s_COVERAGE:
         return subcatch_readLanduseParams(project, Tok, Ntokens);
 
       case s_INFLOW:
-        return inflow_readExtInflow(Tok, Ntokens);
+        return inflow_readExtInflow(project, Tok, Ntokens);
 
       case s_DWF:
-        return inflow_readDwfInflow(Tok, Ntokens);
+        return inflow_readDwfInflow(project, Tok, Ntokens);
 
       case s_PATTERN:
-        return inflow_readDwfPattern(Tok, Ntokens);
+        return inflow_readDwfPattern(project, Tok, Ntokens);
 
       case s_RDII:
         return rdii_readRdiiInflow(project, Tok, Ntokens);
@@ -559,7 +559,7 @@ int  parseLine(Project *project, int sect, char *line)
         return subcatch_readInitBuildup(project, Tok, Ntokens);
 
       case s_TREATMENT:
-        return treatmnt_readExpression(Tok, Ntokens);
+        return treatmnt_readExpression(project, Tok, Ntokens);
 
       case s_CURVE:
         return table_readCurve(project, Tok, Ntokens);
@@ -621,7 +621,7 @@ int readControl(Project *project, char* tok[], int ntoks)
     if ( index < 0 ) return error_setInpError(ERR_RULE, "");
 
     // --- add current line as a new clause to the control rule
-    return controls_addRuleClause(index, keyword, Tok, Ntokens);
+    return controls_addRuleClause(project, index, keyword, Tok, Ntokens);
 }
 
 //=============================================================================

@@ -193,7 +193,7 @@ void  dwflow_findConduitFlow(Project *project, int j, int steps, double omega, d
 	// --- compute terms of momentum eqn.:
 	// --- 1. friction slope term
 	if (xsect->type == FORCE_MAIN && isFull)
-		dq1 = dt * forcemain_getFricSlope(j, fabs(v), rMid);
+		dq1 = dt * forcemain_getFricSlope(project, j, fabs(v), rMid);
 	else
 		dq1 = dt * project->Conduit[k].roughFactor / pow(rWtd, 1.33333) * fabs(v);
 
@@ -236,7 +236,7 @@ void  dwflow_findConduitFlow(Project *project, int j, int steps, double omega, d
 	{
 		// --- check for inlet controlled culvert flow
 		if (xsect->culvertCode > 0 && !isFull)
-			q = culvert_getInflow(j, q, h1);
+			q = culvert_getInflow(project, j, q, h1);
 
 		// --- check for normal flow limitation based on surface slope & Fr
 		else

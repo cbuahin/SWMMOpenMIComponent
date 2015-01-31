@@ -279,9 +279,9 @@ void  stats_report(Project *project)
     if ( project->Nobjects[LINK] > 0 && project->RouteModel != NO_ROUTING )
     {
         stats_findMaxStats(project);
-        report_writeMaxStats(MaxMassBalErrs, MaxCourantCrit, MAX_STATS);
-        report_writeMaxFlowTurns(MaxFlowTurns, MAX_STATS);
-        report_writeSysStats(&SysStats);
+        report_writeMaxStats(project, MaxMassBalErrs, MaxCourantCrit, MAX_STATS);
+        report_writeMaxFlowTurns(project, MaxFlowTurns, MAX_STATS);
+        report_writeSysStats(project, &SysStats);
     }
 
     // --- report summary statistics

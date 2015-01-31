@@ -111,22 +111,22 @@ double SetPoint;                       // Value of controller setpoint
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-int    addPremise(int r, int type, char* Tok[], int nToks);
-int    addAction(int r, char* Tok[], int nToks);
-int    evaluatePremise(struct TPremise* p, DateTime theDate, DateTime theTime,
+int    addPremise(Project *project, int r, int type, char* Tok[], int nToks);
+int    addAction(Project *project, int r, char* Tok[], int nToks);
+int    evaluatePremise(Project *project, struct TPremise* p, DateTime theDate, DateTime theTime,
                        DateTime elapsedTime, double tStep);
 int    checkTimeValue(struct TPremise* p, double tStart, double tStep);
 int    checkValue(struct TPremise* p, double x);
 void   updateActionList(struct TAction* a);
-int    executeActionList(DateTime currentTime);
+int    executeActionList(Project *project, DateTime currentTime);
 void   clearActionList(void);
 void   deleteActionList(void);
 void   deleteRules(void);
 int    findExactMatch(char *s, char *keyword[]);
-int    setActionSetting(char* tok[], int nToks, int* curve, int* tseries,
+int    setActionSetting(Project *project, char* tok[], int nToks, int* curve, int* tseries,
        int* attrib, double* value);
-void   updateActionValue(struct TAction* a, DateTime currentTime, double dt);
-double getPIDSetting(struct TAction* a, double dt);
+void   updateActionValue(Project *project, struct TAction* a, DateTime currentTime, double dt);
+double getPIDSetting(Project *project, struct TAction* a, double dt);
 
 
 //=============================================================================
@@ -173,7 +173,7 @@ void controls_delete(void)
 
 //=============================================================================
 
-int  controls_addRuleClause(int r, int keyword, char* tok[], int nToks)
+int  controls_addRuleClause(Project *project, int r, int keyword, char* tok[], int nToks)
 //
 //  Input:   r = rule index
 //           keyword = the clause's keyword code (IF, THEN, etc.)
@@ -187,7 +187,7 @@ int  controls_addRuleClause(int r, int keyword, char* tok[], int nToks)
     {
       case r_RULE:
         if ( Rules[r].ID == NULL )
-            Rules[r].ID = project_findID(CONTROL, tok[1]);
+            Rules[r].ID = project_findID(project, CONTROL, tok[1]);
         InputState = r_RULE;
         if ( nToks > 2 ) return ERR_RULE;
         return 0;
@@ -195,27 +195,27 @@ int  controls_addRuleClause(int r, int keyword, char* tok[], int nToks)
       case r_IF:
         if ( InputState != r_RULE ) return ERR_RULE;
         InputState = r_IF;
-        return addPremise(r, r_AND, tok, nToks);
+        return addPremise(project, r, r_AND, tok, nToks);
 
       case r_AND:
-        if ( InputState == r_IF ) return addPremise(r, r_AND, tok, nToks);
+        if ( InputState == r_IF ) return addPremise(project, r, r_AND, tok, nToks);
         else if ( InputState == r_THEN || InputState == r_ELSE )
-            return addAction(r, tok, nToks);
+            return addAction(project, r, tok, nToks);
         else return ERR_RULE;
 
       case r_OR:
         if ( InputState != r_IF ) return ERR_RULE;
-        return addPremise(r, r_OR, tok, nToks);
+        return addPremise(project, r, r_OR, tok, nToks);
 
       case r_THEN:
         if ( InputState != r_IF ) return ERR_RULE;
         InputState = r_THEN;
-        return addAction(r, tok, nToks);
+        return addAction(project, r, tok, nToks);
 
       case r_ELSE:
         if ( InputState != r_THEN ) return ERR_RULE;
         InputState = r_ELSE;
-        return addAction(r, tok, nToks);
+        return addAction(project, r, tok, nToks);
 
       case r_PRIORITY:
         if ( InputState != r_THEN && InputState != r_ELSE ) return ERR_RULE;
@@ -229,7 +229,7 @@ int  controls_addRuleClause(int r, int keyword, char* tok[], int nToks)
 
 //=============================================================================
 
-int controls_evaluate(DateTime currentTime, DateTime elapsedTime, double tStep)
+int controls_evaluate(Project *project, DateTime currentTime, DateTime elapsedTime, double tStep)
 //
 //  Input:   currentTime = current simulation date/time
 //           elapsedTime = decimal days since start of simulation
@@ -258,13 +258,13 @@ int controls_evaluate(DateTime currentTime, DateTime elapsedTime, double tStep)
             if ( p->type == r_OR )
             {
                 if ( result == FALSE )
-                    result = evaluatePremise(p, theDate, theTime,
+                    result = evaluatePremise(project, p, theDate, theTime,
                                  elapsedTime, tStep);
             }
             else
             {
                 if ( result == FALSE ) break;
-                result = evaluatePremise(p, theDate, theTime, 
+                result = evaluatePremise(project, p, theDate, theTime,
                              elapsedTime, tStep);
             }
             p = p->next;
@@ -276,20 +276,20 @@ int controls_evaluate(DateTime currentTime, DateTime elapsedTime, double tStep)
         else                  a = Rules[r].elseActions;
         while (a)
         {
-            updateActionValue(a, currentTime, tStep);
+            updateActionValue(project, a, currentTime, tStep);
             updateActionList(a);
             a = a->next;
         }
     }
 
     // --- execute actions on action list
-    if ( ActionList ) return executeActionList(currentTime);
+    if ( ActionList ) return executeActionList(project, currentTime);
     else return 0;
 }
 
 //=============================================================================
 
-int  addPremise(int r, int type, char* tok[], int nToks)
+int  addPremise(Project *project, int r, int type, char* tok[], int nToks)
 //
 //  Input:   r = control rule index
 //           type = type of premise (IF, AND, OR)
@@ -317,7 +317,7 @@ int  addPremise(int r, int type, char* tok[], int nToks)
     switch (obj)
     {
       case r_NODE:
-        node = project_findObject(NODE, tok[n]);
+        node = project_findObject(project, NODE, tok[n]);
         if ( node < 0 ) return error_setInpError(ERR_NAME, tok[n]);
         break;
 
@@ -327,7 +327,7 @@ int  addPremise(int r, int type, char* tok[], int nToks)
       case r_ORIFICE:
       case r_WEIR:
       case r_OUTLET:
-        link = project_findObject(LINK, tok[n]);
+        link = project_findObject(project, LINK, tok[n]);
         if ( link < 0 ) return error_setInpError(ERR_NAME, tok[n]);
         break;
       default: n = 1;
@@ -448,7 +448,7 @@ int  addPremise(int r, int type, char* tok[], int nToks)
 
 //=============================================================================
 
-int  addAction(int r, char* tok[], int nToks)
+int  addAction(Project *project, int r, char* tok[], int nToks)
 //
 //  Input:   r = control rule index
 //           tok = array of string tokens containing action statement
@@ -475,29 +475,29 @@ int  addAction(int r, char* tok[], int nToks)
         return error_setInpError(ERR_KEYWORD, tok[1]);
 
     // --- check that object name exists and is of correct type
-    link = project_findObject(LINK, tok[2]);
+    link = project_findObject(project, LINK, tok[2]);
     if ( link < 0 ) return error_setInpError(ERR_NAME, tok[2]);
     switch (obj)
     {
       case r_CONDUIT:
 	if ( project->Link[link].type != CONDUIT )
-	    return error_setInpError(ERR_NAME, tok[2]);
+	    return error_setInpError(project, ERR_NAME, tok[2]);
 	break;
       case r_PUMP:
         if ( project->Link[link].type != PUMP )
-            return error_setInpError(ERR_NAME, tok[2]);
+            return error_setInpError(project, ERR_NAME, tok[2]);
         break;
       case r_ORIFICE:
         if ( project->Link[link].type != ORIFICE )
-            return error_setInpError(ERR_NAME, tok[2]);
+            return error_setInpError(project, ERR_NAME, tok[2]);
         break;
       case r_WEIR:
         if ( project->Link[link].type != WEIR )
-            return error_setInpError(ERR_NAME, tok[2]);
+            return error_setInpError(project, ERR_NAME, tok[2]);
         break;
       case r_OUTLET:
         if ( project->Link[link].type != OUTLET )
-            return error_setInpError(ERR_NAME, tok[2]);
+            return error_setInpError(project, ERR_NAME, tok[2]);
         break;
     }
 
@@ -527,7 +527,7 @@ int  addAction(int r, char* tok[], int nToks)
         }
         else if ( attrib == r_SETTING )
         {
-            err = setActionSetting(tok, nToks, &curve, &tseries,
+            err = setActionSetting(project, tok, nToks, &curve, &tseries,
                                    &attrib, values);
             if ( err > 0 ) return err;
         }
@@ -538,7 +538,7 @@ int  addAction(int r, char* tok[], int nToks)
     {
         if ( attrib == r_SETTING )
         {
-           err = setActionSetting(tok, nToks, &curve, &tseries,
+           err = setActionSetting(project, tok, nToks, &curve, &tseries,
                                   &attrib, values);
            if ( err > 0 ) return err;
            if (  attrib == r_SETTING
@@ -587,7 +587,7 @@ int  addAction(int r, char* tok[], int nToks)
 
 //=============================================================================
 
-int  setActionSetting(char* tok[], int nToks, int* curve, int* tseries,
+int  setActionSetting(Project *project, char* tok[], int nToks, int* curve, int* tseries,
                       int* attrib, double values[])
 //
 //  Input:   tok = array of string tokens containing action statement
@@ -611,14 +611,14 @@ int  setActionSetting(char* tok[], int nToks, int* curve, int* tseries,
 
     // --- control determined by a curve - find curve index
     case r_CURVE:
-        m = project_findObject(CURVE, tok[6]);
+        m = project_findObject(project, CURVE, tok[6]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[6]);
         *curve = m;
         break;
 
     // --- control determined by a time series - find time series index
     case r_TIMESERIES:
-        m = project_findObject(TSERIES, tok[6]);
+        m = project_findObject(project, TSERIES, tok[6]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[6]);
         *tseries = m;
         project->Tseries[m].refersTo = CONTROL;
@@ -645,7 +645,7 @@ int  setActionSetting(char* tok[], int nToks, int* curve, int* tseries,
 
 //=============================================================================
 
-void  updateActionValue(struct TAction* a, DateTime currentTime, double dt)
+void  updateActionValue(Project *project, struct TAction* a, DateTime currentTime, double dt)
 //
 //  Input:   a = an action object
 //           currentTime = current simulation date/time (days)
@@ -664,13 +664,13 @@ void  updateActionValue(struct TAction* a, DateTime currentTime, double dt)
     }
     else if ( a->attribute == r_PID )
     {
-        a->value = getPIDSetting(a, dt);
+        a->value = getPIDSetting(project, a, dt);
     }
 }
 
 //=============================================================================
 
-double getPIDSetting(struct TAction* a, double dt)
+double getPIDSetting(Project *project, struct TAction* a, double dt)
 //
 //  Input:   a = an action object
 //           dt = current time step (days)
@@ -765,7 +765,7 @@ void updateActionList(struct TAction* a)
 
 //=============================================================================
 
-int executeActionList(DateTime currentTime)
+int executeActionList(Project *project, DateTime currentTime)
 //
 //  Input:   currentTime = current date/time of the simulation
 //  Output:  returns number of new actions taken
@@ -788,7 +788,7 @@ int executeActionList(DateTime currentTime)
             {
                 project->Link[a1->link].targetSetting = a1->value;
                 if ( project->RptFlags.controls )
-                    report_writeControlAction(currentTime, project->Link[a1->link].ID,
+                    report_writeControlAction(project, currentTime, project->Link[a1->link].ID,
                                               a1->value, Rules[a1->rule].ID);
                 count++;
             }
@@ -801,7 +801,7 @@ int executeActionList(DateTime currentTime)
 
 //=============================================================================
 
-int evaluatePremise(struct TPremise* p, DateTime theDate, DateTime theTime,
+int evaluatePremise(Project *project, struct TPremise* p, DateTime theDate, DateTime theTime,
                     DateTime elapsedTime, double tStep)
 //
 //  Input:   p = a control rule premise condition
@@ -836,32 +836,32 @@ int evaluatePremise(struct TPremise* p, DateTime theDate, DateTime theTime,
 
       case r_STATUS:
         if ( j < 0 ||
-            (project->Link[j].type != CONDUIT && Link[j].type != PUMP) ) return FALSE;
+            (project->Link[j].type != CONDUIT && project->Link[j].type != PUMP) ) return FALSE;
         else return checkValue(p, project->Link[j].setting);
         
       case r_SETTING:
-        if ( j < 0 || (project->Link[j].type != ORIFICE && Link[j].type != WEIR) )
+        if ( j < 0 || (project->Link[j].type != ORIFICE && project->Link[j].type != WEIR) )
             return FALSE;
         else return checkValue(p, project->Link[j].setting);
 
       case r_FLOW:
         if ( j < 0 ) return FALSE;
-        else return checkValue(p, project->Link[j].direction*Link[j].newFlow*UCF(FLOW));
+        else return checkValue(p, project->Link[j].direction*project->Link[j].newFlow*UCF(project, FLOW));
 
       case r_DEPTH:
-        if ( j >= 0 ) return checkValue(p, project->Link[j].newDepth*UCF(LENGTH));
+        if ( j >= 0 ) return checkValue(p, project->Link[j].newDepth*UCF(project, LENGTH));
         else if ( i >= 0 )
-            return checkValue(p, project->Node[i].newDepth*UCF(LENGTH));
+            return checkValue(p, project->Node[i].newDepth*UCF(project, LENGTH));
         else return FALSE;
 
       case r_HEAD:
         if ( i < 0 ) return FALSE;
-        head = (project->Node[i].newDepth + Node[i].invertElev) * UCF(LENGTH);
+        head = (project->Node[i].newDepth + project->Node[i].invertElev) * UCF(project, LENGTH);
         return checkValue(p, head);
 
       case r_INFLOW:
         if ( i < 0 ) return FALSE;
-        else return checkValue(p, project->Node[i].newLatFlow*UCF(FLOW));
+        else return checkValue(p, project->Node[i].newLatFlow*UCF(project, FLOW));
 
       default: return FALSE;
     }

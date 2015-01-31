@@ -227,9 +227,9 @@ void project_validate(Project* project)
     
     // --- adjust DYNWAVE options
     if ( project->MinSurfArea == 0.0 ) project->MinSurfArea = DEFAULT_SURFAREA;
-    else                      project->MinSurfArea /= UCF(LENGTH) * UCF(LENGTH);
+    else                      project->MinSurfArea /= UCF(project, LENGTH) * UCF(project, LENGTH);
     if ( project->HeadTol == 0.0 ) project->HeadTol = DEFAULT_HEADTOL;
-    else                  project->HeadTol /= UCF(LENGTH);
+    else                  project->HeadTol /= UCF(project, LENGTH);
     if ( project->MaxTrials == 0 ) project->MaxTrials = DEFAULT_MAXTRIALS;
 }
 
@@ -1044,7 +1044,7 @@ void createObjects(Project* project)
     //  --- initialize curves, time series, and time patterns
     for (j = 0; j < project->Nobjects[CURVE]; j++)   table_init(&project->Curve[j]);
     for (j = 0; j < project->Nobjects[TSERIES]; j++) table_init(&project->Tseries[j]);
-    for (j = 0; j < project->Nobjects[TIMEPATTERN]; j++) inflow_initDwfPattern(j);
+    for (j = 0; j < project->Nobjects[TIMEPATTERN]; j++) inflow_initDwfPattern(project, j);
 }
 
 //=============================================================================
@@ -1109,10 +1109,10 @@ void deleteObjects(Project* project)
     // --- free memory used for nodal inflows & treatment functions
     if ( project->Node ) for (j = 0; j < project->Nobjects[NODE]; j++)
     {
-        inflow_deleteExtInflows(j);
-        inflow_deleteDwfInflows(j);
+        inflow_deleteExtInflows(project, j);
+        inflow_deleteDwfInflows(project, j);
         rdii_deleteRdiiInflow(project, j);
-        treatmnt_delete(j);
+        treatmnt_delete(project, j);
     }
     
     // --- delete table entries for curves and time series

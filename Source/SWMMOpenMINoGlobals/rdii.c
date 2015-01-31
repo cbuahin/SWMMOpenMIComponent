@@ -177,7 +177,7 @@ int rdii_readRdiiInflow(Project *project, char* tok[], int ntoks)
 
     // --- assign UH & area to inflow object
     inflow->unitHyd = k;
-    inflow->area = a / UCF(LANDAREA);
+    inflow->area = a / UCF(project, LANDAREA);
 
     // --- assign inflow object to node
     project->Node[j].rdiiInflow = inflow;
@@ -1188,7 +1188,7 @@ void getRainfall(Project *project, DateTime currentDate)
             rainDepth = project->Gage[g].rainfall * (double)rainInterval / 3600.0;
 
             // --- update amount of total rainfall volume (ft3)
-            TotalRainVol += rainDepth / UCF(RAINDEPTH) * UHGroup[j].area;
+            TotalRainVol += rainDepth / UCF(project, RAINDEPTH) * UHGroup[j].area;
 
             // --- compute rainfall excess for each UH in the group
             for (k=0; k<3; k++)
@@ -1452,7 +1452,7 @@ int getNodeRdii(Project *project)
         
         // --- apply node's sewer area to UH RDII to get node RDII in CFS
         i = project->Node[j].rdiiInflow->unitHyd;
-        rdii = UHGroup[i].rdii * project->Node[j].rdiiInflow->area / UCF(RAINFALL);
+        rdii = UHGroup[i].rdii * project->Node[j].rdiiInflow->area / UCF(project, RAINFALL);
         if ( rdii < ZERO_RDII ) rdii = 0.0;
         else hasRdii = TRUE;
 
@@ -1491,7 +1491,7 @@ void  closeRdiiProcessor(Project *project)
     // --- write rainfall & RDII totals to report file
     if ( !project->ErrorCode )
     {
-        report_writeRdiiStats(TotalRainVol, TotalRdiiVol);
+        report_writeRdiiStats(project, TotalRainVol, TotalRdiiVol);
     }
 
     // --- free allocated memory and close RDII file

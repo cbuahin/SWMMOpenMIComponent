@@ -292,8 +292,8 @@ void setMeltParams(Project *project, int j, int k, double x[])
     if ( k >= SNOW_PLOWABLE && k <= SNOW_PERV )
     {
         // --- min/max melt coeffs.
-        project->Snowmelt[j].dhmin[k]     = x[0] * UCF(TEMPERATURE) / UCF(RAINFALL);
-        project->Snowmelt[j].dhmax[k]     = x[1] * UCF(TEMPERATURE) / UCF(RAINFALL); 
+        project->Snowmelt[j].dhmin[k]     = x[0] * UCF(project, TEMPERATURE) / UCF(project, RAINFALL);
+        project->Snowmelt[j].dhmax[k]     = x[1] * UCF(project, TEMPERATURE) / UCF(project, RAINFALL); 
 
         // --- base melt temp (deg F)
         project->Snowmelt[j].tbase[k]     = x[2];
@@ -304,22 +304,22 @@ void setMeltParams(Project *project, int j, int k, double x[])
         project->Snowmelt[j].fwfrac[k]    = x[3];
 
         // --- initial snow depth & free water depth
-        project->Snowmelt[j].wsnow[k]     = x[4] / UCF(RAINDEPTH);
+        project->Snowmelt[j].wsnow[k]     = x[4] / UCF(project, RAINDEPTH);
         x[5] = MIN(x[5], (x[3]*x[4]));
-        project->Snowmelt[j].fwnow[k]     = x[5] / UCF(RAINDEPTH);
+        project->Snowmelt[j].fwnow[k]     = x[5] / UCF(project, RAINDEPTH);
 
         // --- fraction of impervious area that is plowable
         if ( k == SNOW_PLOWABLE ) project->Snowmelt[j].snn = x[6];
 
         // --- min. depth for 100% areal coverage on remaining
         //     impervious area or total pervious area
-        else project->Snowmelt[j].si[k] = x[6] / UCF(RAINDEPTH);
+        else project->Snowmelt[j].si[k] = x[6] / UCF(project, RAINDEPTH);
     }
 
     // --- removal parameters
     else if ( k == SNOW_REMOVAL )
     {
-        project->Snowmelt[j].weplow = x[0] / UCF(RAINDEPTH);
+        project->Snowmelt[j].weplow = x[0] / UCF(project, RAINDEPTH);
         for (i=0; i<=4; i++) project->Snowmelt[j].sfrac[i] = x[i+1];
         if ( x[6] >= 0.0 ) project->Snowmelt[j].toSubcatch = (int)(x[6] + 0.01);
         else               project->Snowmelt[j].toSubcatch = -1;

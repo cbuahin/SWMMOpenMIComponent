@@ -40,24 +40,24 @@ int     input_readData(Project *project);
 int     report_readOptions(Project *project, char* tok[], int ntoks);
 void    report_writeLine(Project *project, char* line);
 void    report_writeSysTime(Project *project);
-void    report_writeLogo(void);
-void    report_writeTitle(void);
-void    report_writeOptions(void);
-void    report_writeRainStats(int gage, TRainStats* rainStats);
-void    report_writeRdiiStats(double totalRain, double totalRdii);
-void    report_writeControlActionsHeading(void);
-void    report_writeControlAction(DateTime aDate, char* linkID, double value,
+void    report_writeLogo(Project *project);
+void    report_writeTitle(Project *project);
+void    report_writeOptions(Project *project);
+void    report_writeRainStats(Project *project, int gage, TRainStats* rainStats);
+void    report_writeRdiiStats(Project *project, double totalRain, double totalRdii);
+void    report_writeControlActionsHeading(Project *project);
+void    report_writeControlAction(Project *project, DateTime aDate, char* linkID, double value,
         char* ruleID);
-void    report_writeRunoffError(TRunoffTotals* totals, double area);
-void    report_writeLoadingError(TLoadingTotals* totals);
-void    report_writeGwaterError(TGwaterTotals* totals, double area);
-void    report_writeFlowError(TRoutingTotals* totals);
-void    report_writeQualError(TRoutingTotals* totals);
-void    report_writeMaxStats(TMaxStats massBalErrs[], TMaxStats CourantCrit[],
+void    report_writeRunoffError(Project *project, TRunoffTotals* totals, double area);
+void    report_writeLoadingError(Project *project, TLoadingTotals* totals);
+void    report_writeGwaterError(Project *project, TGwaterTotals* totals, double area);
+void    report_writeFlowError(Project *project, TRoutingTotals* totals);
+void    report_writeQualError(Project *project, TRoutingTotals* totals);
+void    report_writeMaxStats(Project *project, TMaxStats massBalErrs[], TMaxStats CourantCrit[],
         int nMaxStats);
-void    report_writeMaxFlowTurns(TMaxStats flowTurns[], int nMaxStats);
-void    report_writeSysStats(TSysStats* sysStats);
-void    report_writeReport(void);
+void    report_writeMaxFlowTurns(Project *project, TMaxStats flowTurns[], int nMaxStats);
+void    report_writeSysStats(Project *project, TSysStats* sysStats);
+void    report_writeReport(Project *project);
 void    report_writeErrorMsg(Project *project, int code, char* msg);
 void    report_writeErrorCode(Project *project);
 void    report_writeInputErrorMsg(Project *project, int k, int sect, char* line, long lineCount);
@@ -103,17 +103,17 @@ double  snow_getSnowCover(Project *project, int subcatch);
 //-----------------------------------------------------------------------------
 //   Runoff Analyzer Methods
 //-----------------------------------------------------------------------------
-int     runoff_open(void);
-void    runoff_execute(void);
-void    runoff_close(void);
+int     runoff_open(Project *project);
+void    runoff_execute(Project *project);
+void    runoff_close(Project *project);
 
 //-----------------------------------------------------------------------------
 //   Conveyance System Routing Methods
 //-----------------------------------------------------------------------------
-int     routing_open(void);
-double  routing_getRoutingStep(int routingModel, double fixedStep);
-void    routing_execute(int routingModel, double routingStep);
-void    routing_close(int routingModel);
+int     routing_open(Project *project);
+double  routing_getRoutingStep(Project *project, int routingModel, double fixedStep);
+void    routing_execute(Project *project, int routingModel, double routingStep);
+void    routing_close(Project *project, int routingModel);
 
 //-----------------------------------------------------------------------------
 //   Output Filer Methods
@@ -159,18 +159,18 @@ void    rdii_getRdiiFlow(int index, int* node, double* q);
 //-----------------------------------------------------------------------------
 //   project->Landuse Methods
 //-----------------------------------------------------------------------------
-int     landuse_readParams(int landuse, char* tok[], int ntoks);
-int     landuse_readPollutParams(int pollut, char* tok[], int ntoks);
-int     landuse_readBuildupParams(char* tok[], int ntoks);
-int     landuse_readWashoffParams(char* tok[], int ntoks);
-void    landuse_getInitBuildup(TLandFactor* landFactor,  double* initBuildup,
+int     landuse_readParams(Project *project, int landuse, char* tok[], int ntoks);
+int     landuse_readPollutParams(Project *project, int pollut, char* tok[], int ntoks);
+int     landuse_readBuildupParams(Project *project, char* tok[], int ntoks);
+int     landuse_readWashoffParams(Project *project, char* tok[], int ntoks);
+void    landuse_getInitBuildup(Project *project, TLandFactor* landFactor,  double* initBuildup,
 	    double area, double curb);
-double  landuse_getBuildup(int landuse, int pollut, double area, double curb,
+double  landuse_getBuildup(Project *project, int landuse, int pollut, double area, double curb,
         double buildup, double tStep);
-void    landuse_getWashoff(int landuse, double area, TLandFactor landFactor[],
+void    landuse_getWashoff(Project *project, int landuse, double area, TLandFactor landFactor[],
         double runoff, double tStep, double washoffLoad[]);
-double  landuse_getAvgBmpEffic(int j, int p);
-double  landuse_getCoPollutLoad(int p, double washoff[]);
+double  landuse_getAvgBmpEffic(Project *project, int j, int p);
+double  landuse_getCoPollutLoad(Project *project, int p, double washoff[]);
 
 //-----------------------------------------------------------------------------
 //   Flow/Quality Routing Methods
@@ -195,12 +195,12 @@ void    qualrout_execute(Project *project, double tStep);
 //-----------------------------------------------------------------------------
 //   Treatment Methods
 //-----------------------------------------------------------------------------
-int     treatmnt_open(void);
+int     treatmnt_open(Project *project);
 void    treatmnt_close(void);
-int     treatmnt_readExpression(char* tok[], int ntoks);
-void    treatmnt_delete(int node);
-void    treatmnt_treat(int node, double q, double v, double tStep);
-void    treatmnt_setInflow(double qIn, double wIn[]);
+int     treatmnt_readExpression(Project *project, char* tok[], int ntoks);
+void    treatmnt_delete(Project *project, int node);
+void    treatmnt_treat(Project *project, int node, double q, double v, double tStep);
+void    treatmnt_setInflow(Project *project, double qIn, double wIn[]);
 
 //-----------------------------------------------------------------------------
 //   Mass Balance Methods
@@ -295,16 +295,16 @@ void    node_getResults(Project *project, int node, double wt, float x[]);
 //-----------------------------------------------------------------------------
 //   Conveyance System Inflow Methods
 //-----------------------------------------------------------------------------
-int     inflow_readExtInflow(char* tok[], int ntoks);
-int     inflow_readDwfInflow(char* tok[], int ntoks);
-int     inflow_readDwfPattern(char* tok[], int ntoks);
-void    inflow_initDwfInflow(TDwfInflow* inflow);
-void    inflow_initDwfPattern(int pattern);
-double  inflow_getExtInflow(TExtInflow* inflow, DateTime aDate);
-double  inflow_getDwfInflow(TDwfInflow* inflow, int m, int d, int h);
-double  inflow_getPatternFactor(int p, int month, int day, int hour);
-void    inflow_deleteExtInflows(int node);
-void    inflow_deleteDwfInflows(int node);
+int     inflow_readExtInflow(Project *project, char* tok[], int ntoks);
+int     inflow_readDwfInflow(Project *project, char* tok[], int ntoks);
+int     inflow_readDwfPattern(Project *project, char* tok[], int ntoks);
+void    inflow_initDwfInflow(Project *project, TDwfInflow* inflow);
+void    inflow_initDwfPattern(Project *project, int pattern);
+double  inflow_getExtInflow(Project *project, TExtInflow* inflow, DateTime aDate);
+double  inflow_getDwfInflow(Project *project, TDwfInflow* inflow, int m, int d, int h);
+double  inflow_getPatternFactor(Project *project, int p, int month, int day, int hour);
+void    inflow_deleteExtInflows(Project *project, int node);
+void    inflow_deleteDwfInflows(Project *project, int node);
 
 //-----------------------------------------------------------------------------
 //   Routing Interface File Methods
@@ -369,14 +369,14 @@ double  xsect_getYcrit(Project *project, TXsect* xsect, double q);
 //-----------------------------------------------------------------------------
 //   Culvert Methods
 //-----------------------------------------------------------------------------
-double  culvert_getInflow(int link, double q, double h);
+double  culvert_getInflow(Project *project, int link, double q, double h);
 
 //-----------------------------------------------------------------------------
 //   Force Main Methods
 //-----------------------------------------------------------------------------
-double  forcemain_getEquivN(int j, int k);
-double  forcemain_getRoughFactor(int j, double lengthFactor);
-double  forcemain_getFricSlope(int j, double v, double hrad);
+double  forcemain_getEquivN(Project *project, int j, int k);
+double  forcemain_getRoughFactor(Project *project, int j, double lengthFactor);
+double  forcemain_getFricSlope(Project *project, int j, double v, double hrad);
 
 //-----------------------------------------------------------------------------
 //   Cross-Section project->Transect Methods
@@ -396,8 +396,8 @@ int     shape_validate(TShape *shape, TTable *curve);
 //-----------------------------------------------------------------------------
 int     controls_create(int n);
 void    controls_delete(void);
-int     controls_addRuleClause(int rule, int keyword, char* Tok[], int nTokens);
-int     controls_evaluate(DateTime currentTime, DateTime elapsedTime, 
+int     controls_addRuleClause(Project *project, int rule, int keyword, char* Tok[], int nTokens);
+int     controls_evaluate(Project *project, DateTime currentTime, DateTime elapsedTime,
         double tStep);
 
 //-----------------------------------------------------------------------------
@@ -426,7 +426,7 @@ double  table_lookupEx(TTable* table, double x);
 //-----------------------------------------------------------------------------
 //   Utility Methods
 //-----------------------------------------------------------------------------
-double   UCF(int quantity);                   // units conversion factor
+double   UCF(Project *project, int quantity);                   // units conversion factor
 int      getInt(char *s, int *y);             // get integer from string
 int      getFloat(char *s, float *y);         // get float from string
 int      getDouble(char *s, double *y);       // get double from string
@@ -438,16 +438,16 @@ char*    concat(char *s1, char *s2);         // a concatenated string of s1 and 
 char*    sstrncpy(char *dest, const char *src,
          size_t maxlen);                      // safe string copy
 void     writecon(char *s);                   // writes string to console
-DateTime getDateTime(double elapsedMsec);     // convert elapsed time to date
-void     getElapsedTime(DateTime aDate,       // convert elapsed date
+DateTime getDateTime(Project *project, double elapsedMsec);     // convert elapsed time to date
+void     getElapsedTime(Project *project, DateTime aDate,       // convert elapsed date
          int* days, int* hrs, int* mins);
 
 //-----------------------------------------------------------------------------
 //   OpenMI Functions
 //-----------------------------------------------------------------------------
-void setOpenMINodeDepths(void);
-void setOpenMINodeDepth(int index);
+void setOpenMINodeDepths(Project *project);
+void setOpenMINodeDepth(Project *project, int index);
 
-void setOpenMILateralInflows(void);
-void setOpenMILateralInflow(int index);
+void setOpenMILateralInflows(Project *project);
+void setOpenMILateralInflow(Project *project, int index);
 

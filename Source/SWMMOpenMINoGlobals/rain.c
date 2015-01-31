@@ -215,7 +215,7 @@ void createRainFile(Project *project, int count)
 
     // --- write default fill-in header records to file for each gage
     //     (will be replaced later with actual records)
-    if ( count > 0 ) report_writeRainStats(-1, &RainStats);
+    if ( count > 0 ) report_writeRainStats(project, -1, &RainStats);
     for ( i = 0;  i < count; i++ )
     {
         fwrite(staID, sizeof(char), MAXMSG+1, project->Frain.file);
@@ -248,7 +248,7 @@ void createRainFile(Project *project, int count)
             fwrite(&filePos3,  sizeof(int), 1, project->Frain.file);
             filePos1 = ftell(project->Frain.file);
             filePos2 = filePos3;
-            report_writeRainStats(i, &RainStats);
+            report_writeRainStats(project, i, &RainStats);
         }
     }
 
