@@ -35,25 +35,25 @@ static const double STOPTOL = 0.005;   // storage updating stopping tolerance
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static void   initLinkDepths(Project *project);
-static void   initNodeDepths(Project *project);
-static void   initNodes(Project *project);
-static void   initLinks(Project *project);
-static void   validateTreeLayout(Project *project);
-static void   validateGeneralLayout(Project *project);
-static void   updateStorageState(Project *project, int i, int j, int links[], double dt);
-static double getStorageOutflow(Project *project, int node, int j, int links[], double dt);
-static double getLinkInflow(Project *project, int link, double dt);
-static void   setNewNodeState(Project *project,int node, double dt);
-static void   setNewLinkState(Project *project,int link);
-static void   updateNodeDepth(Project *project,int node, double y);
-static int    steadyflow_execute(Project *project,int link, double* qin, double* qout,
+static void   initLinkDepths(Project* project);
+static void   initNodeDepths(Project* project);
+static void   initNodes(Project* project);
+static void   initLinks(Project* project);
+static void   validateTreeLayout(Project* project);      
+static void   validateGeneralLayout(Project* project);
+static void   updateStorageState(Project* project, int i, int j, int links[], double dt);
+static double getStorageOutflow(Project* project, int node, int j, int links[], double dt);
+static double getLinkInflow(Project* project, int link, double dt);
+static void   setNewNodeState(Project* project, int node, double dt);
+static void   setNewLinkState(Project* project, int link);
+static void   updateNodeDepth(Project* project, int node, double y);
+static int    steadyflow_execute(Project* project, int link, double* qin, double* qout,
               double tStep);
 
 
 //=============================================================================
 
-void flowrout_init(Project *project, int routingModel)
+void flowrout_init(Project* project, int routingModel)
 //
 //  Input:   routingModel = routing model code
 //  Output:  none
@@ -85,19 +85,19 @@ void flowrout_init(Project *project, int routingModel)
 
 //=============================================================================
 
-void  flowrout_close(int routingModel)
+void  flowrout_close(Project* project, int routingModel)
 //
 //  Input:   routingModel = routing method code
 //  Output:  none
 //  Purpose: closes down routing method used.
 //
 {
-    if ( routingModel == DW ) dynwave_close();
+    if ( routingModel == DW ) dynwave_close(project);
 }
 
 //=============================================================================
 
-double flowrout_getRoutingStep(Project *project,int routingModel, double fixedStep)
+double flowrout_getRoutingStep(Project* project, int routingModel, double fixedStep)
 //
 //  Input:   routingModel = type of routing method used
 //           fixedStep = user-assigned max. routing step (sec)
@@ -114,7 +114,7 @@ double flowrout_getRoutingStep(Project *project,int routingModel, double fixedSt
 
 //=============================================================================
 
-int flowrout_execute(Project *project, int links[], int routingModel, double tStep)
+int flowrout_execute(Project* project, int links[], int routingModel, double tStep)
 //
 //  Input:   links = array of link indexes in topo-sorted order
 //           routingModel = type of routing method used
@@ -132,14 +132,14 @@ int flowrout_execute(Project *project, int links[], int routingModel, double tSt
     // --- set overflows to drain any ponded water
     if ( project->ErrorCode )
 		return 0;
-    for (j = 0; j < project->Nobjects[NODE]; j++)
+    for (j = 0; j <project-> Nobjects[NODE]; j++)
     {
-        project->Node[j].updated = FALSE;
-        project->Node[j].overflow = 0.0;
-        if ( project->Node[j].type != STORAGE
-        &&   project->Node[j].newVolume > project->Node[j].fullVolume )
+        project-> Node[j].updated = FALSE;
+        project-> Node[j].overflow = 0.0;
+        if ( project-> Node[j].type != STORAGE
+        &&   project-> Node[j].newVolume > project-> Node[j].fullVolume )
         {
-            project->Node[j].overflow = (project->Node[j].newVolume - project->Node[j].fullVolume)/tStep;
+            project-> Node[j].overflow = (project-> Node[j].newVolume - project-> Node[j].fullVolume)/tStep;
         }
     }
 
@@ -151,13 +151,13 @@ int flowrout_execute(Project *project, int links[], int routingModel, double tSt
 
     // --- otherwise examine each link, moving from upstream to downstream
     steps = 0.0;
-    for (i = 0; i < project->Nobjects[LINK]; i++)
+    for (i = 0; i <project-> Nobjects[LINK]; i++)
     {
         // --- see if upstream node is a storage unit whose state needs updating
         j = links[i];
-        n1 = project->Link[j].node1;
+        n1 = project-> Link[j].node1;
 
-        if ( project->Node[n1].type == STORAGE ) 
+        if ( project-> Node[n1].type == STORAGE ) 
 			updateStorageState(project,n1, i, links, tStep);
 
         // --- retrieve inflow at upstream end of link
@@ -167,27 +167,27 @@ int flowrout_execute(Project *project, int links[], int routingModel, double tSt
         if ( routingModel == SF )
             steps += steadyflow_execute(project,j, &qin, &qout, tStep);
         else 
-			steps += kinwave_execute(project, j, &qin, &qout, tStep);
+			steps += kinwave_execute(project,j, &qin, &qout, tStep);
 
-        project->Link[j].newFlow = qout;
+        project-> Link[j].newFlow = qout;
 		
 
         // adjust outflow at upstream node and inflow at downstream node
-        project->Node[ project->Link[j].node1 ].outflow += qin;
-		project->Node[project->Link[j].node2].inflow += project->Link[j].newFlow;
+        project-> Node[ project-> Link[j].node1 ].outflow += qin;
+		project-> Node[project-> Link[j].node2].inflow += project-> Link[j].newFlow;
     }
 
-    if ( project->Nobjects[LINK] > 0 ) steps /= project->Nobjects[LINK];
+    if (project-> Nobjects[LINK] > 0 ) steps /=project-> Nobjects[LINK];
 
     // --- update state of each non-updated node and link
-    for ( j=0; j<project->Nobjects[NODE]; j++) setNewNodeState(project,j, tStep);
-    for ( j=0; j<project->Nobjects[LINK]; j++) setNewLinkState(project,j);
+	for (j = 0; j<project->Nobjects[NODE]; j++) setNewNodeState(project,j, tStep);
+	for (j = 0; j<project->Nobjects[LINK]; j++) setNewLinkState(project,j);
     return (int)(steps+0.5);
 }
 
 //=============================================================================
 
-void validateTreeLayout(Project *project)
+void validateTreeLayout(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -198,23 +198,23 @@ void validateTreeLayout(Project *project)
     int    j;
 
     // --- check nodes
-    for ( j = 0; j < project->Nobjects[NODE]; j++ )
+    for ( j = 0; j <project-> Nobjects[NODE]; j++ )
     {
-        switch ( project->Node[j].type )
+        switch ( project-> Node[j].type )
         {
           // --- dividers must have only 2 outlet links
           case DIVIDER:
-            if ( project->Node[j].degree > 2 )
+            if ( project-> Node[j].degree > 2 )
             {
-                report_writeErrorMsg(project, ERR_DIVIDER, project->Node[j].ID);
+                report_writeErrorMsg(project,ERR_DIVIDER, project-> Node[j].ID);
             }
             break;
 
           // --- outfalls cannot have any outlet links
           case OUTFALL:
-            if ( project->Node[j].degree > 0 )
+            if ( project-> Node[j].degree > 0 )
             {
-                report_writeErrorMsg(project, ERR_OUTFALL, project->Node[j].ID);
+                report_writeErrorMsg(project,ERR_OUTFALL, project-> Node[j].ID);
             }
             break;
 
@@ -223,9 +223,9 @@ void validateTreeLayout(Project *project)
 
           // --- all other nodes allowed only one outlet link
           default:
-            if ( project->Node[j].degree > 1 )
+            if ( project-> Node[j].degree > 1 )
             {
-                report_writeErrorMsg(project, ERR_MULTI_OUTLET, project->Node[j].ID);
+                report_writeErrorMsg(project,ERR_MULTI_OUTLET, project-> Node[j].ID);
             }
         }
     }
@@ -233,14 +233,14 @@ void validateTreeLayout(Project *project)
     // ---  check links 
     for (j=0; j<project->Nobjects[LINK]; j++)
     {
-        switch ( project->Link[j].type )
+        switch ( project-> Link[j].type )
         {
           // --- non-dummy conduits cannot have adverse slope
           case CONDUIT:
-              if ( project->Conduit[project->Link[j].subIndex].slope < 0.0 &&
-                   project->Link[j].xsect.type != DUMMY )
+              if ( project-> Conduit[project-> Link[j].subIndex].slope < 0.0 &&
+                   project-> Link[j].xsect.type != DUMMY )
               {
-                  report_writeErrorMsg(project, ERR_SLOPE, project->Link[j].ID);
+                  report_writeErrorMsg(project,ERR_SLOPE, project-> Link[j].ID);
               }
               break;
 
@@ -248,9 +248,9 @@ void validateTreeLayout(Project *project)
           case ORIFICE:
           case WEIR:
           case OUTLET:
-            if ( project->Node[project->Link[j].node1].type != STORAGE )
+            if ( project-> Node[project-> Link[j].node1].type != STORAGE )
             {
-                report_writeErrorMsg(project, ERR_REGULATOR, project->Link[j].ID);
+                report_writeErrorMsg(project,ERR_REGULATOR, project-> Link[j].ID);
             }
         }
     }
@@ -258,7 +258,7 @@ void validateTreeLayout(Project *project)
 
 //=============================================================================
 
-void validateGeneralLayout(Project *project)
+void validateGeneralLayout(Project* project)
 //
 //  Input:   none
 //  Output:  nonw
@@ -269,59 +269,59 @@ void validateGeneralLayout(Project *project)
     int outletCount = 0;
 
     // --- use node inflow attribute to count inflow connections
-    for ( i=0; i<project->Nobjects[NODE]; i++ ) project->Node[i].inflow = 0.0;
+    for ( i=0; i<project->Nobjects[NODE]; i++ ) project-> Node[i].inflow = 0.0;
 
     // --- examine each link
-    for ( j = 0; j < project->Nobjects[LINK]; j++ )
+    for ( j = 0; j <project-> Nobjects[LINK]; j++ )
     {
         // --- update inflow link count of downstream node
-        i = project->Link[j].node1;
-        if ( project->Node[i].type != OUTFALL ) i = project->Link[j].node2;
-        project->Node[i].inflow += 1.0;
+        i = project-> Link[j].node1;
+        if ( project-> Node[i].type != OUTFALL ) i = project-> Link[j].node2;
+        project-> Node[i].inflow += 1.0;
 
         // --- if link is dummy link or ideal pump then it must
         //     be the only link exiting the upstream node 
-        if ( (project->Link[j].type == CONDUIT && project->Link[j].xsect.type == DUMMY) ||
-             (project->Link[j].type == PUMP &&
-              project->Pump[project->Link[j].subIndex].type == IDEAL_PUMP) )
+        if ( (project-> Link[j].type == CONDUIT && project-> Link[j].xsect.type == DUMMY) ||
+             (project-> Link[j].type == PUMP &&
+              project->Pump[project-> Link[j].subIndex].type == IDEAL_PUMP) )
         {
-            i = project->Link[j].node1;
-            if ( project->Link[j].direction < 0 ) i = project->Link[j].node2;
-            if ( project->Node[i].degree > 1 )
+            i = project-> Link[j].node1;
+            if ( project-> Link[j].direction < 0 ) i = project-> Link[j].node2;
+            if ( project-> Node[i].degree > 1 )
             {
-                report_writeErrorMsg(project, ERR_DUMMY_LINK, project->Node[i].ID);
+                report_writeErrorMsg(project,ERR_DUMMY_LINK, project-> Node[i].ID);
             }
         }
     }
 
     // --- check each node to see if it qualifies as an outlet node
     //     (meaning that degree = 0)
-    for ( i = 0; i < project->Nobjects[NODE]; i++ )
+    for ( i = 0; i <project-> Nobjects[NODE]; i++ )
     {
-        // --- if node is of type project->Outfall, check that it has only 1
+        // --- if node is of type Outfall, check that it has only 1
         //     connecting link (which can either be an outflow or inflow link)
-        if ( project->Node[i].type == OUTFALL )
+        if ( project-> Node[i].type == OUTFALL )
         {
-            if ( project->Node[i].degree + (int)project->Node[i].inflow > 1 )
+            if ( project-> Node[i].degree + (int)project-> Node[i].inflow > 1 )
             {
-                report_writeErrorMsg(project, ERR_OUTFALL, project->Node[i].ID);
+                report_writeErrorMsg(project,ERR_OUTFALL, project-> Node[i].ID);
             }
             else outletCount++;
         }
     }
-    if ( outletCount == 0 ) report_writeErrorMsg(project, ERR_NO_OUTLETS, "");
+    if ( outletCount == 0 ) report_writeErrorMsg(project,ERR_NO_OUTLETS, "");
 
     // --- reset node inflows back to zero
-    for ( i = 0; i < project->Nobjects[NODE]; i++ )
+    for ( i = 0; i <project-> Nobjects[NODE]; i++ )
     {
-        if ( project->Node[i].inflow == 0.0 ) project->Node[i].degree = -project->Node[i].degree;
-        project->Node[i].inflow = 0.0;
+        if ( project-> Node[i].inflow == 0.0 ) project-> Node[i].degree = -project-> Node[i].degree;
+        project-> Node[i].inflow = 0.0;
     }
 }
 
 //=============================================================================
 
-void initNodeDepths(Project *project)
+void initNodeDepths(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -332,48 +332,48 @@ void initNodeDepths(Project *project)
     int   n;                           // node index
     double y;                          // node water depth (ft)
 
-    // --- use project->Node[].inflow as a temporary accumulator for depth in 
-    //     connecting links and project->Node[].outflow as a temporary counter
+    // --- use project-> Node[].inflow as a temporary accumulator for depth in 
+    //     connecting links and project-> Node[].outflow as a temporary counter
     //     for the number of connecting links
-    for (i = 0; i < project->Nobjects[NODE]; i++)
+    for (i = 0; i <project-> Nobjects[NODE]; i++)
     {
-        project->Node[i].inflow  = 0.0;
-        project->Node[i].outflow = 0.0;
+        project-> Node[i].inflow  = 0.0;
+        project-> Node[i].outflow = 0.0;
     }
 
     // --- total up flow depths in all connecting links into nodes
-    for (i = 0; i < project->Nobjects[LINK]; i++)
+    for (i = 0; i <project-> Nobjects[LINK]; i++)
     {
-        if ( project->Link[i].newDepth > FUDGE ) y = project->Link[i].newDepth + project->Link[i].offset1;
+        if ( project-> Link[i].newDepth > FUDGE ) y = project-> Link[i].newDepth + project-> Link[i].offset1;
         else y = 0.0;
-        n = project->Link[i].node1;
-        project->Node[n].inflow += y;
-        project->Node[n].outflow += 1.0;
-        n = project->Link[i].node2;
-        project->Node[n].inflow += y;
-        project->Node[n].outflow += 1.0;
+        n = project-> Link[i].node1;
+        project-> Node[n].inflow += y;
+        project-> Node[n].outflow += 1.0;
+        n = project-> Link[i].node2;
+        project-> Node[n].inflow += y;
+        project-> Node[n].outflow += 1.0;
     }
 
     // --- if no user-supplied depth then set initial depth at non-storage/
     //     non-outfall nodes to average of depths in connecting links
-    for ( i = 0; i < project->Nobjects[NODE]; i++ )
+    for ( i = 0; i <project-> Nobjects[NODE]; i++ )
     {
-        if ( project->Node[i].type == OUTFALL ) continue;
-        if ( project->Node[i].type == STORAGE ) continue;
-        if ( project->Node[i].initDepth > 0.0 ) continue;
-        if ( project->Node[i].outflow > 0.0 )
+        if ( project-> Node[i].type == OUTFALL ) continue;
+        if ( project-> Node[i].type == STORAGE ) continue;
+        if ( project-> Node[i].initDepth > 0.0 ) continue;
+        if ( project-> Node[i].outflow > 0.0 )
         {
-            project->Node[i].newDepth = project->Node[i].inflow / project->Node[i].outflow;
+            project-> Node[i].newDepth = project-> Node[i].inflow / project-> Node[i].outflow;
         }
     }
 
     // --- compute initial depths at all outfall nodes
-    for ( i = 0; i < project->Nobjects[LINK]; i++ ) link_setOutfallDepth(project,i);
+    for ( i = 0; i <project-> Nobjects[LINK]; i++ ) link_setOutfallDepth(project,i);
 }
 
 //=============================================================================
          
-void initLinkDepths(Project *project)
+void initLinkDepths(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -384,32 +384,32 @@ void initLinkDepths(Project *project)
     double y, y1, y2;                  // depths (ft)
 
     // --- examine each link
-    for (i = 0; i < project->Nobjects[LINK]; i++)
+    for (i = 0; i <project-> Nobjects[LINK]; i++)
     {
         // --- examine each conduit
-        if ( project->Link[i].type == CONDUIT )
+        if ( project-> Link[i].type == CONDUIT )
         {
             // --- skip conduits with user-assigned initial flows
             //     (their depths have already been set to normal depth)
-            if ( project->Link[i].q0 != 0.0 ) continue;
+            if ( project-> Link[i].q0 != 0.0 ) continue;
 
             // --- set depth to average of depths at end nodes
-            y1 = project->Node[project->Link[i].node1].newDepth - project->Link[i].offset1;
+            y1 = project-> Node[project-> Link[i].node1].newDepth - project-> Link[i].offset1;
             y1 = MAX(y1, 0.0);
-            y1 = MIN(y1, project->Link[i].xsect.yFull);
-            y2 = project->Node[project->Link[i].node2].newDepth - project->Link[i].offset2;
+            y1 = MIN(y1, project-> Link[i].xsect.yFull);
+            y2 = project-> Node[project-> Link[i].node2].newDepth - project-> Link[i].offset2;
             y2 = MAX(y2, 0.0);
-            y2 = MIN(y2, project->Link[i].xsect.yFull);
+            y2 = MIN(y2, project-> Link[i].xsect.yFull);
             y = 0.5 * (y1 + y2);
             y = MAX(y, FUDGE);
-            project->Link[i].newDepth = y;
+            project-> Link[i].newDepth = y;
         }
     }
 }
 
 //=============================================================================
 
-void initNodes(Project *project)
+void initNodes(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -418,48 +418,48 @@ void initNodes(Project *project)
 {
     int i;
 
-    for ( i = 0; i < project->Nobjects[NODE]; i++ )
+    for ( i = 0; i <project-> Nobjects[NODE]; i++ )
     {
         // --- set default crown elevations here
-        project->Node[i].crownElev = project->Node[i].invertElev;
+        project-> Node[i].crownElev = project-> Node[i].invertElev;
 
         // --- initialize node inflow and outflow
-        project->Node[i].inflow = project->Node[i].newLatFlow;
-        project->Node[i].outflow = 0.0;
+        project-> Node[i].inflow = project-> Node[i].newLatFlow;
+        project-> Node[i].outflow = 0.0;
 
         // --- initialize node volume
-        project->Node[i].newVolume = 0.0;
-        if ( project->AllowPonding &&
-             project->Node[i].pondedArea > 0.0 &&
-             project->Node[i].newDepth > project->Node[i].fullDepth )
+        project-> Node[i].newVolume = 0.0;
+        if ( project-> AllowPonding &&
+             project-> Node[i].pondedArea > 0.0 &&
+             project-> Node[i].newDepth > project-> Node[i].fullDepth )
         {
-            project->Node[i].newVolume = project->Node[i].fullVolume +
-                                (project->Node[i].newDepth - project->Node[i].fullDepth) *
-                                project->Node[i].pondedArea;
+            project-> Node[i].newVolume = project-> Node[i].fullVolume +
+                                (project-> Node[i].newDepth - project-> Node[i].fullDepth) *
+                                project-> Node[i].pondedArea;
         }
-        else project->Node[i].newVolume = node_getVolume(project, i, project->Node[i].newDepth);
+        else project-> Node[i].newVolume = node_getVolume(project,i, project-> Node[i].newDepth);
     }
 
     // --- update nodal inflow/outflow at ends of each link
     //     (needed for Steady Flow & Kin. Wave routing)
-    for ( i = 0; i < project->Nobjects[LINK]; i++ )
+    for ( i = 0; i <project-> Nobjects[LINK]; i++ )
     {
-        if ( project->Link[i].newFlow >= 0.0 )
+        if ( project-> Link[i].newFlow >= 0.0 )
         {
-            project->Node[project->Link[i].node1].outflow += project->Link[i].newFlow;
-            project->Node[project->Link[i].node2].inflow  += project->Link[i].newFlow;
+            project-> Node[project-> Link[i].node1].outflow += project-> Link[i].newFlow;
+            project-> Node[project-> Link[i].node2].inflow  += project-> Link[i].newFlow;
         }
         else
         {
-            project->Node[project->Link[i].node1].inflow   -= project->Link[i].newFlow;
-            project->Node[project->Link[i].node2].outflow  -= project->Link[i].newFlow;
+            project-> Node[project-> Link[i].node1].inflow   -= project-> Link[i].newFlow;
+            project-> Node[project-> Link[i].node2].outflow  -= project-> Link[i].newFlow;
         }
     }
 }
 
 //=============================================================================
 
-void initLinks(Project *project)
+void initLinks(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -475,42 +475,42 @@ void initLinks(Project *project)
     double z;                          // crown elev. (ft)
 
     // --- examine each link
-    for ( i = 0; i < project->Nobjects[LINK]; i++ )
+    for ( i = 0; i <project-> Nobjects[LINK]; i++ )
     {
         // --- examine each conduit
-        if ( project->Link[i].type == CONDUIT )
+        if ( project-> Link[i].type == CONDUIT )
         {
             // --- assign initial flow to both ends of conduit
-            k = project->Link[i].subIndex;
-            project->Conduit[k].q1 = project->Link[i].newFlow / project->Conduit[k].barrels;
-            project->Conduit[k].q2 = project->Conduit[k].q1;
+            k = project-> Link[i].subIndex;
+            project-> Conduit[k].q1 = project-> Link[i].newFlow / project-> Conduit[k].barrels;
+            project-> Conduit[k].q2 = project-> Conduit[k].q1;
 
-            project->Conduit[k].q1Old = project->Conduit[k].q1;
-            project->Conduit[k].q2Old = project->Conduit[k].q2;
+            project-> Conduit[k].q1Old = project-> Conduit[k].q1;
+            project-> Conduit[k].q2Old = project-> Conduit[k].q2;
 
             // --- find areas based on initial flow depth
-            project->Conduit[k].a1 = xsect_getAofY(project,&project->Link[i].xsect, project->Link[i].newDepth);
-            project->Conduit[k].a2 = project->Conduit[k].a1;
+            project-> Conduit[k].a1 = xsect_getAofY(project,&project-> Link[i].xsect, project-> Link[i].newDepth);
+            project-> Conduit[k].a2 = project-> Conduit[k].a1;
 
             // --- compute initial volume from area
-            project->Link[i].newVolume = project->Conduit[k].a1 * link_getLength(project,i) *
-                                project->Conduit[k].barrels;
-            project->Link[i].oldVolume = project->Link[i].newVolume;
+            project-> Link[i].newVolume = project-> Conduit[k].a1 * link_getLength(project,i) *
+                                project-> Conduit[k].barrels;
+            project-> Link[i].oldVolume = project-> Link[i].newVolume;
         }
 
         // --- update crown elev. of nodes at either end
-        j = project->Link[i].node1;
-        z = project->Node[j].invertElev + project->Link[i].offset1 + project->Link[i].xsect.yFull;
-        project->Node[j].crownElev = MAX(project->Node[j].crownElev, z);
-        j = project->Link[i].node2;
-        z = project->Node[j].invertElev + project->Link[i].offset2 + project->Link[i].xsect.yFull;
-        project->Node[j].crownElev = MAX(project->Node[j].crownElev, z);
+        j = project-> Link[i].node1;
+        z = project-> Node[j].invertElev + project-> Link[i].offset1 + project-> Link[i].xsect.yFull;
+        project-> Node[j].crownElev = MAX(project-> Node[j].crownElev, z);
+        j = project-> Link[i].node2;
+        z = project-> Node[j].invertElev + project-> Link[i].offset2 + project-> Link[i].xsect.yFull;
+        project-> Node[j].crownElev = MAX(project-> Node[j].crownElev, z);
     }
 }
 
 //=============================================================================
 
-double getLinkInflow(Project *project, int j, double dt)
+double getLinkInflow(Project* project, int j, double dt)
 //
 //  Input:   j  = link index
 //           dt = routing time step (sec)
@@ -519,18 +519,18 @@ double getLinkInflow(Project *project, int j, double dt)
 //           Steady or Kin. Wave routing.
 //
 {
-    int   n1 = project->Link[j].node1;
+    int   n1 = project-> Link[j].node1;
     double q;
-    if ( project->Link[j].type == CONDUIT ||
-         project->Link[j].type == PUMP ||
-         project->Node[n1].type == STORAGE ) q = link_getInflow(project,j);
+    if ( project-> Link[j].type == CONDUIT ||
+         project-> Link[j].type == PUMP ||
+         project-> Node[n1].type == STORAGE ) q = link_getInflow(project,j);
     else q = 0.0;
-    return node_getMaxOutflow(project, n1, q, dt);
+    return node_getMaxOutflow(project,n1, q, dt);
 }
 
 //=============================================================================
 
-void updateStorageState(Project *project, int i, int j, int links[], double dt)
+void updateStorageState(Project* project, int i, int j, int links[], double dt)
 //
 //  Input:   i = index of storage node
 //           j = current position in links array
@@ -551,15 +551,15 @@ void updateStorageState(Project *project, int i, int j, int links[], double dt)
     double outflow;                    // outflow rate from storage (cfs)
 
     // --- see if storage node needs updating
-    if ( project->Node[i].type != STORAGE ) return;
-    if ( project->Node[i].updated ) return;
+    if ( project-> Node[i].type != STORAGE ) return;
+    if ( project-> Node[i].updated ) return;
 
     // --- compute terms of flow balance eqn.
     //       v2 = v1 + (inflow - outflow)*dt
     //     that do not depend on storage depth at end of time step
-    vFixed = project->Node[i].oldVolume + 
-             0.5 * (project->Node[i].oldNetInflow + project->Node[i].inflow) * dt;
-    d1 = project->Node[i].newDepth;
+    vFixed = project-> Node[i].oldVolume + 
+             0.5 * (project-> Node[i].oldNetInflow + project-> Node[i].inflow) * dt;
+    d1 = project-> Node[i].newDepth;
 
     // --- iterate finding outflow (which depends on depth) and subsequent
     //     new volume and depth until negligible depth change occurs
@@ -576,20 +576,20 @@ void updateStorageState(Project *project, int i, int j, int links[], double dt)
         // --- limit volume to full volume if no ponding
         //     and compute overflow rate
         v2 = MAX(0.0, v2);
-        project->Node[i].overflow = 0.0;
-        if ( v2 > project->Node[i].fullVolume )
+        project-> Node[i].overflow = 0.0;
+        if ( v2 > project-> Node[i].fullVolume )
         {
-            project->Node[i].overflow = (v2 - MAX(project->Node[i].oldVolume,
-                                         project->Node[i].fullVolume)) / dt;
-            if ( !project->AllowPonding || project->Node[i].pondedArea == 0.0 )
-                v2 = project->Node[i].fullVolume;
+            project-> Node[i].overflow = (v2 - MAX(project-> Node[i].oldVolume,
+                                         project-> Node[i].fullVolume)) / dt;
+            if ( !project-> AllowPonding || project-> Node[i].pondedArea == 0.0 )
+                v2 = project-> Node[i].fullVolume;
         }
 
         // --- update node's volume & depth 
-        project->Node[i].newVolume = v2;
-        if ( v2 > project->Node[i].fullVolume ) d2 = node_getPondedDepth(project,i, v2);
-        else d2 = node_getDepth(project, i, v2);
-        project->Node[i].newDepth = d2;
+        project-> Node[i].newVolume = v2;
+        if ( v2 > project-> Node[i].fullVolume ) d2 = node_getPondedDepth(project,i, v2);
+        else d2 = node_getDepth(project,i, v2);
+        project-> Node[i].newDepth = d2;
 
         // --- use under-relaxation to estimate new depth value
         //     and stop if close enough to previous value
@@ -597,18 +597,18 @@ void updateStorageState(Project *project, int i, int j, int links[], double dt)
         if ( fabs(d2 - d1) <= STOPTOL ) stopped = TRUE;
 
         // --- update old depth with new value and continue to iterate
-        project->Node[i].newDepth = d2;
+        project-> Node[i].newDepth = d2;
         d1 = d2;
         iter++;
     }
 
     // --- mark node as being updated
-    project->Node[i].updated = TRUE;
+    project-> Node[i].updated = TRUE;
 }
 
 //=============================================================================
 
-double getStorageOutflow(Project *project, int i, int j, int links[], double dt)
+double getStorageOutflow(Project* project, int i, int j, int links[], double dt)
 //
 //  Input:   i = index of storage node
 //           j = current position in links array
@@ -621,10 +621,10 @@ double getStorageOutflow(Project *project, int i, int j, int links[], double dt)
     int   k, m;
     double outflow = 0.0;
 
-    for (k = j; k < project->Nobjects[LINK]; k++)
+    for (k = j; k <project-> Nobjects[LINK]; k++)
     {
         m = links[k];
-        if ( project->Link[m].node1 != i ) break;
+        if ( project-> Link[m].node1 != i ) break;
         outflow += getLinkInflow(project,m, dt);
     }
     return outflow;        
@@ -632,7 +632,7 @@ double getStorageOutflow(Project *project, int i, int j, int links[], double dt)
 
 //=============================================================================
 
-void setNewNodeState(Project *project,int j, double dt)
+void setNewNodeState(Project* project, int j, double dt)
 //
 //  Input:   j  = node index
 //           dt = time step (sec)
@@ -645,34 +645,34 @@ void setNewNodeState(Project *project,int j, double dt)
     double newNetInflow;               // inflow - outflow at node (cfs)
 
     // --- storage nodes have already been updated
-    if ( project->Node[j].type == STORAGE ) return; 
+    if ( project-> Node[j].type == STORAGE ) return; 
 
     // --- update stored volume using mid-point integration
-    newNetInflow = project->Node[j].inflow - project->Node[j].outflow;
-    project->Node[j].newVolume = project->Node[j].oldVolume +
-                        0.5 * (project->Node[j].oldNetInflow + newNetInflow) * dt;
-    if ( project->Node[j].newVolume < FUDGE ) project->Node[j].newVolume = 0.0;
+    newNetInflow = project-> Node[j].inflow - project-> Node[j].outflow;
+    project-> Node[j].newVolume = project-> Node[j].oldVolume +
+                        0.5 * (project-> Node[j].oldNetInflow + newNetInflow) * dt;
+    if ( project-> Node[j].newVolume < FUDGE ) project-> Node[j].newVolume = 0.0;
 
     // --- determine any overflow lost from system
-    project->Node[j].overflow = 0.0;
-    canPond = (project->AllowPonding && project->Node[j].pondedArea > 0.0);
-    if ( project->Node[j].newVolume > project->Node[j].fullVolume )
+    project-> Node[j].overflow = 0.0;
+    canPond = (project-> AllowPonding && project-> Node[j].pondedArea > 0.0);
+    if ( project-> Node[j].newVolume > project-> Node[j].fullVolume )
     {
-        project->Node[j].overflow = (project->Node[j].newVolume - MAX(project->Node[j].oldVolume,
-                            project->Node[j].fullVolume)) / dt;
-        if ( project->Node[j].overflow < FUDGE ) project->Node[j].overflow = 0.0;
-        if ( !canPond ) project->Node[j].newVolume = project->Node[j].fullVolume;
+        project-> Node[j].overflow = (project-> Node[j].newVolume - MAX(project-> Node[j].oldVolume,
+                            project-> Node[j].fullVolume)) / dt;
+        if ( project-> Node[j].overflow < FUDGE ) project-> Node[j].overflow = 0.0;
+        if ( !canPond ) project-> Node[j].newVolume = project-> Node[j].fullVolume;
     }
 
     // --- compute a depth from volume
     //     (depths at upstream nodes are subsequently adjusted in
     //     setNewLinkState to reflect depths in connected conduit)
-    project->Node[j].newDepth = node_getDepth(project,j, project->Node[j].newVolume);
+    project-> Node[j].newDepth = node_getDepth(project,j, project-> Node[j].newVolume);
 }
 
 //=============================================================================
 
-void setNewLinkState(Project *project,int j)
+void setNewLinkState(Project* project, int j)
 //
 //  Input:   j = link index
 //  Output:  none
@@ -683,33 +683,33 @@ void setNewLinkState(Project *project,int j)
     int   k;
     double a, y1, y2;
 
-    project->Link[j].newDepth = 0.0;
-    project->Link[j].newVolume = 0.0;
+    project-> Link[j].newDepth = 0.0;
+    project-> Link[j].newVolume = 0.0;
 
-    if ( project->Link[j].type == CONDUIT )
+    if ( project-> Link[j].type == CONDUIT )
     {
         // --- find avg. depth from entry/exit conditions
-        k = project->Link[j].subIndex;
-        a = 0.5 * (project->Conduit[k].a1 + project->Conduit[k].a2);
-        project->Link[j].newVolume = a * link_getLength(project, j) * project->Conduit[k].barrels;
-        y1 = xsect_getYofA(project,&project->Link[j].xsect, project->Conduit[k].a1);
-        y2 = xsect_getYofA(project,&project->Link[j].xsect, project->Conduit[k].a2);
-        project->Link[j].newDepth = 0.5 * (y1 + y2);
+        k = project-> Link[j].subIndex;
+        a = 0.5 * (project-> Conduit[k].a1 + project-> Conduit[k].a2);
+        project-> Link[j].newVolume = a * link_getLength(project,j) * project-> Conduit[k].barrels;
+        y1 = xsect_getYofA(project,&project-> Link[j].xsect, project-> Conduit[k].a1);
+        y2 = xsect_getYofA(project,&project-> Link[j].xsect, project-> Conduit[k].a2);
+        project-> Link[j].newDepth = 0.5 * (y1 + y2);
 
         // --- update depths at end nodes
-        updateNodeDepth(project,project->Link[j].node1, y1 + project->Link[j].offset1);
-        updateNodeDepth(project,project->Link[j].node2, y2 + project->Link[j].offset2);
+        updateNodeDepth(project,project-> Link[j].node1, y1 + project-> Link[j].offset1);
+        updateNodeDepth(project,project-> Link[j].node2, y2 + project-> Link[j].offset2);
 
         // --- check if capacity limited
-        if ( project->Conduit[k].a1 >= project->Link[j].xsect.aFull )
-             project->Conduit[k].capacityLimited = TRUE;
-        else project->Conduit[k].capacityLimited = FALSE;
+        if ( project-> Conduit[k].a1 >= project-> Link[j].xsect.aFull )
+             project-> Conduit[k].capacityLimited = TRUE;
+        else project-> Conduit[k].capacityLimited = FALSE;
     }
 }
 
 //=============================================================================
 
-void updateNodeDepth(Project *project,int i, double y)
+void updateNodeDepth(Project* project, int i, double y)
 //
 //  Input:   i = node index
 //           y = flow depth (ft)
@@ -718,29 +718,29 @@ void updateNodeDepth(Project *project,int i, double y)
 //
 {
     // --- storage nodes were updated elsewhere
-    if ( project->Node[i].type == STORAGE ) return;
+    if ( project-> Node[i].type == STORAGE ) return;
 
     // --- if non-outfall node is flooded, then use full depth
-    if ( project->Node[i].type != OUTFALL &&
-         project->Node[i].overflow > 0.0 ) y = project->Node[i].fullDepth;
+    if ( project-> Node[i].type != OUTFALL &&
+         project-> Node[i].overflow > 0.0 ) y = project-> Node[i].fullDepth;
 
     // --- if current new depth below y
-    if ( project->Node[i].newDepth < y )
+    if ( project-> Node[i].newDepth < y )
     {
         // --- update new depth
-        project->Node[i].newDepth = y;
+        project-> Node[i].newDepth = y;
 
         // --- depth cannot exceed full depth (if value exists)
-        if ( project->Node[i].fullDepth > 0.0 && y > project->Node[i].fullDepth )
+        if ( project-> Node[i].fullDepth > 0.0 && y > project-> Node[i].fullDepth )
         {
-            project->Node[i].newDepth = project->Node[i].fullDepth;
+            project-> Node[i].newDepth = project-> Node[i].fullDepth;
         }
     }
 }
 
 //=============================================================================
 
-int steadyflow_execute(Project *project, int j, double* qin, double* qout, double tStep)
+int steadyflow_execute(Project* project, int j, double* qin, double* qout, double tStep)
 //
 //  Input:   j = link index
 //           qin = inflow to link (cfs)
@@ -756,11 +756,11 @@ int steadyflow_execute(Project *project, int j, double* qin, double* qout, doubl
     double q;
 
     // --- use Manning eqn. to compute flow area for conduits
-    if ( project->Link[j].type == CONDUIT )
+    if ( project-> Link[j].type == CONDUIT )
     {
-        k = project->Link[j].subIndex;
-        q = (*qin) / project->Conduit[k].barrels;
-        if ( project->Link[j].xsect.type == DUMMY ) project->Conduit[k].a1 = 0.0;
+        k = project-> Link[j].subIndex;
+        q = (*qin) / project-> Conduit[k].barrels;
+        if ( project-> Link[j].xsect.type == DUMMY ) project-> Conduit[k].a1 = 0.0;
         else 
         {
             // --- subtract evap and infil losses from inflow
@@ -768,24 +768,24 @@ int steadyflow_execute(Project *project, int j, double* qin, double* qout, doubl
             if ( q < 0.0 ) q = 0.0;
 
             // --- flow can't exceed full flow 
-            if ( q > project->Link[j].qFull )
+            if ( q > project-> Link[j].qFull )
             {
-                q = project->Link[j].qFull;
-                project->Conduit[k].a1 = project->Link[j].xsect.aFull;
-                (*qin) = q * project->Conduit[k].barrels;
+                q = project-> Link[j].qFull;
+                project-> Conduit[k].a1 = project-> Link[j].xsect.aFull;
+                (*qin) = q * project-> Conduit[k].barrels;
             }
 
             // --- infer flow area from flow rate 
             else
             {
-                s = q / project->Conduit[k].beta;
-                project->Conduit[k].a1 = xsect_getAofS(project,&project->Link[j].xsect, s);
+                s = q / project-> Conduit[k].beta;
+                project-> Conduit[k].a1 = xsect_getAofS(project,&project-> Link[j].xsect, s);
             }
         }
-        project->Conduit[k].a2 = project->Conduit[k].a1;
-        project->Conduit[k].q1 = q;
-        project->Conduit[k].q2 = q;
-        (*qout) = q * project->Conduit[k].barrels;
+        project-> Conduit[k].a2 = project-> Conduit[k].a1;
+        project-> Conduit[k].q1 = q;
+        project-> Conduit[k].q2 = q;
+        (*qout) = q * project-> Conduit[k].barrels;
     }
     else (*qout) = (*qin);
     return 1;

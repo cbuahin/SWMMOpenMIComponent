@@ -91,19 +91,25 @@ static int        isLetter(char);
 static void       getToken(void);
 static int        getMathFunc(void);
 static int        getVariable(void);
+static int        getVariable_added(Project*);
 static int        getOperand(void);
 static int        getLex(void);
+static int        getLex_added(Project*);
 static double     getNumber(void);
 static ExprTree * newNode(void);
 static ExprTree * getSingleOp(int *);
+static ExprTree * getSingleOp_added(Project*,int *);
 static ExprTree * getOp(int *);
+static ExprTree * getOp_added(Project*, int *);
 static ExprTree * getTree(void);
+static ExprTree * getTree_added(Project* );
 static void       traverseTree(ExprTree *, MathExpr **);
 static void       deleteTree(ExprTree *);
 
 // Callback functions
-static int    (*getVariableIndex) (char *); // return index of named variable
-static double (*getVariableValue) (int);    // return value of indexed variable
+static int(*getVariableIndex) (char *); // return index of named variable
+static int(*getVariableIndex_added) (Project* project, char *); // return index of named variable
+//static double (*getVariableValue) (int);    // return value of indexed variable
 
 //=============================================================================
 
@@ -182,6 +188,16 @@ int getVariable()
     Ivar = getVariableIndex(Token);
     if (Ivar >= 0) return 8;
     return 0;
+}
+
+//=============================================================================
+
+int getVariable_added(Project* project)
+{
+	if (!getVariableIndex_added) return 0;
+	Ivar = getVariableIndex_added(project,Token);
+	if (Ivar >= 0) return 8;
+	return 0;
 }
 
 //=============================================================================
@@ -307,6 +323,41 @@ int getLex()
     return n;
 }
 
+
+//=============================================================================
+
+int getLex_added(Project* project)
+{
+	int n;
+
+	/* --- skip spaces */
+	while (Pos < Len && S[Pos] == ' ') Pos++;
+	if (Pos >= Len) return 0;
+
+	/* --- check for operand */
+	n = getOperand();
+
+	/* --- check for function/variable/number */
+	if (n == 0)
+	{
+		if (isLetter(S[Pos]))
+		{
+			getToken();
+			n = getMathFunc();
+			if (n == 0) n = getVariable_added(project);
+		}
+		else if (isDigit(S[Pos]))
+		{
+			n = 7;
+			Fvalue = getNumber();
+		}
+	}
+	Pos++;
+	PrevLex = CurLex;
+	CurLex = n;
+	return n;
+}
+
 //=============================================================================
 
 ExprTree * newNode()
@@ -418,6 +469,97 @@ ExprTree * getSingleOp(int *lex)
 
 //=============================================================================
 
+ExprTree * getSingleOp_added(Project* project, int *lex)
+{
+	int bracket;
+	int opcode;
+	ExprTree *left;
+	ExprTree *right;
+	ExprTree *node;
+
+	/* --- open parenthesis, so continue to grow the tree */
+	if (*lex == 1)
+	{
+		Bc++;
+		left = getTree_added(project);
+	}
+
+	else
+	{
+		/* --- Error if not a singleton operand */
+		if (*lex < 7 || *lex == 9 || *lex > 30)
+		{
+			Err = 1;
+			return NULL;
+		}
+
+		opcode = *lex;
+
+		/* --- simple number or variable name */
+		if (*lex == 7 || *lex == 8)
+		{
+			left = newNode();
+			left->opcode = opcode;
+			if (*lex == 7) left->fvalue = Fvalue;
+			if (*lex == 8) left->ivar = Ivar;
+		}
+
+		/* --- function which must have a '(' after it */
+		else
+		{
+			*lex = getLex_added(project);
+			if (*lex != 1)
+			{
+				Err = 1;
+				return NULL;
+			}
+			Bc++;
+			left = newNode();
+			left->left = getTree_added(project);
+			left->opcode = opcode;
+		}
+	}
+	*lex = getLex_added(project);
+
+	/* --- exponentiation */
+	while (*lex == 31)
+	{
+		*lex = getLex_added(project);
+		bracket = 0;
+		if (*lex == 1)
+		{
+			bracket = 1;
+			*lex = getLex_added(project);
+		}
+		if (*lex != 7)
+		{
+			Err = 1;
+			return NULL;
+		}
+		right = newNode();
+		right->opcode = *lex;
+		right->fvalue = Fvalue;
+		node = newNode();
+		node->left = left;
+		node->right = right;
+		node->opcode = 31;
+		left = node;
+		if (bracket)
+		{
+			*lex = getLex_added(project);
+			if (*lex != 2)
+			{
+				Err = 1;
+				return NULL;
+			}
+		}
+		*lex = getLex_added(project);
+	}
+	return left;
+}
+
+//=============================================================================
+
 ExprTree * getOp(int *lex)
 {
     int opcode;
@@ -461,6 +603,52 @@ ExprTree * getOp(int *lex)
     return left;
 }
 
+
+//=============================================================================
+
+ExprTree * getOp_added(Project* project ,int *lex)
+{
+	int opcode;
+	ExprTree *left;
+	ExprTree *right;
+	ExprTree *node;
+	int neg = 0;
+
+	*lex = getLex();
+	if (PrevLex == 0 || PrevLex == 1)
+	{
+		if (*lex == 4)
+		{
+			neg = 1;
+			*lex = getLex();
+		}
+		else if (*lex == 3) *lex = getLex();
+	}
+	left = getSingleOp(lex);
+	while (*lex == 5 || *lex == 6)
+	{
+		opcode = *lex;
+		*lex = getLex();
+		right = getSingleOp(lex);
+		node = newNode();
+		if (Err) return NULL;
+		node->left = left;
+		node->right = right;
+		node->opcode = opcode;
+		left = node;
+	}
+	if (neg)
+	{
+		node = newNode();
+		if (Err) return NULL;
+		node->left = left;
+		node->right = NULL;
+		node->opcode = 9;
+		left = node;
+	}
+	return left;
+}
+
 //=============================================================================
 
 ExprTree * getTree()
@@ -497,6 +685,45 @@ ExprTree * getTree()
     } 
     return left;
 }
+
+
+//=============================================================================
+
+ExprTree * getTree_added(Project* project)
+{
+	int      lex;
+	int      opcode;
+	ExprTree *left;
+	ExprTree *right;
+	ExprTree *node;
+
+	left = getOp_added(project,&lex);
+	for (;;)
+	{
+		if (lex == 0 || lex == 2)
+		{
+			if (lex == 2) Bc--;
+			break;
+		}
+
+		if (lex != 3 && lex != 4)
+		{
+			Err = 1;
+			break;
+		}
+
+		opcode = lex;
+		right = getOp_added(project, &lex);
+		node = newNode();
+		if (Err) break;
+		node->left = left;
+		node->right = right;
+		node->opcode = opcode;
+		left = node;
+	}
+	return left;
+}
+
 
 //=============================================================================
 
@@ -732,6 +959,207 @@ double mathexpr_eval(MathExpr *expr, double (*getVariableValue) (int))
 }
 
 //=============================================================================
+double mathexpr_eval_added(Project* project, MathExpr *expr, double(*getVariableValue) (Project*, int))
+//  Mathematica expression evaluation using a stack
+{
+
+	// --- Note: the ExprStack array must be declared locally and not globally
+	//     since this function can be called recursively.
+
+	double ExprStack[MAX_STACK_SIZE];
+	MathExpr *node = expr;
+	double r1, r2;
+	int stackindex = 0;
+
+	ExprStack[0] = 0.0;
+	while (node != NULL)
+	{
+		switch (node->opcode)
+		{
+		case 3:
+			r1 = ExprStack[stackindex];
+			stackindex--;
+			r2 = ExprStack[stackindex];
+			ExprStack[stackindex] = r2 + r1;
+			break;
+
+		case 4:
+			r1 = ExprStack[stackindex];
+			stackindex--;
+			r2 = ExprStack[stackindex];
+			ExprStack[stackindex] = r2 - r1;
+			break;
+
+		case 5:
+			r1 = ExprStack[stackindex];
+			stackindex--;
+			r2 = ExprStack[stackindex];
+			ExprStack[stackindex] = r2 * r1;
+			break;
+
+		case 6:
+			r1 = ExprStack[stackindex];
+			stackindex--;
+			r2 = ExprStack[stackindex];
+			ExprStack[stackindex] = r2 / r1;
+			break;
+
+		case 7:
+			stackindex++;
+			ExprStack[stackindex] = node->fvalue;
+			break;
+
+		case 8:
+			if (getVariableValue != NULL)
+			{
+				r1 = getVariableValue(project, node->ivar);
+			}
+			else r1 = 0.0;
+			stackindex++;
+			ExprStack[stackindex] = r1;
+			break;
+
+		case 9:
+			ExprStack[stackindex] = -ExprStack[stackindex];
+			break;
+
+		case 10:
+			r1 = ExprStack[stackindex];
+			r2 = cos(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 11:
+			r1 = ExprStack[stackindex];
+			r2 = sin(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 12:
+			r1 = ExprStack[stackindex];
+			r2 = tan(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 13:
+			r1 = ExprStack[stackindex];
+			if (r1 == 0.0) r2 = 0.0;
+			else r2 = 1.0 / tan(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 14:
+			r1 = ExprStack[stackindex];
+			r2 = fabs(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 15:
+			r1 = ExprStack[stackindex];
+			if (r1 < 0.0) r2 = -1.0;
+			else if (r1 > 0.0) r2 = 1.0;
+			else r2 = 0.0;
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 16:
+			r1 = ExprStack[stackindex];
+			if (r1 < 0.0) r2 = 0.0;
+			else r2 = sqrt(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 17:
+			r1 = ExprStack[stackindex];
+			if (r1 <= 0) r2 = 0.0;
+			else r2 = log(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 18:
+			r1 = ExprStack[stackindex];
+			r2 = exp(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 19:
+			r1 = ExprStack[stackindex];
+			r2 = asin(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 20:
+			r1 = ExprStack[stackindex];
+			r2 = acos(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 21:
+			r1 = ExprStack[stackindex];
+			r2 = atan(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 22:
+			r1 = ExprStack[stackindex];
+			r2 = 1.57079632679489661923 - atan(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 23:
+			r1 = ExprStack[stackindex];
+			r2 = (exp(r1) - exp(-r1)) / 2.0;
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 24:
+			r1 = ExprStack[stackindex];
+			r2 = (exp(r1) + exp(-r1)) / 2.0;
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 25:
+			r1 = ExprStack[stackindex];
+			r2 = (exp(r1) - exp(-r1)) / (exp(r1) + exp(-r1));
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 26:
+			r1 = ExprStack[stackindex];
+			r2 = (exp(r1) + exp(-r1)) / (exp(r1) - exp(-r1));
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 27:
+			r1 = ExprStack[stackindex];
+			if (r1 == 0.0) r2 = 0.0;
+			else r2 = log10(r1);
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 28:
+			r1 = ExprStack[stackindex];
+			if (r1 <= 0.0) r2 = 0.0;
+			else           r2 = 1.0;
+			ExprStack[stackindex] = r2;
+			break;
+
+		case 31:
+			r1 = ExprStack[stackindex];
+			r2 = ExprStack[stackindex - 1];
+			if (r2 <= 0.0) r2 = 0.0;
+			else r2 = exp(r1*log(r2));
+			ExprStack[stackindex - 1] = r2;
+			stackindex--;
+			break;
+		}
+		node = node->next;
+	}
+	r1 = ExprStack[stackindex];
+	return r1;
+}
+
+//=============================================================================
 
 void mathexpr_delete(MathExpr *expr)
 {
@@ -766,4 +1194,34 @@ MathExpr * mathexpr_create(char *formula, int (*getVar) (char *))
     }
     deleteTree(tree);
     return result;
+}
+
+
+//=============================================================================
+
+MathExpr * mathexpr_create_added(Project* project, char *formula, int(*getVar) (Project*, char *))
+{
+	ExprTree *tree;
+	MathExpr *expr = NULL;
+	MathExpr *result = NULL;
+	getVariableIndex_added = getVar;
+	Err = 0;
+	PrevLex = 0;
+	CurLex = 0;
+	S = formula;
+	Len = strlen(S);
+	Pos = 0;
+	Bc = 0;
+	tree = getTree_added(project);
+	if (Bc == 0 && Err == 0)
+	{
+		traverseTree(tree, &expr);
+		while (expr)
+		{
+			result = expr;
+			expr = expr->prev;
+		}
+	}
+	deleteTree(tree);
+	return result;
 }

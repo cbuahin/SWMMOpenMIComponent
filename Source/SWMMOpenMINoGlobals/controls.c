@@ -11,94 +11,90 @@
 #define _CRT_SECURE_NO_DEPRECATE
 
 
-#ifdef _WIN32 || __WIN32__
-#include <malloc.h>
-#else
 #include <stdlib.h>
-#endif
-
 #include <math.h>
-#include "headers.h"
+#include <controls.h>
+#include <headers.h>
 
-//-----------------------------------------------------------------------------
-//  Constants
-//-----------------------------------------------------------------------------
-enum RuleState   {r_RULE, r_IF, r_AND, r_OR, r_THEN, r_ELSE, r_PRIORITY,
-                  r_ERROR};
-enum RuleObject  {r_NODE, r_LINK, r_CONDUIT, r_PUMP, r_ORIFICE, r_WEIR,
-	              r_OUTLET, r_SIMULATION};
-enum RuleAttrib  {r_DEPTH, r_HEAD, r_INFLOW, r_FLOW, r_STATUS, r_SETTING,
-                  r_TIME, r_DATE, r_CLOCKTIME, r_DAY, r_MONTH};
-enum RuleOperand {EQ, NE, LT, LE, GT, GE};
-enum RuleSetting {r_CURVE, r_TIMESERIES, r_PID, r_NUMERIC};
-
-static char* ObjectWords[] =
-    {"NODE", "LINK", "CONDUIT", "PUMP", "ORIFICE", "WEIR", "OUTLET",
-	 "SIMULATION", NULL};
-static char* AttribWords[] =
-    {"DEPTH", "HEAD", "INFLOW", "FLOW", "STATUS", "SETTING",
-     "TIME", "DATE", "CLOCKTIME", "DAY", "MONTH", NULL};
-static char* OperandWords[] = {"=", "<>", "<", "<=", ">", ">=", NULL};
-static char* StatusWords[]  = {"OFF", "ON", NULL};
-static char* ConduitWords[] = {"CLOSED", "OPEN", NULL};
-static char* SettingTypeWords[] = {"CURVE", "TIMESERIES", "PID", NULL};
-
-//-----------------------------------------------------------------------------                  
-// Data Structures
-//-----------------------------------------------------------------------------                  
-// Rule Premise Clause 
-struct  TPremise
-{
-   int      type;
-   int      node;
-   int      link;
-   int      attribute;
-   int      operand;
-   double   value;
-   struct   TPremise *next;
-};
-
-// Rule Action Clause
-struct  TAction              
-{
-   int     rule;
-   int     link;
-   int     attribute;
-   int     curve;
-   int     tseries;
-   double  value;
-   double  kp, ki, kd;
-   double  e1, e2;
-   struct  TAction *next;
-};
-
-// List of Control Actions
-struct  TActionList          
-{
-   struct  TAction* action;
-   struct  TActionList* next;
-};
-
-// Control Rule
-struct  TRule
-{
-   char*    ID;                        // rule ID
-   double   priority;                  // Priority level
-   struct   TPremise* firstPremise;    // Pointer to first premise of rule
-   struct   TPremise* lastPremise;     // Pointer to last premise of rule
-   struct   TAction*  thenActions;     // Linked list of actions if true
-   struct   TAction*  elseActions;     // Linked list of actions if false
-};
-
-//-----------------------------------------------------------------------------
-//  Shared variables
-//-----------------------------------------------------------------------------
-struct TRule*       Rules;             // Array of control rules
-struct TActionList* ActionList;        // Linked list of control actions
-int    InputState;                     // State of rule interpreter
-int    RuleCount;                      // Total number of rules
-double ControlValue;                   // Value of controller variable
-double SetPoint;                       // Value of controller setpoint
+////-----------------------------------------------------------------------------
+////  Constants
+////-----------------------------------------------------------------------------
+//enum RuleState   {r_RULE, r_IF, r_AND, r_OR, r_THEN, r_ELSE, r_PRIORITY,
+//                  r_ERROR};
+//enum RuleObject  {r_NODE, r_LINK, r_CONDUIT, r_PUMP, r_ORIFICE, r_WEIR,
+//	              r_OUTLET, r_SIMULATION};
+//enum RuleAttrib  {r_DEPTH, r_HEAD, r_INFLOW, r_FLOW, r_STATUS, r_SETTING,
+//                  r_TIME, r_DATE, r_CLOCKTIME, r_DAY, r_MONTH};
+//enum RuleOperand {EQ, NE, LT, LE, GT, GE};
+//enum RuleSetting {r_CURVE, r_TIMESERIES, r_PID, r_NUMERIC};
+//
+//static char* ObjectWords[] =
+//    {"NODE", "LINK", "CONDUIT", "PUMP", "ORIFICE", "WEIR", "OUTLET",
+//	 "SIMULATION", NULL};
+//static char* AttribWords[] =
+//    {"DEPTH", "HEAD", "INFLOW", "FLOW", "STATUS", "SETTING",
+//     "TIME", "DATE", "CLOCKTIME", "DAY", "MONTH", NULL};
+//static char* OperandWords[] = {"=", "<>", "<", "<=", ">", ">=", NULL};
+//static char* StatusWords[]  = {"OFF", "ON", NULL};
+//static char* ConduitWords[] = {"CLOSED", "OPEN", NULL};
+//static char* SettingTypeWords[] = {"CURVE", "TIMESERIES", "PID", NULL};
+//
+////-----------------------------------------------------------------------------                  
+//// Data Structures
+////-----------------------------------------------------------------------------                  
+//// Rule Premise Clause 
+//struct  TPremise
+//{
+//   int      type;
+//   int      node;
+//   int      link;
+//   int      attribute;
+//   int      operand;
+//   double   value;
+//   struct   TPremise *next;
+//};
+//
+//// Rule Action Clause
+//struct  TAction              
+//{
+//   int     rule;
+//   int     link;
+//   int     attribute;
+//   int     curve;
+//   int     tseries;
+//   double  value;
+//   double  kp, ki, kd;
+//   double  e1, e2;
+//   struct  TAction *next;
+//};
+//
+//// List of Control Actions
+//struct  TActionList          
+//{
+//   struct  TAction* action;
+//   struct  TActionList* next;
+//};
+//
+//// Control Rule
+//struct  TRule
+//{
+//   char*    ID;                        // rule ID
+//   double   priority;                  // Priority level
+//   struct   TPremise* firstPremise;    // Pointer to first premise of rule
+//   struct   TPremise* lastPremise;     // Pointer to last premise of rule
+//   struct   TAction*  thenActions;     // Linked list of actions if true
+//   struct   TAction*  elseActions;     // Linked list of actions if false
+//};
+//
+////-----------------------------------------------------------------------------
+////  Shared variables
+////-----------------------------------------------------------------------------
+//struct TRule*       project->Rules;             // Array of control project->Rules
+//struct TActionList* project->ActionList;        // Linked list of control actions
+//int    project->InputState;                     // State of rule interpreter
+//int    project->RuleCount;                      // Total number of project->Rules
+//double project->ControlValue;                   // Value of controller variable
+//double SetPoint;                       // Value of controller setpoint
 
 //-----------------------------------------------------------------------------
 //  External functions (declared in funcs.h)
@@ -111,69 +107,69 @@ double SetPoint;                       // Value of controller setpoint
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-int    addPremise(Project *project, int r, int type, char* Tok[], int nToks);
-int    addAction(Project *project, int r, char* Tok[], int nToks);
-int    evaluatePremise(Project *project, struct TPremise* p, DateTime theDate, DateTime theTime,
+int    addPremise(Project* project, int r, int type, char* Tok[], int nToks);
+int    addAction(Project* project, int r, char* Tok[], int nToks);
+int    evaluatePremise(Project* project, struct TPremise* p, DateTime theDate, DateTime theTime,
                        DateTime elapsedTime, double tStep);
-int    checkTimeValue(struct TPremise* p, double tStart, double tStep);
-int    checkValue(struct TPremise* p, double x);
-void   updateActionList(struct TAction* a);
-int    executeActionList(Project *project, DateTime currentTime);
-void   clearActionList(void);
-void   deleteActionList(void);
-void   deleteRules(void);
+int    checkTimeValue(Project* project, TPremise* p, double tStart, double tStep);
+int    checkValue(Project* project, TPremise* p, double x);
+void   updateActionList(Project* project, TAction* a);
+int    executeActionList(Project* project, DateTime currentTime);
+void   clearActionList(Project* project);
+void   deleteActionList(Project* project);
+void   deleteRules(Project* project);
 int    findExactMatch(char *s, char *keyword[]);
-int    setActionSetting(Project *project, char* tok[], int nToks, int* curve, int* tseries,
+int    setActionSetting(Project* project, char* tok[], int nToks, int* curve, int* tseries,
        int* attrib, double* value);
-void   updateActionValue(Project *project, struct TAction* a, DateTime currentTime, double dt);
-double getPIDSetting(Project *project, struct TAction* a, double dt);
+void   updateActionValue(Project* project, TAction* a, DateTime currentTime, double dt);
+double getPIDSetting(Project* project, TAction* a, double dt);
 
 
 //=============================================================================
 
-int  controls_create(int n)
+int  controls_create(Project* project, int n)
 //
-//  Input:   n = total number of control rules
+//  Input:   n = total number of control project->Rules
 //  Output:  returns error code
-//  Purpose: creates an array of control rules.
+//  Purpose: creates an array of control project->Rules.
 //
 {
    int r;
-   ActionList = NULL;
-   InputState = r_PRIORITY;
-   RuleCount = n;
+   project->ActionList = NULL;
+   project->InputState = r_PRIORITY;
+   project->RuleCount = n;
    if ( n == 0 ) return 0;
-   Rules = (struct TRule *) calloc(RuleCount, sizeof(struct TRule));
-   if (Rules == NULL) return ERR_MEMORY;
-   for ( r=0; r<RuleCount; r++ )
+   project->Rules = (struct TRule *) calloc(project->RuleCount, sizeof(struct TRule));
+   if (project->Rules == NULL) return ERR_MEMORY;
+   for ( r=0; r<project->RuleCount; r++ )
    {
-       Rules[r].ID = NULL;
-       Rules[r].firstPremise = NULL;
-       Rules[r].lastPremise = NULL;
-       Rules[r].thenActions = NULL;
-       Rules[r].elseActions = NULL;
-       Rules[r].priority = 0.0;    
+       project->Rules[r].ID = NULL;
+       project->Rules[r].firstPremise = NULL;
+       project->Rules[r].lastPremise = NULL;
+       project->Rules[r].thenActions = NULL;
+       project->Rules[r].elseActions = NULL;
+       project->Rules[r].priority = 0.0;    
    }
    return 0;
 }
 
 //=============================================================================
 
-void controls_delete(void)
+void controls_delete(Project* project)
 //
 //  Input:   none
 //  Output:  none
-//  Purpose: deletes all control rules.
+//  Purpose: deletes all control project->Rules.
 //
 {
-   if ( RuleCount == 0 ) return;
-   deleteActionList();
-   deleteRules();
+   if ( project->RuleCount == 0 ) return;
+   deleteActionList(project);
+   deleteRules(project);
 }
 
 //=============================================================================
 
-int  controls_addRuleClause(Project *project, int r, int keyword, char* tok[], int nToks)
+int  controls_addRuleClause(Project* project, int r, int keyword, char* tok[], int nToks)
 //
 //  Input:   r = rule index
 //           keyword = the clause's keyword code (IF, THEN, etc.)
@@ -186,41 +182,41 @@ int  controls_addRuleClause(Project *project, int r, int keyword, char* tok[], i
     switch (keyword)
     {
       case r_RULE:
-        if ( Rules[r].ID == NULL )
-            Rules[r].ID = project_findID(project, CONTROL, tok[1]);
-        InputState = r_RULE;
+        if ( project->Rules[r].ID == NULL )
+            project->Rules[r].ID = project_findID(project , CONTROL, tok[1]);
+        project->InputState = r_RULE;
         if ( nToks > 2 ) return ERR_RULE;
         return 0;
 
       case r_IF:
-        if ( InputState != r_RULE ) return ERR_RULE;
-        InputState = r_IF;
-        return addPremise(project, r, r_AND, tok, nToks);
+        if ( project->InputState != r_RULE ) return ERR_RULE;
+        project->InputState = r_IF;
+		return addPremise(project, r, r_AND, tok, nToks);
 
       case r_AND:
-        if ( InputState == r_IF ) return addPremise(project, r, r_AND, tok, nToks);
-        else if ( InputState == r_THEN || InputState == r_ELSE )
-            return addAction(project, r, tok, nToks);
+		  if (project->InputState == r_IF) return addPremise(project, r, r_AND, tok, nToks);
+        else if ( project->InputState == r_THEN || project->InputState == r_ELSE )
+			return addAction(project, r, tok, nToks);
         else return ERR_RULE;
 
       case r_OR:
-        if ( InputState != r_IF ) return ERR_RULE;
-        return addPremise(project, r, r_OR, tok, nToks);
+        if ( project->InputState != r_IF ) return ERR_RULE;
+		return addPremise(project, r, r_OR, tok, nToks);
 
       case r_THEN:
-        if ( InputState != r_IF ) return ERR_RULE;
-        InputState = r_THEN;
-        return addAction(project, r, tok, nToks);
+        if ( project->InputState != r_IF ) return ERR_RULE;
+        project->InputState = r_THEN;
+		return addAction(project, r, tok, nToks);
 
       case r_ELSE:
-        if ( InputState != r_THEN ) return ERR_RULE;
-        InputState = r_ELSE;
-        return addAction(project, r, tok, nToks);
+        if ( project->InputState != r_THEN ) return ERR_RULE;
+        project->InputState = r_ELSE;
+		return addAction(project, r, tok, nToks);
 
       case r_PRIORITY:
-        if ( InputState != r_THEN && InputState != r_ELSE ) return ERR_RULE;
-        InputState = r_PRIORITY;
-        if ( !getDouble(tok[1], &Rules[r].priority) ) return ERR_NUMBER;
+        if ( project->InputState != r_THEN && project->InputState != r_ELSE ) return ERR_RULE;
+        project->InputState = r_PRIORITY;
+        if ( !getDouble(tok[1], &project->Rules[r].priority) ) return ERR_NUMBER;
         if ( nToks > 2 ) return ERR_RULE;
         return 0;
     }
@@ -229,42 +225,42 @@ int  controls_addRuleClause(Project *project, int r, int keyword, char* tok[], i
 
 //=============================================================================
 
-int controls_evaluate(Project *project, DateTime currentTime, DateTime elapsedTime, double tStep)
+int controls_evaluate(Project* project, DateTime currentTime, DateTime elapsedTime, double tStep)
 //
 //  Input:   currentTime = current simulation date/time
 //           elapsedTime = decimal days since start of simulation
 //           tStep = simulation time step (days)
 //  Output:  returns number of new actions taken
-//  Purpose: evaluates all control rules at current time of the simulation.
+//  Purpose: evaluates all control project->Rules at current time of the simulation.
 //
 {
     int    r;                          // control rule index
     int    result;                     // TRUE if rule premises satisfied
-    struct TPremise* p;                // pointer to rule premise clause
-    struct TAction*  a;                // pointer to rule action clause
+    TPremise* p;                // pointer to rule premise clause
+    TAction*  a;                // pointer to rule action clause
     DateTime theDate = floor(currentTime);
     DateTime theTime = currentTime - floor(currentTime);
 
     // --- evaluate each rule
-    if ( RuleCount == 0 ) return 0;
-    clearActionList();
-    for (r=0; r<RuleCount; r++)
+    if ( project->RuleCount == 0 ) return 0;
+    clearActionList(project);
+    for (r=0; r<project->RuleCount; r++)
     {
         // --- evaluate rule's premises
         result = TRUE;
-        p = Rules[r].firstPremise;
+        p = project->Rules[r].firstPremise;
         while (p)
         {
             if ( p->type == r_OR )
             {
                 if ( result == FALSE )
-                    result = evaluatePremise(project, p, theDate, theTime,
+					result = evaluatePremise(project, p, theDate, theTime,
                                  elapsedTime, tStep);
             }
             else
             {
                 if ( result == FALSE ) break;
-                result = evaluatePremise(project, p, theDate, theTime,
+				result = evaluatePremise(project, p, theDate, theTime,
                              elapsedTime, tStep);
             }
             p = p->next;
@@ -272,24 +268,24 @@ int controls_evaluate(Project *project, DateTime currentTime, DateTime elapsedTi
 
         // --- if premises true, add THEN clauses to action list
         //     else add ELSE clauses to action list
-        if ( result == TRUE ) a = Rules[r].thenActions;
-        else                  a = Rules[r].elseActions;
+        if ( result == TRUE ) a = project->Rules[r].thenActions;
+        else                  a = project->Rules[r].elseActions;
         while (a)
         {
-            updateActionValue(project, a, currentTime, tStep);
-            updateActionList(a);
+			updateActionValue(project, a, currentTime, tStep);
+			updateActionList(project, a);
             a = a->next;
         }
     }
 
     // --- execute actions on action list
-    if ( ActionList ) return executeActionList(project, currentTime);
+    if ( project->ActionList ) return executeActionList(project,currentTime);
     else return 0;
 }
 
 //=============================================================================
 
-int  addPremise(Project *project, int r, int type, char* tok[], int nToks)
+int  addPremise(Project* project, int r, int type, char* tok[], int nToks)
 //
 //  Input:   r = control rule index
 //           type = type of premise (IF, AND, OR)
@@ -327,7 +323,7 @@ int  addPremise(Project *project, int r, int type, char* tok[], int nToks)
       case r_ORIFICE:
       case r_WEIR:
       case r_OUTLET:
-        link = project_findObject(project, LINK, tok[n]);
+		  link = project_findObject(project, LINK, tok[n]);
         if ( link < 0 ) return error_setInpError(ERR_NAME, tok[n]);
         break;
       default: n = 1;
@@ -434,21 +430,21 @@ int  addPremise(Project *project, int r, int type, char* tok[], int nToks)
     p->operand   = op;
     p->value     = value;
     p->next      = NULL;
-    if ( Rules[r].firstPremise == NULL )
+    if ( project->Rules[r].firstPremise == NULL )
     {
-        Rules[r].firstPremise = p;
+        project->Rules[r].firstPremise = p;
     }
     else
     {
-        Rules[r].lastPremise->next = p;
+        project->Rules[r].lastPremise->next = p;
     }
-    Rules[r].lastPremise = p;
+    project->Rules[r].lastPremise = p;
     return 0;
 }
 
 //=============================================================================
 
-int  addAction(Project *project, int r, char* tok[], int nToks)
+int  addAction(Project* project, int r, char* tok[], int nToks)
 //
 //  Input:   r = control rule index
 //           tok = array of string tokens containing action statement
@@ -475,29 +471,29 @@ int  addAction(Project *project, int r, char* tok[], int nToks)
         return error_setInpError(ERR_KEYWORD, tok[1]);
 
     // --- check that object name exists and is of correct type
-    link = project_findObject(project, LINK, tok[2]);
+	link = project_findObject(project, LINK, tok[2]);
     if ( link < 0 ) return error_setInpError(ERR_NAME, tok[2]);
     switch (obj)
     {
       case r_CONDUIT:
 	if ( project->Link[link].type != CONDUIT )
-	    return error_setInpError(project, ERR_NAME, tok[2]);
+	    return error_setInpError(ERR_NAME, tok[2]);
 	break;
       case r_PUMP:
-        if ( project->Link[link].type != PUMP )
-            return error_setInpError(project, ERR_NAME, tok[2]);
+		  if (project->Link[link].type != PUMP)
+            return error_setInpError(ERR_NAME, tok[2]);
         break;
       case r_ORIFICE:
-        if ( project->Link[link].type != ORIFICE )
-            return error_setInpError(project, ERR_NAME, tok[2]);
+		  if (project->Link[link].type != ORIFICE)
+            return error_setInpError(ERR_NAME, tok[2]);
         break;
       case r_WEIR:
-        if ( project->Link[link].type != WEIR )
-            return error_setInpError(project, ERR_NAME, tok[2]);
+		  if (project->Link[link].type != WEIR)
+            return error_setInpError(ERR_NAME, tok[2]);
         break;
       case r_OUTLET:
-        if ( project->Link[link].type != OUTLET )
-            return error_setInpError(project, ERR_NAME, tok[2]);
+		  if (project->Link[link].type != OUTLET)
+            return error_setInpError(ERR_NAME, tok[2]);
         break;
     }
 
@@ -527,7 +523,7 @@ int  addAction(Project *project, int r, char* tok[], int nToks)
         }
         else if ( attrib == r_SETTING )
         {
-            err = setActionSetting(project, tok, nToks, &curve, &tseries,
+			err = setActionSetting(project, tok, nToks, &curve, &tseries,
                                    &attrib, values);
             if ( err > 0 ) return err;
         }
@@ -538,7 +534,7 @@ int  addAction(Project *project, int r, char* tok[], int nToks)
     {
         if ( attrib == r_SETTING )
         {
-           err = setActionSetting(project, tok, nToks, &curve, &tseries,
+			err = setActionSetting(project, tok, nToks, &curve, &tseries,
                                   &attrib, values);
            if ( err > 0 ) return err;
            if (  attrib == r_SETTING
@@ -572,22 +568,22 @@ int  addAction(Project *project, int r, char* tok[], int nToks)
         a->e1 = 0.0;
         a->e2 = 0.0;
     }
-    if ( InputState == r_THEN )
+    if ( project->InputState == r_THEN )
     {
-        a->next = Rules[r].thenActions;
-        Rules[r].thenActions = a;
+        a->next = project->Rules[r].thenActions;
+        project->Rules[r].thenActions = a;
     }
     else
     {
-        a->next = Rules[r].elseActions;
-        Rules[r].elseActions = a;
+        a->next = project->Rules[r].elseActions;
+        project->Rules[r].elseActions = a;
     }
     return 0;
 }
 
 //=============================================================================
 
-int  setActionSetting(Project *project, char* tok[], int nToks, int* curve, int* tseries,
+int  setActionSetting(Project* project, char* tok[], int nToks, int* curve, int* tseries,
                       int* attrib, double values[])
 //
 //  Input:   tok = array of string tokens containing action statement
@@ -602,7 +598,7 @@ int  setActionSetting(Project *project, char* tok[], int nToks, int* curve, int*
 {
     int k, m;
 
-    // --- see if control action is determined by a project->Curve or Time Series
+    // --- see if control action is determined by a Curve or Time Series
     if (nToks < 6) return error_setInpError(ERR_ITEMS, "");
     k = findmatch(tok[5], SettingTypeWords);
     if ( k >= 0 && nToks < 7 ) return error_setInpError(ERR_ITEMS, "");
@@ -611,17 +607,17 @@ int  setActionSetting(Project *project, char* tok[], int nToks, int* curve, int*
 
     // --- control determined by a curve - find curve index
     case r_CURVE:
-        m = project_findObject(project, CURVE, tok[6]);
+		m = project_findObject(project, CURVE, tok[6]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[6]);
         *curve = m;
         break;
 
     // --- control determined by a time series - find time series index
     case r_TIMESERIES:
-        m = project_findObject(project, TSERIES, tok[6]);
+		m = project_findObject(project, TSERIES, tok[6]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[6]);
         *tseries = m;
-        project->Tseries[m].refersTo = CONTROL;
+		project->Tseries[m].refersTo = CONTROL;
         break;
 
     // --- control determined by PID controller 
@@ -645,7 +641,7 @@ int  setActionSetting(Project *project, char* tok[], int nToks, int* curve, int*
 
 //=============================================================================
 
-void  updateActionValue(Project *project, struct TAction* a, DateTime currentTime, double dt)
+void  updateActionValue(Project* project, TAction* a, DateTime currentTime, double dt)
 //
 //  Input:   a = an action object
 //           currentTime = current simulation date/time (days)
@@ -656,7 +652,7 @@ void  updateActionValue(Project *project, struct TAction* a, DateTime currentTim
 {
     if ( a->curve >= 0 )
     {
-        a->value = table_lookup(&project->Curve[a->curve], ControlValue);
+        a->value = table_lookup(&project->Curve[a->curve], project->ControlValue);
     }
     else if ( a->tseries >= 0 )
     {
@@ -670,7 +666,7 @@ void  updateActionValue(Project *project, struct TAction* a, DateTime currentTim
 
 //=============================================================================
 
-double getPIDSetting(Project *project, struct TAction* a, double dt)
+double getPIDSetting(Project* project, TAction* a, double dt)
 //
 //  Input:   a = an action object
 //           dt = current time step (days)
@@ -691,11 +687,11 @@ double getPIDSetting(Project *project, struct TAction* a, double dt)
 	dt *= 1440.0;
 
     // --- determine relative error in achieving controller set point
-    e0 = SetPoint - ControlValue;
+    e0 = project->SetPoint - project->ControlValue;
     if ( fabs(e0) > TINY )
     {
-        if ( SetPoint != 0.0 ) e0 = e0/SetPoint;
-        else                   e0 = e0/ControlValue;
+        if ( project->SetPoint != 0.0 ) e0 = e0/project->SetPoint;
+        else                   e0 = e0/project->ControlValue;
     }
 
 	// --- reset previous errors to 0 if controller gets stuck
@@ -727,7 +723,7 @@ double getPIDSetting(Project *project, struct TAction* a, double dt)
 
 //=============================================================================
 
-void updateActionList(struct TAction* a)
+void updateActionList(Project* project, struct TAction* a)
 //
 //  Input:   a = an action object
 //  Output:  none
@@ -736,10 +732,10 @@ void updateActionList(struct TAction* a)
 {
     struct TActionList* listItem;
     struct TAction* a1;
-    double priority = Rules[a->rule].priority;
+    double priority = project->Rules[a->rule].priority;
 
     // --- check if link referred to in action is already listed
-    listItem = ActionList;
+    listItem = project->ActionList;
     while ( listItem )
     {
         a1 = listItem->action;
@@ -747,29 +743,29 @@ void updateActionList(struct TAction* a)
         if ( a1->link == a->link )
         {
             // --- replace old action if new action has higher priority
-            if ( priority > Rules[a1->rule].priority ) listItem->action = a;
+            if ( priority > project->Rules[a1->rule].priority ) listItem->action = a;
             return;
         }
         listItem = listItem->next;
     }
 
-    // --- action not listed so add it to ActionList
+    // --- action not listed so add it to project->ActionList
     if ( !listItem )
     {
         listItem = (struct TActionList *) malloc(sizeof(struct TActionList));
-        listItem->next = ActionList;
-        ActionList = listItem;
+        listItem->next = project->ActionList;
+        project->ActionList = listItem;
     }
     listItem->action = a;
 }
 
 //=============================================================================
 
-int executeActionList(Project *project, DateTime currentTime)
+int executeActionList(Project* project, DateTime currentTime)
 //
 //  Input:   currentTime = current date/time of the simulation
 //  Output:  returns number of new actions taken
-//  Purpose: executes all actions required by fired control rules.
+//  Purpose: executes all actions required by fired control project->Rules.
 //
 {
     struct TActionList* listItem;
@@ -777,7 +773,7 @@ int executeActionList(Project *project, DateTime currentTime)
     struct TAction* a1;
     int count = 0;
 
-    listItem = ActionList;
+    listItem = project->ActionList;
     while ( listItem )
     {
         a1 = listItem->action;
@@ -788,8 +784,8 @@ int executeActionList(Project *project, DateTime currentTime)
             {
                 project->Link[a1->link].targetSetting = a1->value;
                 if ( project->RptFlags.controls )
-                    report_writeControlAction(project, currentTime, project->Link[a1->link].ID,
-                                              a1->value, Rules[a1->rule].ID);
+                    report_writeControlAction(project,currentTime, project->Link[a1->link].ID,
+                                              a1->value, project->Rules[a1->rule].ID);
                 count++;
             }
         }
@@ -801,7 +797,7 @@ int executeActionList(Project *project, DateTime currentTime)
 
 //=============================================================================
 
-int evaluatePremise(Project *project, struct TPremise* p, DateTime theDate, DateTime theTime,
+int evaluatePremise(Project* project, struct TPremise* p, DateTime theDate, DateTime theTime,
                     DateTime elapsedTime, double tStep)
 //
 //  Input:   p = a control rule premise condition
@@ -820,48 +816,48 @@ int evaluatePremise(Project *project, struct TPremise* p, DateTime theDate, Date
     switch ( p->attribute )
     {
       case r_TIME:
-        return checkTimeValue(p, elapsedTime, tStep/2.0);
+        return checkTimeValue(project, p, elapsedTime, tStep/2.0);
         
       case r_DATE:
-        return checkValue(p, theDate);
+        return checkValue(project, p, theDate);
 
       case r_CLOCKTIME:
-        return checkTimeValue(p, theTime, tStep/2.0);
+        return checkTimeValue(project, p, theTime, tStep/2.0);
 
       case r_DAY:
-        return checkValue(p, datetime_dayOfWeek(theDate));
+        return checkValue(project, p, datetime_dayOfWeek(theDate));
 
       case r_MONTH:
-        return checkValue(p, datetime_monthOfYear(theDate));
+        return checkValue(project, p, datetime_monthOfYear(theDate));
 
       case r_STATUS:
         if ( j < 0 ||
-            (project->Link[j].type != CONDUIT && project->Link[j].type != PUMP) ) return FALSE;
-        else return checkValue(p, project->Link[j].setting);
+			(project->Link[j].type != CONDUIT && project->Link[j].type != PUMP)) return FALSE;
+		else return checkValue(project, p, project->Link[j].setting);
         
       case r_SETTING:
-        if ( j < 0 || (project->Link[j].type != ORIFICE && project->Link[j].type != WEIR) )
+		  if (j < 0 || (project->Link[j].type != ORIFICE && project->Link[j].type != WEIR))
             return FALSE;
-        else return checkValue(p, project->Link[j].setting);
+		  else return checkValue(project, p, project->Link[j].setting);
 
       case r_FLOW:
         if ( j < 0 ) return FALSE;
-        else return checkValue(p, project->Link[j].direction*project->Link[j].newFlow*UCF(project, FLOW));
+		else return checkValue(project, p, project->Link[j].direction*project->Link[j].newFlow*UCF(project,FLOW));
 
       case r_DEPTH:
-        if ( j >= 0 ) return checkValue(p, project->Link[j].newDepth*UCF(project, LENGTH));
+		  if (j >= 0) return checkValue(project, p, project->Link[j].newDepth*UCF(project, LENGTH));
         else if ( i >= 0 )
-            return checkValue(p, project->Node[i].newDepth*UCF(project, LENGTH));
+			return checkValue(project, p, project->Node[i].newDepth*UCF(project, LENGTH));
         else return FALSE;
 
       case r_HEAD:
         if ( i < 0 ) return FALSE;
-        head = (project->Node[i].newDepth + project->Node[i].invertElev) * UCF(project, LENGTH);
-        return checkValue(p, head);
+		head = (project->Node[i].newDepth + project->Node[i].invertElev) * UCF(project, LENGTH);
+        return checkValue(project, p, head);
 
       case r_INFLOW:
         if ( i < 0 ) return FALSE;
-        else return checkValue(p, project->Node[i].newLatFlow*UCF(project, FLOW));
+		else return checkValue(project, p, project->Node[i].newLatFlow*UCF(project,FLOW));
 
       default: return FALSE;
     }
@@ -869,7 +865,7 @@ int evaluatePremise(Project *project, struct TPremise* p, DateTime theDate, Date
 
 //=============================================================================
 
-int checkTimeValue(struct TPremise* p, double tStart, double halfStep)
+int checkTimeValue(Project* project , struct TPremise* p, double tStart, double halfStep)
 //
 //  Input:   p = control rule premise condition
 //           tStart = time of day or elapsed time at start of current time step
@@ -890,12 +886,12 @@ int checkTimeValue(struct TPremise* p, double tStart, double halfStep)
         ||   p->value >= tStart + halfStep ) return TRUE;
         return FALSE;
     }
-    else return checkValue(p, tStart);
+    else return checkValue(project, p, tStart);
 }
 
 //=============================================================================
 
-int checkValue(struct TPremise* p, double x)
+int checkValue(Project* project,struct TPremise* p, double x)
 //
 //  Input:   p = control rule premise condition
 //           x = value being compared to value in the condition
@@ -903,8 +899,8 @@ int checkValue(struct TPremise* p, double x)
 //  Purpose: evaluates the truth of a condition involving a numerical comparison.
 //
 {
-    SetPoint = p->value;
-    ControlValue = x;
+	project->SetPoint = p->value;
+    project->ControlValue = x;
     switch (p->operand)
     {
       case EQ: if ( x == p->value ) return TRUE; break;
@@ -919,15 +915,15 @@ int checkValue(struct TPremise* p, double x)
 
 //=============================================================================
 
-void clearActionList(void)
+void clearActionList(Project* project)
 //
 //  Input:   none
 //  Output:  none
 //  Purpose: clears the list of actions to be executed.
 //
 {
-    struct TActionList* listItem;
-    listItem = ActionList;
+     TActionList* listItem;
+    listItem = project->ActionList;
     while ( listItem )
     {
         listItem->action = NULL;
@@ -937,56 +933,56 @@ void clearActionList(void)
 
 //=============================================================================
 
-void  deleteActionList(void)
+void  deleteActionList(Project* project)
 //
 //  Input:   none
 //  Output:  none
 //  Purpose: frees the memory used to hold the list of actions to be executed.
 //
 {
-    struct TActionList* listItem;
-    struct TActionList* nextItem;
-    listItem = ActionList;
+     TActionList* listItem;
+     TActionList* nextItem;
+    listItem = project->ActionList;
     while ( listItem )
     {
         nextItem = listItem->next;
         free(listItem);
         listItem = nextItem;
     }
-    ActionList = NULL;
+    project->ActionList = NULL;
 }
 
 //=============================================================================
 
-void  deleteRules(void)
+void  deleteRules(Project* project)
 //
 //  Input:   none
 //  Output:  none
-//  Purpose: frees the memory used for all of the control rules.
+//  Purpose: frees the memory used for all of the control project->Rules.
 //
 {
-   struct TPremise* p;
-   struct TPremise* pnext;
-   struct TAction*  a;
-   struct TAction*  anext;
+    TPremise* p;
+    TPremise* pnext;
+    TAction*  a;
+    TAction*  anext;
    int r;
-   for (r=0; r<RuleCount; r++)
+   for (r=0; r<project->RuleCount; r++)
    {
-      p = Rules[r].firstPremise;
+      p = project->Rules[r].firstPremise;
       while ( p )
       {
          pnext = p->next;
          free(p);
          p = pnext;
       }
-      a = Rules[r].thenActions;
+      a = project->Rules[r].thenActions;
       while (a )
       {
          anext = a->next;
          free(a);
          a = anext;
       }
-      a = Rules[r].elseActions;
+      a = project->Rules[r].elseActions;
       while (a )
       {
          anext = a->next;
@@ -994,8 +990,8 @@ void  deleteRules(void)
          a = anext;
       }
    }
-   FREE(Rules);
-   RuleCount = 0;
+   FREE(project->Rules);
+   project->RuleCount = 0;
 }
 
 //=============================================================================

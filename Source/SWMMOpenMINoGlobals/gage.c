@@ -33,16 +33,16 @@ const double OneSecond = 1.1574074e-5;
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static int    readGageSeriesFormat(Project *project, char* tok[], int ntoks, double x[]);
+static int    readGageSeriesFormat(Project* project, char* tok[], int ntoks, double x[]);
 static int    readGageFileFormat(char* tok[], int ntoks, double x[]);
-static int    getFirstRainfall(Project *project, int gage);
-static int    getNextRainfall(Project *project, int gage);
-static double convertRainfall(Project *project, int gage, double rain);
+static int    getFirstRainfall(Project* project, int gage);
+static int    getNextRainfall(Project* project, int gage);
+static double convertRainfall(Project* project, int gage, double rain);
 
 
 //=============================================================================
 
-int gage_readParams(Project *project, int j, char* tok[], int ntoks)
+int gage_readParams(Project* project, int j, char* tok[], int ntoks)
 //
 //  Input:   j = rain gage index
 //           tok[] = array of string tokens
@@ -52,7 +52,7 @@ int gage_readParams(Project *project, int j, char* tok[], int ntoks)
 //
 //  Data formats are:
 //    Name RainType RecdFreq SCF TIMESERIES SeriesName
-//    Name RainType RecdFreq SCF FILE FileName Station Units project->StartDate
+//    Name RainType RecdFreq SCF FILE FileName Station Units StartDate
 //
 {
     int      k, err;
@@ -63,14 +63,14 @@ int gage_readParams(Project *project, int j, char* tok[], int ntoks)
 
     // --- check that gage exists
     if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
-    id = project_findID(project, GAGE, tok[0]);
+    id = project_findID(project,GAGE, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- assign default parameter values
     x[0] = -1.0;         // No time series index
     x[1] = 1.0;          // Rain type is volume
     x[2] = 3600.0;       // Recording freq. is 3600 sec
-    x[3] = 1.0;          // project->Snow catch deficiency factor
+    x[3] = 1.0;          // Snow catch deficiency factor
     x[4] = NO_DATE;      // Default is no start/end date
     x[5] = NO_DATE;
     x[6] = 0.0;          // US units
@@ -81,7 +81,7 @@ int gage_readParams(Project *project, int j, char* tok[], int ntoks)
     k = findmatch(tok[4], GageDataWords);
     if      ( k == RAIN_TSERIES )
     {
-        err = readGageSeriesFormat(project, tok, ntoks, x);
+        err = readGageSeriesFormat(project,tok, ntoks, x);
     }
     else if ( k == RAIN_FILE    )
     {
@@ -117,7 +117,7 @@ int gage_readParams(Project *project, int j, char* tok[], int ntoks)
 
 //=============================================================================
 
-int readGageSeriesFormat(Project *project, char* tok[], int ntoks, double x[])
+int readGageSeriesFormat(Project* project, char* tok[], int ntoks, double x[])
 {
     int m, ts;
     DateTime aTime;
@@ -143,7 +143,7 @@ int readGageSeriesFormat(Project *project, char* tok[], int ntoks, double x[])
         return error_setInpError(ERR_DATETIME, tok[3]);;
 
     // --- get time series index
-    ts = project_findObject(project, TSERIES, tok[5]);
+    ts = project_findObject(project,TSERIES, tok[5]);
     if ( ts < 0 ) return error_setInpError(ERR_NAME, tok[5]);
     x[0] = (double)ts;
     strcpy(tok[2], "");
@@ -193,7 +193,7 @@ int readGageFileFormat(char* tok[], int ntoks, double x[])
 
 //=============================================================================
 
-void  gage_validate(Project *project, int j)
+void  gage_validate(Project* project, int j)
 //
 //  Input:   j = rain gage index
 //  Output:  none
@@ -213,20 +213,20 @@ void  gage_validate(Project *project, int j)
         k = project->Gage[j].tSeries;
         if ( project->Tseries[k].refersTo >= 0 )
         {
-            report_writeErrorMsg(project, ERR_RAIN_GAGE_TSERIES, project->Gage[j].ID);
+            report_writeErrorMsg(project,ERR_RAIN_GAGE_TSERIES, project->Gage[j].ID);
         }
         gageInterval = (int)(floor(project->Tseries[k].dxMin*SECperDAY + 0.5));
         if ( gageInterval > 0 && project->Gage[j].rainInterval > gageInterval )
         {
-            report_writeErrorMsg(project, ERR_RAIN_GAGE_INTERVAL, project->Gage[j].ID);
+            report_writeErrorMsg(project,ERR_RAIN_GAGE_INTERVAL, project->Gage[j].ID);
         } 
         if ( project->Gage[j].rainInterval < gageInterval )
         {
-            report_writeWarningMsg(project, WARN09, project->Gage[j].ID);
+            report_writeWarningMsg(project,WARN09, project->Gage[j].ID);
         }
         if ( project->Gage[j].rainInterval < project->WetStep )
         {
-            report_writeWarningMsg(project, WARN01, project->Gage[j].ID);
+            report_writeWarningMsg(project,WARN01, project->Gage[j].ID);
             project->WetStep = project->Gage[j].rainInterval;
         }
 
@@ -240,7 +240,7 @@ void  gage_validate(Project *project, int j)
                 // --- check that both gages record same type of data
                 if ( project->Gage[j].rainType != project->Gage[i].rainType )
                 {
-                    report_writeErrorMsg(project, ERR_RAIN_GAGE_FORMAT, project->Gage[j].ID);
+                    report_writeErrorMsg(project,ERR_RAIN_GAGE_FORMAT, project->Gage[j].ID);
                 }
                 return;
             }
@@ -250,7 +250,7 @@ void  gage_validate(Project *project, int j)
 
 //=============================================================================
 
-void  gage_initState(Project *project, int j)
+void  gage_initState(Project* project, int j)
 //
 //  Input:   j = rain gage index
 //  Output:  none
@@ -303,7 +303,7 @@ void  gage_initState(Project *project, int j)
 
 //=============================================================================
 
-void gage_setState(Project *project, int j, DateTime t)
+void gage_setState(Project* project, int j, DateTime t)
 //
 //  Input:   j = rain gage index
 //           t = a calendar date/time
@@ -372,13 +372,13 @@ void gage_setState(Project *project, int j, DateTime t)
         project->Gage[j].endDate = datetime_addSeconds(project->Gage[j].startDate,
                           project->Gage[j].rainInterval);
         project->Gage[j].rainfall = project->Gage[j].nextRainfall;
-        if ( !getNextRainfall(project, j) ) project->Gage[j].nextDate = NO_DATE;
+        if ( !getNextRainfall(project,j) ) project->Gage[j].nextDate = NO_DATE;
     }
 }
 
 //=============================================================================
 
-DateTime gage_getNextRainDate(Project *project, int j, DateTime aDate)
+DateTime gage_getNextRainDate(Project* project, int j, DateTime aDate)
 //
 //  Input:   j = rain gage index
 //           aDate = calendar date/time
@@ -395,7 +395,7 @@ DateTime gage_getNextRainDate(Project *project, int j, DateTime aDate)
 
 //=============================================================================
 
-double gage_getPrecip(Project *project, int j, double *rainfall, double *snowfall)
+double gage_getPrecip(Project* project, int j, double *rainfall, double *snowfall)
 //
 //  Input:   j = rain gage index
 //  Output:  rainfall = rainfall rate (ft/sec)
@@ -408,15 +408,15 @@ double gage_getPrecip(Project *project, int j, double *rainfall, double *snowfal
     *snowfall = 0.0;
     if ( !project->IgnoreSnowmelt && project->Temp.ta <= project->Snow.snotmp )
     {
-       *snowfall = project->Gage[j].rainfall * project->Gage[j].snowFactor / UCF(project, RAINFALL);
+       *snowfall = project->Gage[j].rainfall * project->Gage[j].snowFactor / UCF(project,RAINFALL);
     }
-    else *rainfall = project->Gage[j].rainfall / UCF(project, RAINFALL);
+    else *rainfall = project->Gage[j].rainfall / UCF(project,RAINFALL);
     return (*rainfall) + (*snowfall);
 } 
 
 //=============================================================================
 
-void gage_setReportRainfall(Project *project, int j, DateTime reportDate)
+void gage_setReportRainfall(Project* project, int j, DateTime reportDate)
 //
 //  Input:   j = rain gage index
 //           reportDate = date/time value of current reporting time
@@ -452,7 +452,7 @@ void gage_setReportRainfall(Project *project, int j, DateTime reportDate)
 
 //=============================================================================
 
-int getFirstRainfall(Project *project, int j)
+int getFirstRainfall(Project* project, int j)
 //
 //  Input:   j = rain gage index
 //  Output:  returns TRUE if successful
@@ -509,7 +509,7 @@ int getFirstRainfall(Project *project, int j)
 
 //=============================================================================
 
-int getNextRainfall(Project *project, int j)
+int getNextRainfall(Project* project, int j)
 //
 //  Input:   j = rain gage index
 //  Output:  returns 1 if successful; 0 if not
@@ -548,7 +548,7 @@ int getNextRainfall(Project *project, int j)
             {
                 if ( !table_getNextEntry(&project->Tseries[k],
                         &project->Gage[j].nextDate, &rNext) ) return 0;
-                rNext = convertRainfall(project, j, rNext);
+                rNext = convertRainfall(project,j, rNext);
             }
             else return 0;
         }
@@ -559,7 +559,7 @@ int getNextRainfall(Project *project, int j)
 
 //=============================================================================
 
-double convertRainfall(Project *project, int j, double r)
+double convertRainfall(Project* project, int j, double r)
 //
 //  Input:   j = rain gage index
 //           r = rainfall value (user units)

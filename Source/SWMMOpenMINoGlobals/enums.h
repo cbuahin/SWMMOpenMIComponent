@@ -38,7 +38,7 @@
  };
 
 //-------------------------------------
-// Names of project->Node sub-types
+// Names of Node sub-types
 //-------------------------------------
  #define MAX_NODE_TYPES 4
  enum NodeType 
@@ -50,7 +50,7 @@
  };
 
 //-------------------------------------
-// Names of project->Link sub-types
+// Names of Link sub-types
 //-------------------------------------
  #define MAX_LINK_TYPES 5
  enum LinkType {
@@ -214,7 +214,7 @@ enum SysFlowType {
      SYS_EVAP};                        // evaporation
 
 //-------------------------------------
-// project->Conduit flow classifications
+// Conduit flow classifications
 //-------------------------------------
  #define MAX_FLOW_CLASSES 7
  enum FlowClassType {

@@ -18,13 +18,12 @@
 #include "headers.h"
 #include "infil.h"
 
-
 ////-----------------------------------------------------------------------------
 ////  Local Variables
 ////-----------------------------------------------------------------------------
-//THorton*   HortInfil = NULL;
-//TGrnAmpt*  GAInfil   = NULL;
-//TCurveNum* CNInfil   = NULL;
+//THorton*   project->HortInfil = NULL;
+//TGrnAmpt*  project->GAInfil   = NULL;
+//TCurveNum* project->CNInfil   = NULL;
 
 //-----------------------------------------------------------------------------
 //  External Functions (declared in infil.h)
@@ -45,14 +44,14 @@
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static int    horton_setParams(Project *project, THorton *infil, double p[]);
+static int    horton_setParams(Project* project, THorton *infil, double p[]);
 static void   horton_initState(THorton *infil);
 static void   horton_getState(THorton *infil, double x[]);
 static void   horton_setState(THorton *infil, double x[]);
 
 static double horton_getInfil(Project* project, THorton *infil, double tstep, double irate,
               double depth);
-static double modHorton_getInfil(Project *project, THorton *infil, double tstep, double irate,
+static double modHorton_getInfil(Project* project,THorton *infil, double tstep, double irate,
               double depth);
 
 static void   grnampt_getState(TGrnAmpt *infil, double x[]);
@@ -60,18 +59,18 @@ static void   grnampt_setState(TGrnAmpt *infil, double x[]);
 static double grnampt_getRate(TGrnAmpt *infil, double tstep, double F2,
               double F);
 static double grnampt_getF2(double f1, double c1, double c2, double iv2);
-static void   grnampt_setT(Project *project, TGrnAmpt *infil);
+static void   grnampt_setT(Project* project,TGrnAmpt *infil);
 
 static int    curvenum_setParams(TCurveNum *infil, double p[]);
 static void   curvenum_initState(TCurveNum *infil);
 static void   curvenum_getState(TCurveNum *infil, double x[]);
 static void   curvenum_setState(TCurveNum *infil, double x[]);
-static double curvenum_getInfil(Project* project, TCurveNum *infil, double tstep, double irate,
+static double curvenum_getInfil(Project* project,TCurveNum *infil, double tstep, double irate,
               double depth);
 
 //=============================================================================
 
-void infil_create(Project *project, int subcatchCount, int model)
+void infil_create(Project* project, int subcatchCount, int model)
 //
 //  Purpose: creates an array of infiltration objects.
 //  Input:   n = number of subcatchments
@@ -83,16 +82,16 @@ void infil_create(Project *project, int subcatchCount, int model)
     {
     case HORTON:
     case MOD_HORTON:
-        HortInfil = (THorton *) calloc(subcatchCount, sizeof(THorton));
-        if ( HortInfil == NULL ) project->ErrorCode = ERR_MEMORY;
+        project->HortInfil = (THorton *) calloc(subcatchCount, sizeof(THorton));
+        if ( project->HortInfil == NULL ) project->ErrorCode = ERR_MEMORY;
         break;
     case GREEN_AMPT:
-        GAInfil = (TGrnAmpt *) calloc(subcatchCount, sizeof(TGrnAmpt));
-        if ( GAInfil == NULL ) project->ErrorCode = ERR_MEMORY;
+        project->GAInfil = (TGrnAmpt *) calloc(subcatchCount, sizeof(TGrnAmpt));
+        if ( project->GAInfil == NULL ) project->ErrorCode = ERR_MEMORY;
         break;
     case CURVE_NUMBER:
-        CNInfil = (TCurveNum *) calloc(subcatchCount, sizeof(TCurveNum));
-        if ( CNInfil == NULL ) project->ErrorCode = ERR_MEMORY;
+        project->CNInfil = (TCurveNum *) calloc(subcatchCount, sizeof(TCurveNum));
+        if ( project->CNInfil == NULL ) project->ErrorCode = ERR_MEMORY;
         break;
     default: project->ErrorCode = ERR_MEMORY;
     }
@@ -100,21 +99,21 @@ void infil_create(Project *project, int subcatchCount, int model)
 
 //=============================================================================
 
-void infil_delete()
+void infil_delete(Project* project)
 //
 //  Purpose: deletes infiltration objects associated with subcatchments
 //  Input:   none
 //  Output:  none
 //
 {
-    FREE(HortInfil);
-    FREE(GAInfil);
-    FREE(CNInfil);
+    FREE(project->HortInfil);
+    FREE(project->GAInfil);
+    FREE(project->CNInfil);
 }
 
 //=============================================================================
 
-int infil_readParams(Project *project, int m, char* tok[], int ntoks)
+int infil_readParams(Project* project,int m, char* tok[], int ntoks)
 //
 //  Input:   m = infiltration method code
 //           tok[] = array of string tokens
@@ -160,11 +159,11 @@ int infil_readParams(Project *project, int m, char* tok[], int ntoks)
     switch (m)
     {
       case HORTON:
-      case MOD_HORTON:   status = horton_setParams(project, &HortInfil[j], x);
+      case MOD_HORTON:   status = horton_setParams(project, &project->HortInfil[j], x);
                          break;
-      case GREEN_AMPT:   status = grnampt_setParams(project, &GAInfil[j], x);
+      case GREEN_AMPT:   status = grnampt_setParams(project, &project->GAInfil[j], x);
                          break;
-      case CURVE_NUMBER: status = curvenum_setParams(&CNInfil[j], x);
+      case CURVE_NUMBER: status = curvenum_setParams( &project->CNInfil[j], x);
                          break;
       default:           status = TRUE;
     }
@@ -174,7 +173,7 @@ int infil_readParams(Project *project, int m, char* tok[], int ntoks)
 
 //=============================================================================
 
-void infil_initState(int j, int m)
+void infil_initState(Project* project,int j, int m)
 //
 //  Input:   j = subcatchment index
 //           m = infiltration method code
@@ -185,15 +184,15 @@ void infil_initState(int j, int m)
     switch (m)
     {
       case HORTON:       
-      case MOD_HORTON:   horton_initState(&HortInfil[j]);   break;
-      case GREEN_AMPT:   grnampt_initState(&GAInfil[j]);    break;
-      case CURVE_NUMBER: curvenum_initState(&CNInfil[j]);   break;
+      case MOD_HORTON:   horton_initState(&project->HortInfil[j]);   break;
+      case GREEN_AMPT:   grnampt_initState(&project->GAInfil[j]);    break;
+      case CURVE_NUMBER: curvenum_initState(&project->CNInfil[j]);   break;
     }
 }
 
 //=============================================================================
 
-void infil_getState(int j, int m, double x[])
+void infil_getState(Project* project,int j, int m, double x[])
 //
 //  Input:   j = subcatchment index
 //           m = infiltration method code
@@ -204,15 +203,15 @@ void infil_getState(int j, int m, double x[])
     switch (m)
     {
       case HORTON:       
-      case MOD_HORTON:   horton_getState(&HortInfil[j], x); break;
-      case GREEN_AMPT:   grnampt_getState(&GAInfil[j],x);   break;
-      case CURVE_NUMBER: curvenum_getState(&CNInfil[j], x); break;
+      case MOD_HORTON:   horton_getState(&project->HortInfil[j], x); break;
+      case GREEN_AMPT:   grnampt_getState(&project->GAInfil[j],x);   break;
+      case CURVE_NUMBER: curvenum_getState(&project->CNInfil[j], x); break;
     }
 }
 
 //=============================================================================
 
-void infil_setState(int j, int m, double x[])
+void infil_setState(Project* project,int j, int m, double x[])
 //
 //  Input:   j = subcatchment index
 //           m = infiltration method code
@@ -223,15 +222,15 @@ void infil_setState(int j, int m, double x[])
     switch (m)
     {
       case HORTON:       
-      case MOD_HORTON:   horton_setState(&HortInfil[j], x); break;
-      case GREEN_AMPT:   grnampt_setState(&GAInfil[j],x);   break;
-      case CURVE_NUMBER: curvenum_setState(&CNInfil[j], x); break;
+      case MOD_HORTON:   horton_setState(&project->HortInfil[j], x); break;
+      case GREEN_AMPT:   grnampt_setState(&project->GAInfil[j],x);   break;
+      case CURVE_NUMBER: curvenum_setState(&project->CNInfil[j], x); break;
     }
 }
 
 //=============================================================================
 
-double infil_getInfil(Project *project, int j, int m, double tstep, double rainfall,
+double infil_getInfil(Project* project,int j, int m, double tstep, double rainfall,
                       double runon, double depth)
 //
 //  Input:   j = subcatchment index
@@ -247,18 +246,18 @@ double infil_getInfil(Project *project, int j, int m, double tstep, double rainf
     switch (m)
     {
       case HORTON:
-          return horton_getInfil(project, &HortInfil[j], tstep, rainfall+runon, depth);
+          return horton_getInfil(project, &project->HortInfil[j], tstep, rainfall+runon, depth);
 
       case MOD_HORTON:
-          return modHorton_getInfil(project, &HortInfil[j], tstep, rainfall+runon,
+          return modHorton_getInfil(project, &project->HortInfil[j], tstep, rainfall+runon,
                                     depth);
 
       case GREEN_AMPT:
-        return grnampt_getInfil(project, &GAInfil[j], tstep, rainfall+runon, depth);
+        return grnampt_getInfil(project, &project->GAInfil[j], tstep, rainfall+runon, depth);
 
       case CURVE_NUMBER:
         depth += runon / tstep;
-        return curvenum_getInfil(project, &CNInfil[j], tstep, rainfall, depth);
+        return curvenum_getInfil(project, &project->CNInfil[j], tstep, rainfall, depth);
 
       default:
         return 0.0;
@@ -267,7 +266,7 @@ double infil_getInfil(Project *project, int j, int m, double tstep, double rainf
 
 //=============================================================================
 
-int horton_setParams(Project *project, THorton *infil, double p[])
+int horton_setParams(Project* project, THorton *infil, double p[])
 //
 //  Input:   infil = ptr. to Horton infiltration object
 //           p[] = array of parameter values
@@ -280,7 +279,7 @@ int horton_setParams(Project *project, THorton *infil, double p[])
 
     // --- max. & min. infil rates (ft/sec)
     infil->f0   = p[0] / UCF(project, RAINFALL);
-    infil->fmin = p[1] / UCF(project, RAINFALL);
+	infil->fmin = p[1] / UCF(project, RAINFALL);
 
     // --- convert decay const. to 1/sec
     infil->decay = p[2] / 3600.;
@@ -292,7 +291,7 @@ int horton_setParams(Project *project, THorton *infil, double p[])
     infil->regen = -log(1.0-0.98) / p[3] / SECperDAY;
 
     // --- optional max. infil. capacity (ft) (p[4] = 0 if no value supplied)
-    infil->Fmax = p[4] / UCF(project, RAINDEPTH);
+	infil->Fmax = p[4] / UCF(project, RAINDEPTH);
     if ( infil->f0 < infil->fmin ) return FALSE;
     return TRUE;
 }
@@ -436,7 +435,7 @@ double horton_getInfil(Project* project, THorton *infil, double tstep, double ir
 
 //=============================================================================
 
-double modHorton_getInfil(Project *project, THorton *infil, double tstep, double irate,
+double modHorton_getInfil(Project* project, THorton *infil, double tstep, double irate,
                           double depth)
 //
 //  Input:   infil = ptr. to Horton infiltration object
@@ -497,7 +496,7 @@ double modHorton_getInfil(Project *project, THorton *infil, double tstep, double
     
 //=============================================================================
 
-int grnampt_setParams(Project *project, TGrnAmpt *infil, double p[])
+int grnampt_setParams(struct Project* project ,TGrnAmpt *infil, double p[])
 //
 //  Input:   infil = ptr. to Green-Ampt infiltration object
 //           p[] = array of parameter values
@@ -508,8 +507,8 @@ int grnampt_setParams(Project *project, TGrnAmpt *infil, double p[])
     double ksat;                       // sat. hyd. conductivity in in/hr
 
     if ( p[0] <= 0.0 || p[1] <= 0.0 || p[2] < 0.0 ) return FALSE;
-    infil->S      = p[0] / UCF(project, RAINDEPTH);   // Capillary suction head (ft)
-    infil->Ks     = p[1] / UCF(project, RAINFALL);    // Sat. hyd. conductivity (ft/sec)
+	infil->S = p[0] / UCF(project, RAINDEPTH);   // Capillary suction head (ft)
+	infil->Ks = p[1] / UCF(project, RAINFALL);    // Sat. hyd. conductivity (ft/sec)
     infil->IMDmax = p[2];                    // Max. init. moisture deficit
 
     // --- find depth of upper soil zone (ft) using Mein's eqn.
@@ -782,7 +781,7 @@ double grnampt_getF2(double f1, double c1, double c2, double iv2)
 
 //=============================================================================
 
-void grnampt_setT(Project *project, TGrnAmpt *infil)
+void grnampt_setT(Project* project,TGrnAmpt *infil)
 //
 //  Input:   infil = ptr. to Green-Ampt infiltration object
 //  Output:  none

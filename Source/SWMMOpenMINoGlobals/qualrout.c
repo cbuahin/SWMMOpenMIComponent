@@ -26,20 +26,20 @@
 //-----------------------------------------------------------------------------
 //  Function declarations
 //-----------------------------------------------------------------------------
-static void  findLinkMassFlow(Project *project, int i, double tStep);
-static void  findNodeQual(Project *project, int j);
-static void  findLinkQual(Project *project, int i, double tStep);
-static void  findSFLinkQual(Project *project, int i, double tStep);
-static void  findStorageQual(Project *project, int j, double tStep);
-static void  updateHRT(Project *project, int j, double v, double q, double tStep);
-static double getReactedQual(Project *project, int p, double c, double v1, double tStep);
+static void  findLinkMassFlow(Project* project, int i, double tStep);
+static void  findNodeQual(Project* project, int j);
+static void  findLinkQual(Project* project, int i, double tStep);
+static void  findSFLinkQual(Project* project, int i, double tStep);
+static void  findStorageQual(Project* project, int j, double tStep);
+static void  updateHRT(Project* project, int j, double v, double q, double tStep);
+static double getReactedQual(Project* project, int p, double c, double v1, double tStep);
 static double getMixedQual(double c, double v1, double wIn, double qIn,
               double tStep);
 
 
 //=============================================================================
 
-void    qualrout_init(Project *project)
+void    qualrout_init(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -76,7 +76,7 @@ void    qualrout_init(Project *project)
 
 //=============================================================================
 
-void qualrout_execute(Project *project, double tStep)
+void qualrout_execute(Project* project, double tStep)
 //
 //  Input:   tStep = routing time step (sec)
 //  Output:  none
@@ -88,7 +88,7 @@ void qualrout_execute(Project *project, double tStep)
     double qIn, vAvg;
 
     // --- find mass flow each link contributes to its downstream node
-    for ( i = 0; i < project->Nobjects[LINK]; i++ ) findLinkMassFlow(project, i, tStep);
+    for ( i = 0; i < project->Nobjects[LINK]; i++ ) findLinkMassFlow(project,i, tStep);
 
     // --- find new water quality concentration at each node  
     for (j = 0; j < project->Nobjects[NODE]; j++)
@@ -101,22 +101,22 @@ void qualrout_execute(Project *project, double tStep)
         if ( project->Node[j].treatment )
         {
             if ( qIn < ZERO ) qIn = 0.0;
-            treatmnt_setInflow(project, qIn, project->Node[j].newQual);
+            treatmnt_setInflow(project,qIn, project->Node[j].newQual);
         }
        
         // --- find new quality at the node 
         if ( project->Node[j].type == STORAGE || project->Node[j].oldVolume > FUDGE )
         {
-            findStorageQual(project, j, tStep);
+            findStorageQual(project,j, tStep);
         }
-        else findNodeQual(project, j);
+        else findNodeQual(project,j);
 
         // --- apply treatment to new quality values
-        if ( project->Node[j].treatment ) treatmnt_treat(project, j, qIn, vAvg, tStep);
+        if ( project->Node[j].treatment ) treatmnt_treat(project,j, qIn, vAvg, tStep);
     }
 
     // --- find new water quality in each link
-    for ( i=0; i<project->Nobjects[LINK]; i++ ) findLinkQual(project, i, tStep);
+    for ( i=0; i<project->Nobjects[LINK]; i++ ) findLinkQual(project,i, tStep);
 }
 
 //=============================================================================
@@ -152,7 +152,7 @@ double getMixedQual(double c, double v1, double wIn, double qIn, double tStep)
 
 //=============================================================================
 
-void findLinkMassFlow(Project *project, int i, double tStep)
+void findLinkMassFlow(Project* project, int i, double tStep)
 //
 //  Input:   i = link index
 //           tStep = time step (sec)
@@ -186,7 +186,7 @@ void findLinkMassFlow(Project *project, int i, double tStep)
 
 //=============================================================================
 
-void findNodeQual(Project *project, int j)
+void findNodeQual(Project* project, int j)
 //
 //  Input:   j = node index
 //  Output:  none
@@ -212,7 +212,7 @@ void findNodeQual(Project *project, int j)
 
 //=============================================================================
 
-void findLinkQual(Project *project, int i, double tStep)
+void findLinkQual(Project* project, int i, double tStep)
 //
 //  Input:   i = link index
 //           tStep = routing time step (sec)
@@ -259,7 +259,7 @@ void findLinkQual(Project *project, int i, double tStep)
     // --- Steady Flow routing requires special treatment
     if ( project->RouteModel == SF )
     {
-        findSFLinkQual(project, i, tStep);
+        findSFLinkQual(project,i, tStep);
         return;
     }
 
@@ -284,7 +284,7 @@ void findLinkQual(Project *project, int i, double tStep)
     {
         // --- determine mass lost to first order decay
         c1 = project->Link[i].oldQual[p];
-        c2 = getReactedQual(project, p, c1, v1, tStep);
+        c2 = getReactedQual(project,p, c1, v1, tStep);
 
         // --- mix inflow to conduit with previous contents
         wIn = project->Node[j].newQual[p]*qIn;
@@ -297,7 +297,7 @@ void findLinkQual(Project *project, int i, double tStep)
 
 //=============================================================================
 
-void  findSFLinkQual(Project *project, int i, double tStep)
+void  findSFLinkQual(Project* project, int i, double tStep)
 //
 //  Input:   i = link index
 //           tStep = routing time step (sec)
@@ -325,7 +325,7 @@ void  findSFLinkQual(Project *project, int i, double tStep)
             c2 = c1 * exp(-project->Pollut[p].kDecay * t);
             c2 = MAX(0.0, c2);
             lossRate = (c1 - c2) * project->Link[i].newFlow;
-            massbal_addReactedMass(project, p, lossRate);
+            massbal_addReactedMass(project,p, lossRate);
         }
         project->Link[i].newQual[p] = c2;
     }
@@ -333,7 +333,7 @@ void  findSFLinkQual(Project *project, int i, double tStep)
 
 //=============================================================================
 
-void  findStorageQual(Project *project, int j, double tStep)
+void  findStorageQual(Project* project, int j, double tStep)
 //
 //  Input:   j = node index
 //           tStep = routing time step (sec)
@@ -356,7 +356,7 @@ void  findStorageQual(Project *project, int j, double tStep)
     //     (HRT can be used in treatment functions)
     if ( project->Node[j].type == STORAGE )
     {    
-        updateHRT(project, j, project->Node[j].oldVolume, qIn, tStep);
+        updateHRT(project,j, project->Node[j].oldVolume, qIn, tStep);
     }
 
     // --- for each pollutant
@@ -369,7 +369,7 @@ void  findStorageQual(Project *project, int j, double tStep)
         if ( project->Node[j].treatment == NULL ||
              project->Node[j].treatment[p].equation == NULL )
         {
-            c1 = getReactedQual(project, p, c1, v1, tStep);
+            c1 = getReactedQual(project,p, c1, v1, tStep);
         }
 
         // --- mix inflow with current contents (mass inflow rate was
@@ -384,7 +384,7 @@ void  findStorageQual(Project *project, int j, double tStep)
 
 //=============================================================================
 
-void updateHRT(Project *project, int j, double v, double q, double tStep)
+void updateHRT(Project* project, int j, double v, double q, double tStep)
 //
 //  Input:   j = node index
 //           v = storage volume (ft3)
@@ -404,7 +404,7 @@ void updateHRT(Project *project, int j, double v, double q, double tStep)
 
 //=============================================================================
 
-double getReactedQual(Project *project, int p, double c, double v1, double tStep)
+double getReactedQual(Project* project, int p, double c, double v1, double tStep)
 //
 //  Input:   p = pollutant index
 //           c = initial concentration (mass/ft3)
@@ -422,7 +422,7 @@ double getReactedQual(Project *project, int p, double c, double v1, double tStep
     c2 = c * (1.0 - kDecay * tStep);
     c2 = MAX(0.0, c2);
     lossRate = (c - c2) * v1 / tStep;
-    massbal_addReactedMass(project, p, lossRate);
+    massbal_addReactedMass(project,p, lossRate);
     return c2;
 }
 

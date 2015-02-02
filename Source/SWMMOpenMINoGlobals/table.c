@@ -44,7 +44,7 @@ double table_interpolate(double x, double x1, double y1, double x2, double y2)
 
 //=============================================================================
 
-int table_readCurve(Project *project, char* tok[], int ntoks)
+int table_readCurve(Project* project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -67,10 +67,10 @@ int table_readCurve(Project *project, char* tok[], int ntoks)
     if ( project->Curve[j].ID == NULL )
     {
         // --- assign ID pointer & curve type
-        project->Curve[j].ID = project_findID(project, CURVE, tok[0]);
+		project->Curve[j].ID = project_findID(project, CURVE, tok[0]);
         m = findmatch(tok[1], CurveTypeWords);
         if ( m < 0 ) return error_setInpError(ERR_KEYWORD, tok[1]);
-        project->Curve[j].curveType = m;
+		project->Curve[j].curveType = m;
         k1 = 2;
     }
 
@@ -82,14 +82,14 @@ int table_readCurve(Project *project, char* tok[], int ntoks)
             return error_setInpError(ERR_NUMBER, tok[k]);
         if ( ! getDouble(tok[k+1], &y) )
             return error_setInpError(ERR_NUMBER, tok[k+1]);
-        table_addEntry(&project->Curve[j], x, y);
+		table_addEntry(&project->Curve[j], x, y);
     }
     return 0;
 }
 
 //=============================================================================
 
-int table_readTimeseries(Project *project, char* tok[], int ntoks)
+int table_readTimeseries(Project* project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -110,18 +110,18 @@ int table_readTimeseries(Project *project, char* tok[], int ntoks)
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that time series exists in database
-    j = project_findObject(project, TSERIES, tok[0]);
+    j = project_findObject(project , TSERIES, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- if first line of data, assign ID pointer
     if ( project->Tseries[j].ID == NULL )
-        project->Tseries[j].ID = project_findID(project, TSERIES, tok[0]);
+		project->Tseries[j].ID = project_findID(project, TSERIES, tok[0]);
 
     // --- check if time series data is in an external file
     if ( strcomp(tok[1], w_FILE ) )
     {
-        sstrncpy(project->Tseries[j].file.name, tok[2], MAXFNAME);
-        project->Tseries[j].file.mode = USE_FILE;
+		sstrncpy(project->Tseries[j].file.name, tok[2], MAXFNAME);
+		project->Tseries[j].file.mode = USE_FILE;
         return 0;
     }
 
@@ -136,7 +136,7 @@ int table_readTimeseries(Project *project, char* tok[], int ntoks)
           case 1:            // look for a date entry
             if ( datetime_strToDate(tok[k], &d) )
             {
-                project->Tseries[j].lastDate = d;
+				project->Tseries[j].lastDate = d;
                 k++;
             }
 
@@ -155,7 +155,7 @@ int table_readTimeseries(Project *project, char* tok[], int ntoks)
                 return error_setInpError(ERR_NUMBER, tok[k]);
 
             // --- save date + time in x
-            x = project->Tseries[j].lastDate + t;
+			x = project->Tseries[j].lastDate + t;
 
             // --- next token must be a numeric value
             k++;

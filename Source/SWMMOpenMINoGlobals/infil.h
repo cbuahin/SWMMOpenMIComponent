@@ -12,6 +12,7 @@
 #ifndef INFIL_H
 #define INFIL_H
 
+
 struct Project;
 
 //---------------------
@@ -21,7 +22,7 @@ enum InfilType {
      HORTON,                      // Horton infiltration
      MOD_HORTON,                  // Modified Horton infiltration
      GREEN_AMPT,                  // Green-Ampt infiltration
-     CURVE_NUMBER};               // SCS project->Curve Number infiltration
+     CURVE_NUMBER};               // SCS Curve Number infiltration
 
 //---------------------
 // Horton Infiltration
@@ -59,7 +60,7 @@ typedef struct
 
 
 //--------------------------
-// project->Curve Number Infiltration
+// Curve Number Infiltration
 //--------------------------
 typedef struct
 {
@@ -79,25 +80,25 @@ typedef struct
 //-----------------------------------------------------------------------------
 //   Exported Variables
 //-----------------------------------------------------------------------------
-extern THorton*   HortInfil;
-extern TGrnAmpt*  GAInfil;
-extern TCurveNum* CNInfil;
+//extern THorton*   HortInfil;
+//extern TGrnAmpt*  GAInfil;
+//extern TCurveNum* CNInfil;
 
 //-----------------------------------------------------------------------------
 //   Infiltration Methods
 //-----------------------------------------------------------------------------
-void    infil_create(struct Project *project, int subcatchCount, int model);
-void    infil_delete(struct Project *project);
-int     infil_readParams(struct Project *project, int model, char* tok[], int ntoks);
-void    infil_initState(int area, int model);
-void    infil_getState(int j, int m, double x[]);
-void    infil_setState(int j, int m, double x[]);
-double  infil_getInfil(struct Project *project, int area, int model, double tstep, double rainfall,
+void    infil_create(struct Project* project, int subcatchCount, int model);
+void    infil_delete(struct Project* project);
+int     infil_readParams(struct Project* project, int model, char* tok[], int ntoks);
+void    infil_initState(struct Project* project, int area, int model);
+void    infil_getState(struct Project* project, int j, int m, double x[]);
+void    infil_setState(struct Project* project, int j, int m, double x[]);
+double  infil_getInfil(struct Project* project, int area, int model, double tstep, double rainfall,
         double runon, double depth);
 
-int     grnampt_setParams(struct Project *project, TGrnAmpt *infil, double p[]);
+int     grnampt_setParams(struct Project* project,TGrnAmpt *infil, double p[]);
 void    grnampt_initState(TGrnAmpt *infil);
-double  grnampt_getInfil(struct Project *project, TGrnAmpt *infil, double tstep, double irate,
+double  grnampt_getInfil(struct Project* project,TGrnAmpt *infil, double tstep, double irate,
         double depth);
 
 #endif

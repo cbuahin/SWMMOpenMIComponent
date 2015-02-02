@@ -18,6 +18,7 @@
 #include <string.h>
 #include "infil.h"
 
+
 struct Project;
 
 //-----------------------------------------------------------------------------
@@ -71,7 +72,7 @@ typedef struct
     double    kSlope;             // slope of log(K) v. moisture content curve
 }  TSoilLayer;
 
-// LID project->Storage Layer
+// LID Storage Layer
 typedef struct
 {
     double    thickness;          // layer thickness (ft)
@@ -80,7 +81,7 @@ typedef struct
     double    clogFactor;         // clogging factor
 }  TStorageLayer;
 
-// Underdrain System (part of project->Storage Layer)
+// Underdrain System (part of Storage Layer)
 typedef struct
 {
     double    coeff;              // underdrain flow coeff. (in/hr or mm/hr)
@@ -154,6 +155,10 @@ typedef struct
     TWaterBalance  waterBalance;     // water balance quantites
 }  TLidUnit;
 
+//-----------------------------------------------------------------------------
+//  Data Structures
+//-----------------------------------------------------------------------------
+
 // LID List - list of LID units contained in an LID group
 struct LidList
 {
@@ -175,8 +180,8 @@ typedef struct LidGroup* TLidGroup;
 //-----------------------------------------------------------------------------
 //   LID Methods
 //-----------------------------------------------------------------------------
-void     lid_create(struct Project *project, int lidCount, int subcatchCount);
-void     lid_delete(struct Project *project);
+void     lid_create(struct Project* project , int lidCount, int subcatchCount);
+void     lid_delete(struct Project* project);
 int      lid_readProcParams(struct Project *project, char* tok[], int ntoks);
 int      lid_readGroupParams(struct Project *project, char* tok[], int ntoks);
 void     lid_validate(struct Project *project);
@@ -192,10 +197,10 @@ void     lid_writeSummary(struct Project *project);
 void     lid_writeWaterBalance(struct Project *project);
 //-----------------------------------------------------------------------------
 void     lidproc_initWaterBalance(TLidUnit *lidUnit, double initVol);
-double   lidproc_getOutflow(struct Project *project, TLidUnit* theUnit, TLidProc* theProc, double inflow,
+double   lidproc_getOutflow(struct Project* project, TLidUnit* theUnit, TLidProc* theProc, double inflow,
 	     double rain, double evap, double infil, double maxInfil, double tStep,
          double* lidEvap, double* lidInfil);
-void     lidproc_saveResults(struct Project *project, TLidUnit* theUnit, int saveResults,
+void     lidproc_saveResults(struct Project* project,TLidUnit* theUnit, int saveResults,
          double ucfRainfall, double ucfRainDepth);
 
 #endif

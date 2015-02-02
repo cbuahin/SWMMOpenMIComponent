@@ -28,8 +28,8 @@
 
 
 #include <math.h>
-#include "headers.h"
-#include "findroot.h"
+#include <headers.h>
+#include <findroot.h>
 
 #define  RECT_ALFMAX        0.97
 #define  RECT_TRIANG_ALFMAX 0.98
@@ -100,53 +100,53 @@ typedef struct
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static double generic_getAofS(TXsect* xsect, double s);
-static void   evalSofA(Project *project, double a, double* f, double* df, void* p);
+static double generic_getAofS(Project* project, TXsect* xsect, double s);
+static void   evalSofA(Project* project, double a, double* f, double* df, void* p);
 static double tabular_getdSdA(TXsect* xsect, double a, double *table, int nItems);
-static double generic_getdSdA(Project *project, TXsect* xsect, double a);
+static double generic_getdSdA(Project* project, TXsect* xsect, double a);
 static double lookup(double x, double *table, int nItems);
 static double invLookup(double y, double *table, int nItems);
 static int    locate(double y, double *table, int nItems);
 
-static double rect_closed_getSofA(Project *project, TXsect* xsect, double a);
-static double rect_closed_getdSdA(Project *project, TXsect* xsect, double a);
+static double rect_closed_getSofA(Project* project, TXsect* xsect, double a);
+static double rect_closed_getdSdA(Project* project, TXsect* xsect, double a);
 static double rect_closed_getRofA(TXsect* xsect, double a);
 
-static double rect_open_getSofA(Project *project, TXsect* xsect, double a);
-static double rect_open_getdSdA(Project *project, TXsect* xsect, double a);
+static double rect_open_getSofA(TXsect* xsect, double a);
+static double rect_open_getdSdA(Project* project, TXsect* xsect, double a);
 
 static double rect_triang_getYofA(TXsect* xsect, double a);
 static double rect_triang_getRofA(TXsect* xsect, double a);
 static double rect_triang_getSofA(TXsect* xsect, double a);
-static double rect_triang_getdSdA(Project *project, TXsect* xsect, double a);
+static double rect_triang_getdSdA(Project* project, TXsect* xsect, double a);
 static double rect_triang_getAofY(TXsect* xsect, double y);
 static double rect_triang_getRofY(TXsect* xsect, double y);
 static double rect_triang_getWofY(TXsect* xsect, double y);
 
 static double rect_round_getYofA(TXsect* xsect, double a);
 static double rect_round_getRofA(TXsect* xsect, double a);
-static double rect_round_getSofA(Project *project, TXsect* xsect, double a);
-static double rect_round_getdSdA(Project *project, TXsect* xsect, double a);
+static double rect_round_getSofA(Project* project, TXsect* xsect, double a);
+static double rect_round_getdSdA(Project* project, TXsect* xsect, double a);
 static double rect_round_getAofY(TXsect* xsect, double y);
 static double rect_round_getRofY(TXsect* xsect, double y);
 static double rect_round_getWofY(TXsect* xsect, double y);
 
 static double mod_basket_getYofA(TXsect* xsect, double a);
 static double mod_basket_getRofA(TXsect* xsect, double a);
-static double mod_basket_getdSdA(Project *project, TXsect* xsect, double a);
+static double mod_basket_getdSdA(Project* project, TXsect* xsect, double a);
 static double mod_basket_getAofY(TXsect* xsect, double y);
 static double mod_basket_getWofY(TXsect* xsect, double y);
 
 static double trapez_getYofA(TXsect* xsect, double a);
 static double trapez_getRofA(TXsect* xsect, double a);
-static double trapez_getdSdA(Project *project, TXsect* xsect, double a);
+static double trapez_getdSdA(Project* project, TXsect* xsect, double a);
 static double trapez_getAofY(TXsect* xsect, double y);
 static double trapez_getRofY(TXsect* xsect, double y);
 static double trapez_getWofY(TXsect* xsect, double y);
 
 static double triang_getYofA(TXsect* xsect, double a);
 static double triang_getRofA(TXsect* xsect, double a);
-static double triang_getdSdA(Project *project, TXsect* xsect, double a);
+static double triang_getdSdA(Project* project, TXsect* xsect, double a);
 static double triang_getAofY(TXsect* xsect, double y);
 static double triang_getRofY(TXsect* xsect, double y);
 static double triang_getWofY(TXsect* xsect, double y);
@@ -181,9 +181,9 @@ static double getAcircular(double psi);
 static double getThetaOfAlpha(double alpha);
 static double getThetaOfPsi(double psi);
 
-static double getQcritical(Project *project, double yc, void* p);
-static double getYcritEnum(Project *project, TXsect* xsect, double q, double y0);
-static double getYcritRidder(Project *project, TXsect* xsect, double q, double y0);
+static double getQcritical(Project* project, double yc, void* p);
+static double getYcritEnum(Project* project, TXsect* xsect, double q, double y0);
+static double getYcritRidder(Project* project, TXsect* xsect, double q, double y0);
 
 //=============================================================================
 
@@ -199,7 +199,7 @@ int xsect_isOpen(int type)
 
 //=============================================================================
 
-int xsect_setParams(Project *project, TXsect *xsect, int type, double p[], double ucf)
+int xsect_setParams(Project* project, TXsect *xsect, int type, double p[], double ucf)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           type = xsection shape type
@@ -264,7 +264,7 @@ int xsect_setParams(Project *project, TXsect *xsect, int type, double p[], doubl
         //     rBot = wetted perimeter of filled bottom
         xsect->yBot  = p[1]/ucf;
         xsect->aBot  = circ_getAofY(xsect, xsect->yBot);
-        xsect->sBot  = xsect_getWofY(project, xsect, xsect->yBot);
+        xsect->sBot  = xsect_getWofY(project,xsect, xsect->yBot);
         xsect->rBot  = xsect->aBot / (xsect->rFull *
                        lookup(xsect->yBot/xsect->yFull, R_Circ, N_R_Circ));
 
@@ -459,7 +459,7 @@ int xsect_setParams(Project *project, TXsect *xsect, int type, double p[], doubl
         xsect->sFull = xsect->aFull * pow(xsect->rFull, 2./3.);
 
         // --- area corresponding to max. section factor
-        xsect->sMax = xsect_getSofA(project, xsect, Amax[MOD_BASKET]*xsect->aFull);
+        xsect->sMax = xsect_getSofA(project,xsect, Amax[MOD_BASKET]*xsect->aFull);
         break;
        
     case TRAPEZOIDAL:
@@ -514,7 +514,7 @@ int xsect_setParams(Project *project, TXsect *xsect, int type, double p[], doubl
         xsect->rBot  = xsect->wMax / 2.0 / sqrt(xsect->yFull);
 
         xsect->aFull = (2./3.) * xsect->yFull * xsect->wMax;
-        xsect->rFull = xsect_getRofY(project, xsect, xsect->yFull);
+        xsect->rFull = xsect_getRofY(project,xsect, xsect->yFull);
         xsect->sFull = xsect->aFull * pow(xsect->rFull, 2./3.);
         xsect->sMax  = xsect->sFull;
         break;
@@ -528,7 +528,7 @@ int xsect_setParams(Project *project, TXsect *xsect, int type, double p[], doubl
         xsect->rBot  = xsect->wMax / (xsect->sBot + 1) /
                        pow(xsect->yFull, xsect->sBot);
         xsect->aFull = xsect->yFull * xsect->wMax / (xsect->sBot+1);
-        xsect->rFull = xsect_getRofY(project, xsect, xsect->yFull);
+        xsect->rFull = xsect_getRofY(project,xsect, xsect->yFull);
         xsect->sFull = xsect->aFull * pow(xsect->rFull, 2./3.);
         xsect->sMax  = xsect->sFull;
         break;
@@ -616,7 +616,7 @@ int xsect_setParams(Project *project, TXsect *xsect, int type, double p[], doubl
 
 //=============================================================================
 
-void xsect_setIrregXsectParams(Project *project, TXsect *xsect)
+void xsect_setIrregXsectParams(Project* project, TXsect *xsect)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //  Output:  none
@@ -652,7 +652,7 @@ void xsect_setIrregXsectParams(Project *project, TXsect *xsect)
 
 //=============================================================================
 
-void xsect_setCustomXsectParams(Project *project, TXsect *xsect)
+void xsect_setCustomXsectParams(Project* project, TXsect *xsect)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //  Output:  none
@@ -702,7 +702,7 @@ double xsect_getAmax(TXsect* xsect)
 
 //=============================================================================
 
-double xsect_getSofA(Project *project, TXsect *xsect, double a)
+double xsect_getSofA(Project* project, TXsect *xsect, double a)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           a = area (ft2)
@@ -740,20 +740,20 @@ double xsect_getSofA(Project *project, TXsect *xsect, double a)
         return xsect->sFull * lookup(alpha, S_SemiCirc, N_S_SemiCirc);
 
       case RECT_CLOSED:
-        return rect_closed_getSofA(project, xsect, a);
+        return rect_closed_getSofA(project,xsect, a);
 
       case RECT_OPEN:
-        return rect_open_getSofA(project, xsect, a);
+        return rect_open_getSofA(xsect, a);
 
       case RECT_TRIANG:
         return rect_triang_getSofA(xsect, a);
 
       case RECT_ROUND:
-        return rect_round_getSofA(project, xsect, a);
+        return rect_round_getSofA(project,xsect, a);
 
       default:
         if (a == 0.0) return 0.0;
-        r = xsect_getRofA(project, xsect, a);
+        r = xsect_getRofA(project,xsect, a);
         if ( r < TINY ) return 0.0;
         return a * pow(r, 2./3.);
     }
@@ -761,7 +761,7 @@ double xsect_getSofA(Project *project, TXsect *xsect, double a)
 
 //=============================================================================
 
-double xsect_getYofA(Project *project, TXsect *xsect, double a)
+double xsect_getYofA(Project* project, TXsect *xsect, double a)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           a = area (ft2)
@@ -840,7 +840,7 @@ double xsect_getYofA(Project *project, TXsect *xsect, double a)
 
 //=============================================================================
 
-double xsect_getAofY(Project *project, TXsect *xsect, double y)
+double xsect_getAofY(Project* project, TXsect *xsect, double y)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           y = depth (ft)
@@ -921,7 +921,7 @@ double xsect_getAofY(Project *project, TXsect *xsect, double y)
 
 //=============================================================================
 
-double xsect_getWofY(Project *project, TXsect *xsect, double y)
+double xsect_getWofY(Project* project, TXsect *xsect, double y)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           y = depth ft)
@@ -1002,7 +1002,7 @@ double xsect_getWofY(Project *project, TXsect *xsect, double y)
 
 //=============================================================================
 
-double xsect_getRofY(Project *project, TXsect *xsect, double y)
+double xsect_getRofY(Project* project, TXsect *xsect, double y)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           y = depth (ft)
@@ -1045,8 +1045,7 @@ double xsect_getRofY(Project *project, TXsect *xsect, double y)
             project->Transect[xsect->transect].hradTbl, N_TRANSECT_TBL);
 
       case CUSTOM:
-        return xsect->rFull * lookup(yNorm,
-            project->Shape[project->Curve[xsect->transect].refersTo].hradTbl, N_SHAPE_TBL);
+        return xsect->rFull * lookup(yNorm, project->Shape[project->Curve[xsect->transect].refersTo].hradTbl, N_SHAPE_TBL);
 
       case RECT_TRIANG:  return rect_triang_getRofY(xsect, y);
 
@@ -1060,13 +1059,13 @@ double xsect_getRofY(Project *project, TXsect *xsect, double y)
 
       case POWERFUNC:    return powerfunc_getRofY(xsect, y);
 
-      default:           return xsect_getRofA( project, xsect, xsect_getAofY(project, xsect, y) );
+      default:           return xsect_getRofA(project, xsect, xsect_getAofY(project,xsect, y) );
     }
 }
 
 //=============================================================================
 
-double xsect_getRofA(Project *project, TXsect *xsect, double a)
+double xsect_getRofA(Project* project, TXsect *xsect, double a)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           a = area (ft2)
@@ -1084,7 +1083,7 @@ double xsect_getRofA(Project *project, TXsect *xsect, double a)
       case IRREGULAR:
       case FILLED_CIRCULAR:
       case CUSTOM:
-        return xsect_getRofY(project, xsect, xsect_getYofA(project, xsect, a) );
+        return xsect_getRofY(project, xsect, xsect_getYofA(project,xsect, a) );
 
       case RECT_CLOSED:  return rect_closed_getRofA(xsect, a);
 
@@ -1106,7 +1105,7 @@ double xsect_getRofA(Project *project, TXsect *xsect, double a)
       case POWERFUNC:    return powerfunc_getRofA(xsect, a);
 
       default:
-        cathy = xsect_getSofA(project, xsect, a);
+        cathy = xsect_getSofA(project,xsect, a);
         if ( cathy < TINY || a < TINY ) return 0.0;
         return pow(cathy/a, 3./2.);
     }
@@ -1114,7 +1113,7 @@ double xsect_getRofA(Project *project, TXsect *xsect, double a)
 
 //=============================================================================
 
-double xsect_getAofS(Project *project, TXsect* xsect, double s)
+double xsect_getAofS(Project* project, TXsect* xsect, double s)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           s = section factor (ft^(8/3))
@@ -1153,13 +1152,13 @@ double xsect_getAofS(Project *project, TXsect* xsect, double s)
       case SEMICIRCULAR:
         return xsect->aFull * invLookup(psi, S_SemiCirc, N_S_SemiCirc);
 
-      default: return generic_getAofS(xsect, s);
+      default: return generic_getAofS(project,xsect, s);
     }
 }
 
 //=============================================================================
 
-double xsect_getdSdA(Project *project, TXsect* xsect, double a)
+double xsect_getdSdA(Project* project, TXsect* xsect, double a)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           a = area (ft2)
@@ -1196,33 +1195,33 @@ double xsect_getdSdA(Project *project, TXsect* xsect, double a)
         return  tabular_getdSdA(xsect, a, S_SemiCirc, N_S_SemiCirc);
 
       case RECT_CLOSED:
-        return rect_closed_getdSdA(project, xsect, a);
+        return rect_closed_getdSdA(project,xsect, a);
 
       case RECT_OPEN:
-        return rect_open_getdSdA(project, xsect, a);
+        return rect_open_getdSdA(project,xsect, a);
 
       case RECT_TRIANG:
-	return rect_triang_getdSdA(project, xsect, a);
+	return rect_triang_getdSdA(project,xsect, a);
 
       case RECT_ROUND:
-	return rect_round_getdSdA(project, xsect, a);
+	return rect_round_getdSdA(project,xsect, a);
 
       case MOD_BASKET:
-	return mod_basket_getdSdA(project, xsect, a);
+	return mod_basket_getdSdA(project,xsect, a);
 
       case TRAPEZOIDAL:
-	return trapez_getdSdA(project, xsect, a);
+	return trapez_getdSdA(project,xsect, a);
 
       case TRIANGULAR:
-	return triang_getdSdA(project, xsect, a);
+	return triang_getdSdA(project,xsect, a);
 
-      default: return generic_getdSdA(project, xsect, a);
+      default: return generic_getdSdA(project,xsect, a);
     }
 }
 
 //=============================================================================
 
-double xsect_getYcrit(Project *project, TXsect* xsect, double q)
+double xsect_getYcrit(Project* project, TXsect* xsect, double q)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           q = flow rate (cfs)
@@ -1276,10 +1275,10 @@ double xsect_getYcrit(Project *project, TXsect* xsect, double q)
         // --- use interval enumeration method to find yCritical if 
         //     area ratio not too far from 1.0
         if ( r >= 0.5 && r <= 2.0 )
-            y = getYcritEnum(project, xsect, q, y);
+            y = getYcritEnum(project,xsect, q, y);
 
         // --- otherwise use Ridder's root finding method
-        else y = getYcritRidder(project, xsect, q, y);
+        else y = getYcritRidder(project,xsect, q, y);
     }
 
     // --- do not allow yCritical to be > yFull
@@ -1288,7 +1287,7 @@ double xsect_getYcrit(Project *project, TXsect* xsect, double q)
 
 //=============================================================================
 
-double generic_getAofS(TXsect* xsect, double s)
+double generic_getAofS(Project* project, TXsect* xsect, double s)
 //
 //  Input:   xsect = ptr. to a cross section data structure
 //           s = section factor (ft^8/3)
@@ -1327,13 +1326,13 @@ double generic_getAofS(TXsect* xsect, double s)
 
     // use the Newton-Raphson root finder function to find A
     tol = 0.0001 * xsect->aFull;
-    findroot_Newton(a1, a2, &a, tol, evalSofA, &xsectStar);
+    findroot_Newton_added(a1, a2, &a, tol, evalSofA, &xsectStar,project);
     return a;
 }
 
 //=============================================================================
 
-void evalSofA(Project *project, double a, double* f, double* df, void* p)
+void evalSofA(Project* project, double a, double* f, double* df, void* p)
 //
 //  Input:   a = area
 //  Output:  f = root finding function
@@ -1346,9 +1345,9 @@ void evalSofA(Project *project, double a, double* f, double* df, void* p)
     double s;
 	
     xsectStar = (TXsectStar *)p;
-    s = xsect_getSofA(project, xsectStar->xsect, a);
+    s = xsect_getSofA(project,xsectStar->xsect, a);
     *f = s - xsectStar->s;
-    *df = xsect_getdSdA(project, xsectStar->xsect, a);
+    *df = xsect_getdSdA(project,xsectStar->xsect, a);
 }
 
 //=============================================================================
@@ -1382,7 +1381,7 @@ double tabular_getdSdA(TXsect* xsect, double a, double *table, int nItems)
 
 //=============================================================================
 
-double generic_getdSdA(Project *project, TXsect* xsect, double a)
+double generic_getdSdA(Project* project, TXsect* xsect, double a)
 //
 //  Input:   xsect = ptr. to cross section data structure
 //           a = area (ft2)
@@ -1398,7 +1397,7 @@ double generic_getdSdA(Project *project, TXsect* xsect, double a)
     if ( alpha1 < 0.0 ) alpha1 = 0.0;
     a1 = alpha1 * xsect->aFull;
     a2 = alpha2 * xsect->aFull;
-    return (xsect_getSofA(project, xsect, a2) - xsect_getSofA(project, xsect, a1)) / (a2 - a1);
+    return (xsect_getSofA(project,xsect, a2) - xsect_getSofA(project,xsect, a1)) / (a2 - a1);
 }
 
 //=============================================================================
@@ -1542,7 +1541,7 @@ int locate(double y, double *table, int jLast)
 
 //=============================================================================
 
-double getQcritical(Project *project, double yc, void* p)
+double getQcritical(Project* project, double yc, void* p)
 //
 //  Input:   yc = critical depth (ft)
 //           p = pointer to a TXsectStar object
@@ -1555,8 +1554,8 @@ double getQcritical(Project *project, double yc, void* p)
     TXsectStar* xsectStar;
 
     xsectStar = (TXsectStar *)p;
-    a = xsect_getAofY(project, xsectStar->xsect, yc);
-    w = xsect_getWofY(project, xsectStar->xsect, yc);
+    a = xsect_getAofY(project,xsectStar->xsect, yc);
+    w = xsect_getWofY(project,xsectStar->xsect, yc);
     qc = -xsectStar->qc;
     if ( w > 0.0 )  qc = a * sqrt(GRAVITY * a / w) - xsectStar->qc;
     return qc;
@@ -1564,7 +1563,7 @@ double getQcritical(Project *project, double yc, void* p)
 
 //=============================================================================
  
-double getYcritEnum(Project *project, TXsect* xsect, double q, double y0)
+double getYcritEnum(Project* project, TXsect* xsect, double q, double y0)
 //
 //  Input:   xsect = ptr. to cross section data structure
 //           q = critical flow rate (cfs)
@@ -1586,7 +1585,7 @@ double getYcritEnum(Project *project, TXsect* xsect, double q, double y0)
     // --- evaluate critical flow at this increment
     xsectStar.xsect = xsect;
     xsectStar.qc = 0.0;
-    q0 = getQcritical(project, i1*dy, &xsectStar);
+    q0 = getQcritical(project,i1*dy, &xsectStar);
 
     // --- initial flow lies below target flow 
     if ( q0 < q )
@@ -1597,7 +1596,7 @@ double getYcritEnum(Project *project, TXsect* xsect, double q, double y0)
         {
             // --- if critical flow at current depth is above target
             //     then use linear interpolation to compute critical depth
-            qc = getQcritical(project, i*dy, &xsectStar);
+            qc = getQcritical(project,i*dy, &xsectStar);
             if ( qc >= q )
             {
                 yc = ( (q-q0) / (qc - q0) + (double)(i-1) ) * dy;
@@ -1616,7 +1615,7 @@ double getYcritEnum(Project *project, TXsect* xsect, double q, double y0)
         {
             // --- if critical flow at current depth is below target
             //     then use linear interpolation to compute critical depth
-            qc = getQcritical(project, i*dy, &xsectStar);
+            qc = getQcritical(project,i*dy, &xsectStar);
             if ( qc < q )
             {
                 yc = ( (q-qc) / (q0-qc) + (double)i ) * dy;
@@ -1630,7 +1629,7 @@ double getYcritEnum(Project *project, TXsect* xsect, double q, double y0)
 
 //=============================================================================
 
-double getYcritRidder(Project *project, TXsect* xsect, double q, double y0)
+double getYcritRidder(Project* project, TXsect* xsect, double q, double y0)
 //
 //  Input:   xsect = ptr. to cross section data structure
 //           q = critical flow rate (cfs)
@@ -1651,13 +1650,13 @@ double getYcritRidder(Project *project, TXsect* xsect, double q, double y0)
     xsectStar.qc = 0.0;
 
     // --- check if critical flow at (nearly) full depth < target flow
-    q2 = getQcritical(project, y2, &xsectStar);
+    q2 = getQcritical(project,y2, &xsectStar);
     if (q2 < q ) return xsect->yFull;
 
     // --- evaluate critical flow at initial depth guess y0
     //     and at 1/2 of full depth
-    q0 = getQcritical(project, y0, &xsectStar);
-    q1 = getQcritical(project, 0.5*xsect->yFull, &xsectStar);
+    q0 = getQcritical(project,y0, &xsectStar);
+    q1 = getQcritical(project,0.5*xsect->yFull, &xsectStar);
 
     // --- adjust search interval on depth so it contains flow q
     if ( q0 > q )
@@ -1676,7 +1675,7 @@ double getYcritRidder(Project *project, TXsect* xsect, double q, double y0)
 
     // --- call Ridder root finding procedure with error tolerance
     //     of 0.001 ft. to find critical depth yc
-    yc = findroot_Ridder(y1, y2, 0.001, getQcritical, &xsectStar);
+    yc = findroot_Ridder_added(y1, y2, 0.001, getQcritical, &xsectStar, project);
     return yc;
 }
 
@@ -1685,7 +1684,7 @@ double getYcritRidder(Project *project, TXsect* xsect, double q, double y0)
 //  RECT_CLOSED fuctions
 //=============================================================================
 
-double rect_closed_getSofA(Project *project, TXsect* xsect, double a)
+double rect_closed_getSofA(Project* project, TXsect* xsect, double a)
 {
     // --- if a > area corresponding to Smax then
     //     interpolate between sMax and Sfull
@@ -1697,10 +1696,10 @@ double rect_closed_getSofA(Project *project, TXsect* xsect, double a)
     }
 
     // --- otherwise use regular formula
-    return a * pow(xsect_getRofA(project, xsect, a), 2./3.);
+    return a * pow(xsect_getRofA(project,xsect, a), 2./3.);
 }
 
-double rect_closed_getdSdA(Project *project, TXsect* xsect, double a)
+double rect_closed_getdSdA(Project* project, TXsect* xsect, double a)
 {
     double alpha, alfMax, r;
 
@@ -1715,11 +1714,11 @@ double rect_closed_getdSdA(Project *project, TXsect* xsect, double a)
     }
 
     // --- for small a/aFull use generic central difference formula
-    if ( alpha <= 1.0e-30 ) return generic_getdSdA(project, xsect, a);
+    if ( alpha <= 1.0e-30 ) return generic_getdSdA(project,xsect, a);
 
     // --- otherwise evaluate dSdA = [5/3 - (2/3)(dP/dA)R]R^(2/3)
     //     (where P = wetted perimeter & dPdA = 2/width)
-    r = xsect_getRofA(project, xsect, a);
+    r = xsect_getRofA(project,xsect, a);
     return  (5./3. - (2./3.) * (2.0/xsect->wMax) * r) * pow(r, 2./3.);
 }
 
@@ -1740,7 +1739,7 @@ double rect_closed_getRofA(TXsect* xsect, double a)
 //  RECT_OPEN fuctions
 //=============================================================================
 
-double rect_open_getSofA(Project *project, TXsect* xsect, double a)
+double rect_open_getSofA(TXsect* xsect, double a)
 {
     double y = a / xsect->wMax;
     double r = a / ((2.0-xsect->sBot)*y + xsect->wMax);
@@ -1748,16 +1747,16 @@ double rect_open_getSofA(Project *project, TXsect* xsect, double a)
 }
 
 
-double rect_open_getdSdA(Project *project, TXsect* xsect, double a)
+double rect_open_getdSdA(Project* project, TXsect* xsect, double a)
 {
     double r, dPdA;
 
     // --- for small a/aFull use generic central difference formula
-    if ( a / xsect->aFull <= 1.0e-30 ) return generic_getdSdA(project, xsect, a);
+    if ( a / xsect->aFull <= 1.0e-30 ) return generic_getdSdA(project,xsect, a);
 
     // --- otherwise evaluate dSdA = [5/3 - (2/3)(dP/dA)R]R^(2/3)
     //     (where P = wetted perimeter)
-    r = xsect_getRofA(project, xsect, a);
+    r = xsect_getRofA(project,xsect, a);
     dPdA = (2.0 - xsect->sBot) / xsect->wMax; // since P = geom2 + 2a/geom2
     return  (5./3. - (2./3.) * dPdA * r) * pow(r, 2./3.);
 }
@@ -1809,7 +1808,7 @@ double rect_triang_getSofA(TXsect* xsect, double a)
     else return a * pow(rect_triang_getRofA(xsect, a), 2./3.);
 }
 
-double rect_triang_getdSdA(Project *project, TXsect* xsect, double a)
+double rect_triang_getdSdA(Project* project, TXsect* xsect, double a)
 {
     double alpha, alfMax, dPdA, r;
 
@@ -1821,7 +1820,7 @@ double rect_triang_getdSdA(Project *project, TXsect* xsect, double a)
         return (xsect->sFull - xsect->sMax) / ((1.0 - alfMax) * xsect->aFull);
 
     // --- use generic central difference method for very small a
-    if ( alpha <= 1.0e-30 ) return generic_getdSdA(project, xsect, a);
+    if ( alpha <= 1.0e-30 ) return generic_getdSdA(project,xsect, a);
 
     // --- find deriv. of wetted perimeter
     if ( a > xsect->aBot ) dPdA = 2.0 / xsect->wMax;  // for upper rectangle
@@ -1908,7 +1907,7 @@ double rect_round_getRofA(TXsect* xsect, double a)
     return a / p;
 }
 
-double rect_round_getSofA(Project *project, TXsect* xsect, double a)
+double rect_round_getSofA(Project* project, TXsect* xsect, double a)
 {
     double alpha, aFull, sFull;
 
@@ -1924,7 +1923,7 @@ double rect_round_getSofA(Project *project, TXsect* xsect, double a)
     // --- if above circular invert, use generic function
     else if ( a > xsect->aBot )
     {
-        return a * pow(xsect_getRofA(project, xsect, a), 2./3.);
+        return a * pow(xsect_getRofA(project,xsect, a), 2./3.);
     }
 
     // --- otherwise use circular xsection function applied
@@ -1943,7 +1942,7 @@ double rect_round_getSofA(Project *project, TXsect* xsect, double a)
     }
 }
 
-double rect_round_getdSdA(Project *project, TXsect* xsect, double a)
+double rect_round_getdSdA(Project* project, TXsect* xsect, double a)
 {
     double alfMax, r, dPdA;
 
@@ -1965,7 +1964,7 @@ double rect_round_getdSdA(Project *project, TXsect* xsect, double a)
     }
 
     // --- otherwise use generic finite difference function
-    else return generic_getdSdA(project, xsect, a);
+    else return generic_getdSdA(project,xsect, a);
 }
 
 double rect_round_getAofY(TXsect* xsect, double y)
@@ -2058,7 +2057,7 @@ double mod_basket_getRofA(TXsect* xsect, double a)
     return a / p;
 }
 
-double mod_basket_getdSdA(Project *project, TXsect* xsect, double a)
+double mod_basket_getdSdA(Project* project, TXsect* xsect, double a)
 {
     double r, dPdA;
 
@@ -2072,7 +2071,7 @@ double mod_basket_getdSdA(Project *project, TXsect* xsect, double a)
     }
 
     // --- otherwise use generic function
-    else return generic_getdSdA(project, xsect, a);
+    else return generic_getdSdA(project,xsect, a);
 }
 
 double mod_basket_getAofY(TXsect* xsect, double y)
@@ -2126,11 +2125,11 @@ double trapez_getRofA(TXsect* xsect, double a)
     return a / (xsect->yBot + trapez_getYofA(xsect, a) * xsect->rBot);
 }
 
-double trapez_getdSdA(Project *project, TXsect* xsect, double a)
+double trapez_getdSdA(Project* project, TXsect* xsect, double a)
 {
     double r, dPdA;
     // --- use generic central difference method for very small a
-    if ( a/xsect->aFull <= 1.0e-30 ) return generic_getdSdA(project, xsect, a);
+    if ( a/xsect->aFull <= 1.0e-30 ) return generic_getdSdA(project,xsect, a);
 
     // --- otherwise use analytical formula:
     //     dSdA = [5/3 - (2/3)(dP/dA)R]R^(2/3)
@@ -2171,11 +2170,11 @@ double triang_getRofA(TXsect* xsect, double a)
     return a / (2. * triang_getYofA(xsect, a) * xsect->rBot);
 }
 
-double triang_getdSdA(Project *project, TXsect* xsect, double a)
+double triang_getdSdA(Project* project, TXsect* xsect, double a)
 {
     double r, dPdA;
     // --- use generic finite difference method for very small 'a'
-    if ( a/xsect->aFull <= 1.0e-30 ) return generic_getdSdA(project, xsect, a);
+    if ( a/xsect->aFull <= 1.0e-30 ) return generic_getdSdA(project,xsect, a);
 
     // --- evaluate dSdA = [5/3 - (2/3)(dP/dA)R]R^(2/3)
     r = triang_getRofA(xsect, a);

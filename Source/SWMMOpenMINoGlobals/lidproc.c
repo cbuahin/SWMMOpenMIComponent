@@ -87,12 +87,12 @@ static double     StorageVolume;       // volume in storage layer (ft)
 //-----------------------------------------------------------------------------
 // Local Functions
 //-----------------------------------------------------------------------------
-static void   barrelFluxRates(Project *project, double x[], double f[]);
-static void   biocellFluxRates(Project *project, double x[], double f[]);
-static void   greenRoofFluxRates(double x[], double f[]);
-static void   pavementFluxRates(Project *project, double x[], double f[]);
-static void   trenchFluxRates(Project *project, double x[], double f[]);
-static void   swaleFluxRates(double x[], double f[]);
+static void   barrelFluxRates(Project* project, double x[], double f[]);
+static void   biocellFluxRates(Project* project, double x[], double f[]);
+static void   greenRoofFluxRates(Project* project, double x[], double f[]);
+static void   pavementFluxRates(Project* project, double x[], double f[]);
+static void   trenchFluxRates(Project* project, double x[], double f[]);
+static void   swaleFluxRates(Project* project, double x[], double f[]);
 
 static double getSurfaceInfilRate(double theta);
 static double getSurfaceOutflowRate(double depth);
@@ -100,8 +100,8 @@ static double getSurfaceOverflowRate(double* surfaceDepth);
 static double getPavementPermRate(void);
 static double getSoilPercRate(double theta, double storageDepth);
 static double getStorageInfilRate(void);
-static double getStorageDrainRate(Project *project, double head);
-static void   getStorageOutflows(Project *project, double head);
+static double getStorageDrainRate(Project* project, double head);
+static void   getStorageOutflows(Project* project, double head);
 static double getDrainMatOutflow(double depth);
 static void   getEvapRates(double surfaceVol, double soilVol,
                            double storageVol);
@@ -110,10 +110,10 @@ static void   updateWaterBalance(TLidUnit *lidUnit, double inflow,
                                  double evap, double infil, double surfFlow,
                                  double drainFlow, double storage);
 
-static int    modpuls_solve(int n, double* x, double* xOld, double* xPrev,
+static int    modpuls_solve(Project* project, int n, double* x, double* xOld, double* xPrev,
                             double* xMin, double* xMax, double* xTol,
                             double* qOld, double* q, double dt,
-                            void (*derivs)(double*, double*));
+                            void (*derivs)(Project*,double*, double*));
 
 
 //=============================================================================
@@ -137,7 +137,7 @@ void lidproc_initWaterBalance(TLidUnit *lidUnit, double initVol)
 
 //=============================================================================
 
-double lidproc_getOutflow(Project *project, TLidUnit* lidUnit, TLidProc* lidProc, double inflow,
+double lidproc_getOutflow(Project* project, TLidUnit* lidUnit, TLidProc* lidProc, double inflow,
                           double rain, double evap, double infil,
 			  double maxInfil, double tStep, double* lidEvap,
 			  double* lidInfil)
@@ -168,7 +168,7 @@ double lidproc_getOutflow(Project *project, TLidUnit* lidUnit, TLidProc* lidProc
         {STOPTOL, STOPTOL, STOPTOL}; // levels (ft, moisture fraction , ft)
 
     //... define a pointer to function that computes flux rates through the LID
-    void (*fluxRates) (double *, double *) = NULL;
+    void (*fluxRates) (Project*, double *, double *) = NULL;
 
     //... save references to the LID process and LID unit
     theLidProc = lidProc;
@@ -246,16 +246,16 @@ double lidproc_getOutflow(Project *project, TLidUnit* lidUnit, TLidProc* lidProc
     }
 
     //... update moisture levels and flux rates over the time step
-    i = modpuls_solve(MAX_STATE_VARS, x, xOld, xPrev, xMin, xMax, xTol, fOld, f,
+    i = modpuls_solve(project,MAX_STATE_VARS, x, xOld, xPrev, xMin, xMax, xTol, fOld, f,
                       tStep, fluxRates);
 
     if  (i == 0) 
     {
 /** For debugging only ********************************************
-        fprintf(project->Frpt.file,
+        fprintf(Frpt.file,
         "\n  WARNING 09: integration failed to converge at %s %s",
             theDate, theTime);
-        fprintf(project->Frpt.file,
+        fprintf(Frpt.file,
         "\n              for LID %s placed in subcatchment %s.",
             theLidProc->ID, theSubcatch->ID);
 *******************************************************************/
@@ -283,7 +283,7 @@ double lidproc_getOutflow(Project *project, TLidUnit* lidUnit, TLidProc* lidProc
 
 //=============================================================================
 
-void lidproc_saveResults(Project *project, TLidUnit* lidUnit, int saveResults,
+void lidproc_saveResults(Project* project, TLidUnit* lidUnit, int saveResults,
                          double ucfRainfall, double ucfRainDepth)
 //
 //  Purpose: updates the mass balance for an LID unit and saves
@@ -338,7 +338,7 @@ void lidproc_saveResults(Project *project, TLidUnit* lidUnit, int saveResults,
         rptVars[STOR_DEPTH] = theLidUnit->storageDepth*ucf;
 
         //... one reporting period prior to current one
-        prevReportTime = project->NewRunoffTime - (double)(project->ReportStep*1000);            //(5.1.006)
+		prevReportTime = project->NewRunoffTime - (double)(project->ReportStep * 1000);            //(5.1.006)
 
         //... if last reported time is prior to previous time
         //    then add a blank line to break the time series                   //(5.1.006)
@@ -360,7 +360,7 @@ void lidproc_saveResults(Project *project, TLidUnit* lidUnit, int saveResults,
 
 //=============================================================================
 
-void greenRoofFluxRates(double x[], double f[])
+void greenRoofFluxRates(Project* project, double x[], double f[])
 //
 //  Purpose: computes flux rates from the layers of a green roof.
 //  Input:   x = vector of storage levels
@@ -409,7 +409,7 @@ void greenRoofFluxRates(double x[], double f[])
 
 //=============================================================================
 
-void biocellFluxRates(Project *project, double x[], double f[])
+void biocellFluxRates(Project* project, double x[], double f[])
 //
 //  Purpose: computes flux rates from the layers of a bio-retention cell LID.
 //  Input:   x = vector of storage levels
@@ -456,7 +456,7 @@ void biocellFluxRates(Project *project, double x[], double f[])
         head += surfaceDepth;
 
     //... find outflows from infiltration & underdrain
-    getStorageOutflows(project, head);
+    getStorageOutflows(project, head);                                             
 
     //... make adjustments if no storage layer present
     if ( theLidProc->storage.thickness == 0.0 )
@@ -475,7 +475,7 @@ void biocellFluxRates(Project *project, double x[], double f[])
 
 //=============================================================================
 
-void trenchFluxRates(Project *project, double x[], double f[])
+void trenchFluxRates(Project* project, double x[], double f[])
 //
 //  Purpose: computes flux rates from the layers of an infiltration trench LID.
 //  Input:   x = vector of storage levels
@@ -520,7 +520,7 @@ void trenchFluxRates(Project *project, double x[], double f[])
 
 //=============================================================================
 
-void pavementFluxRates(Project *project, double x[], double f[])
+void pavementFluxRates(Project* project, double x[], double f[])
 //
 //  Purpose: computes flux rates from the layers of a porous pavement LID.
 //  Input:   x = vector of storage levels
@@ -605,7 +605,7 @@ void pavementFluxRates(Project *project, double x[], double f[])
 
 //=============================================================================
 
-void swaleFluxRates(double x[], double f[])
+void swaleFluxRates(Project* project, double x[], double f[])
 //
 //  Purpose: computes flux rates from a vegetative swale LID.
 //  Input:   x = vector of storage levels
@@ -720,7 +720,7 @@ void swaleFluxRates(double x[], double f[])
 
 //=============================================================================
 
-void barrelFluxRates(Project *project, double x[], double f[])
+void barrelFluxRates(Project* project ,double x[], double f[])
 //
 //  Purpose: computes flux rates for a rain barrel LID.
 //  Input:   x = vector of storage levels
@@ -739,7 +739,7 @@ void barrelFluxRates(Project *project, double x[], double f[])
     //... compute outflow if there is no drain delay
     if ( theLidProc->drain.delay == 0.0 || 
 	 theLidUnit->dryTime >= theLidProc->drain.delay )
-        StorageDrain = getStorageDrainRate(project, storageDepth);
+        StorageDrain = getStorageDrainRate(project, storageDepth); 
 
     //... storage inflow rate limited by remaining empty depth
     StorageInflow = SurfaceInflow;
@@ -893,7 +893,7 @@ double getStorageInfilRate()
 
 //=============================================================================
 
-double  getStorageDrainRate(Project *project, double head)
+double  getStorageDrainRate(Project* project, double head)
 //
 //  Purpose: computes underdrain flow rate in a LID's storage layer.
 //  Input:   head = head of water above bottom of storage zone (ft)
@@ -910,10 +910,10 @@ double  getStorageDrainRate(Project *project, double head)
     else
     {
         maxValue = StorageVolume / Tstep;
-        delta *= UCF(project, RAINDEPTH);
+		delta *= UCF(project, RAINDEPTH);
         outflow = theLidProc->drain.coeff *
                   pow(delta, theLidProc->drain.expon);
-        outflow /= UCF(project, RAINFALL);
+		outflow /= UCF(project, RAINFALL);
         outflow = MIN(outflow, maxValue);
     }
     return outflow;
@@ -921,7 +921,7 @@ double  getStorageDrainRate(Project *project, double head)
 
 //=============================================================================
 
-void getStorageOutflows(Project *project, double head)
+void getStorageOutflows(Project* project, double head)
 {
     double maxRate;
     double totalRate;
@@ -1022,10 +1022,10 @@ void updateWaterBalance(TLidUnit *lidUnit, double inflow, double evap,
 
 //=============================================================================
 
-int modpuls_solve(int n, double* x, double* xOld, double* xPrev,
+int modpuls_solve(Project* project , int n, double* x, double* xOld, double* xPrev,
                   double* xMin, double* xMax, double* xTol,
                   double* qOld, double* q, double dt,
-                  void (*derivs)(double*, double*))
+                  void (*derivs)(Project*, double*, double*))
 //
 //  Purpose: solves system of equations dx/dt = q(x) for x at end of time step
 //           dt using a modified Puls method.
@@ -1063,7 +1063,7 @@ int modpuls_solve(int n, double* x, double* xOld, double* xPrev,
     {
         //... compute flux rates for current state levels 
         canStop = 1;
-        derivs(x, q);
+        derivs(project ,x, q);
 
         //... update state levels based on current flux rates
         for (i=0; i<n; i++)

@@ -25,29 +25,29 @@ const double MCOEFF    = 1.49;              // constant in Manning Eq.
 const double MEXP      = 1.6666667;         // exponent in Manning Eq.
 const double ODETOL    = 0.0001;            // acceptable error for ODE solver
 
-//-----------------------------------------------------------------------------
-// Shared variables   
-//-----------------------------------------------------------------------------
-static  double     Losses;        // subcatch evap. + infil. loss rate (ft/sec)
-static  double     Outflow;       // subcatch outflow rate (ft/sec)
-
-// Volumes as either total (ft3) or per unit area (ft) depending on context
-static  double     Vrain;         // subcatch rain volume over a time step
-static  double     Vevap;         // subcatch evap. volume over a time step
-static  double     Vinfil;        // subcatch infil. volume over a time step
-
-static  double     Vrunon;        // subcatch runon volume over a time step (ft3)
-static  double     Vponded;       // volume of ponded water over subcatch (ft3)
-static  double     Voutflow;      // subcatch outflow depth (ft3)
-
-static  TSubarea* theSubarea;     // subarea to which getDdDt() is applied
+////-----------------------------------------------------------------------------
+//// Shared variables   
+////-----------------------------------------------------------------------------
+//static  double     Losses;        // subcatch evap. + infil. loss rate (ft/sec)
+//static  double     Outflow;       // subcatch outflow rate (ft/sec)
+//
+//// Volumes as either total (ft3) or per unit area (ft) depending on context
+//static  double     Vrain;         // subcatch rain volume over a time step
+//static  double     Vevap;         // subcatch evap. volume over a time step
+//static  double     Vinfil;        // subcatch infil. volume over a time step
+//
+//static  double     Vrunon;        // subcatch runon volume over a time step (ft3)
+//static  double     Vponded;       // volume of ponded water over subcatch (ft3)
+//static  double     Voutflow;      // subcatch outflow depth (ft3)
+//
+//static  TSubarea* theSubarea;     // subarea to which getDdDt() is applied
 static  char *RunoffRoutingWords[] = { w_OUTLET,  w_IMPERV, w_PERV, NULL};
 
 //-----------------------------------------------------------------------------
 //  Imported variables (declared in RUNOFF.C)
 //-----------------------------------------------------------------------------
-extern  double*    OutflowLoad;   // outflow pollutant mass from a subcatchment
-extern  double*    WashoffLoad;   // washoff pollutant mass from landuses
+//extern  double*    OutflowLoad;   // outflow pollutant mass from a subcatchment
+//extern  double*    WashoffLoad;   // washoff pollutant mass from landuses
 
 //-----------------------------------------------------------------------------
 //  External functions (declared in funcs.h)   
@@ -79,20 +79,20 @@ extern  double*    WashoffLoad;   // washoff pollutant mass from landuses
 //-----------------------------------------------------------------------------
 // Function declarations
 //-----------------------------------------------------------------------------
-static void   getNetPrecip(Project *project, int j, double* netPrecip, double tStep);
-static void   getSubareaRunoff(Project *project, int subcatch, int subarea, double rainfall,
+static void   getNetPrecip(Project* project, int j, double* netPrecip, double tStep);
+static void   getSubareaRunoff(Project* project, int subcatch, int subarea, double rainfall,
               double evap, double tStep);
-static double getSubareaInfil(Project *project, int j, TSubarea* subarea, double precip,
+static double getSubareaInfil(Project* project, int j, TSubarea* subarea, double precip,
               double tStep);
 static void   findSubareaRunoff(TSubarea* subarea, double tRunoff);
-static void   updatePondedDepth(Project *project, TSubarea* subarea, double* tx);
-static void   getDdDt(double t, double* d, double* dddt);
-static void   updatePondedQual(Project *project, int j, double wUp[], double pondedQual[],
+static void   updatePondedDepth(Project* project, TSubarea* subarea, double* tx);
+static void   getDdDt(Project* project, double t, double* d, double* dddt);
+static void   updatePondedQual(Project* project, int j, double wUp[], double pondedQual[],
 	          double tStep);
 
 //=============================================================================
 
-int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
+int  subcatch_readParams(Project* project, int j, char* tok[], int ntoks)
 //
 //  Input:   j = subcatchment index
 //           tok[] = array of string tokens
@@ -101,7 +101,7 @@ int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
 //  Purpose: reads subcatchment parameters from a tokenized  line of input data.
 //
 //  Data has format:
-//    Name  RainGage  project->Outlet  Area  %Imperv  Width  Slope CurbLength  project->Snowmelt  
+//    Name  RainGage  Outlet  Area  %Imperv  Width  Slope CurbLength  Snowmelt  
 //
 {
     int    i, k, m;
@@ -112,18 +112,18 @@ int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
     if ( ntoks < 8 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that named subcatch exists
-    id = project_findID(project, SUBCATCH, tok[0]);
+    id = project_findID(project,SUBCATCH, tok[0]);
     if ( id == NULL ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- check that rain gage exists
-    k = project__findObject(project, GAGE, tok[1]);
+    k = project_findObject(project,GAGE, tok[1]);
     if ( k < 0 ) return error_setInpError(ERR_NAME, tok[1]);
     x[0] = k;
 
     // --- check that outlet node or subcatch exists
-    m = project__findObject(project, NODE, tok[2]);
+    m = project_findObject(project,NODE, tok[2]);
     x[1] = m;
-    m = project__findObject(project, SUBCATCH, tok[2]);
+    m = project_findObject(project,SUBCATCH, tok[2]);
     x[2] = m;
     if ( x[1] < 0.0 && x[2] < 0.0 )
         return error_setInpError(ERR_NAME, tok[2]);
@@ -139,7 +139,7 @@ int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
     x[8] = -1;
     if ( ntoks > 8 )
     {
-        k = project__findObject(project, SNOWMELT, tok[8]);
+        k = project_findObject(project,SNOWMELT, tok[8]);
         if ( k < 0 ) return error_setInpError(ERR_NAME, tok[8]);
         x[8] = k;
     }
@@ -149,16 +149,16 @@ int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
     project->Subcatch[j].gage        = (int)x[0];
     project->Subcatch[j].outNode     = (int)x[1];
     project->Subcatch[j].outSubcatch = (int)x[2];
-    project->Subcatch[j].area        = x[3] / UCF(project, LANDAREA);
+    project->Subcatch[j].area        = x[3] / UCF(project,LANDAREA);
     project->Subcatch[j].fracImperv  = x[4] / 100.0;
-    project->Subcatch[j].width       = x[5] / UCF(project, LENGTH);
+    project->Subcatch[j].width       = x[5] / UCF(project,LENGTH);
     project->Subcatch[j].slope       = x[6] / 100.0;
     project->Subcatch[j].curbLength  = x[7];
 
     // --- create the snow pack object if it hasn't already been created
     if ( x[8] >= 0 )
     {
-        if ( !snow_createSnowpack(project, j, (int)x[8]) )
+        if ( !snow_createSnowpack(project,j, (int)x[8]) )
             return error_setInpError(ERR_MEMORY, "");
     }
     return 0;
@@ -166,7 +166,7 @@ int  subcatch_readParams(Project *project, int j, char* tok[], int ntoks)
 
 //=============================================================================
 
-int subcatch_readSubareaParams(Project *project, char* tok[], int ntoks)
+int subcatch_readSubareaParams(Project* project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -175,7 +175,7 @@ int subcatch_readSubareaParams(Project *project, char* tok[], int ntoks)
 //           line of input data.
 //
 //  Data has format:
-//    project->Subcatch  Imperv_N  Perv_N  Imperv_S  Perv_S  PctZero  RouteTo (PctRouted)
+//    Subcatch  Imperv_N  Perv_N  Imperv_S  Perv_S  PctZero  RouteTo (PctRouted)
 //
 {
     int    i, j, k, m;
@@ -185,7 +185,7 @@ int subcatch_readSubareaParams(Project *project, char* tok[], int ntoks)
     if ( ntoks < 7 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that named subcatch exists
-    j = project__findObject(project, SUBCATCH, tok[0]);
+    j = project_findObject(project,SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- read in Mannings n, depression storage, & PctZero values
@@ -215,8 +215,8 @@ int subcatch_readSubareaParams(Project *project, char* tok[], int ntoks)
     project->Subcatch[j].subArea[PERV].N    = x[1];
 
     project->Subcatch[j].subArea[IMPERV0].dStore = 0.0;
-    project->Subcatch[j].subArea[IMPERV1].dStore = x[2] / UCF(project, RAINDEPTH);
-    project->Subcatch[j].subArea[PERV].dStore    = x[3] / UCF(project, RAINDEPTH);
+    project->Subcatch[j].subArea[IMPERV1].dStore = x[2] / UCF(project,RAINDEPTH);
+    project->Subcatch[j].subArea[PERV].dStore    = x[3] / UCF(project,RAINDEPTH);
 
     project->Subcatch[j].subArea[IMPERV0].fArea  = project->Subcatch[j].fracImperv * x[4] / 100.0;
     project->Subcatch[j].subArea[IMPERV1].fArea  = project->Subcatch[j].fracImperv * (1.0 - x[4] / 100.0);
@@ -254,7 +254,7 @@ int subcatch_readSubareaParams(Project *project, char* tok[], int ntoks)
 
 //=============================================================================
 
-int subcatch_readLanduseParams(Project *project, char* tok[], int ntoks)
+int subcatch_readLanduseParams(Project* project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -263,7 +263,7 @@ int subcatch_readLanduseParams(Project *project, char* tok[], int ntoks)
 //           line of input data.
 //
 //  Data has format:
-//    project->Subcatch  landuse  percent .... landuse  percent
+//    Subcatch  landuse  percent .... landuse  percent
 //
 {
     int     j, k, m;
@@ -273,14 +273,14 @@ int subcatch_readLanduseParams(Project *project, char* tok[], int ntoks)
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that named subcatch exists
-    j = project__findObject(project, SUBCATCH, tok[0]);
+    j = project_findObject(project,SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- process each pair of landuse - percent items
     for ( k = 2; k <= ntoks; k = k+2)
     {
         // --- check that named land use exists and is followed by a percent
-        m = project__findObject(project, LANDUSE, tok[k-1]);
+        m = project_findObject(project,LANDUSE, tok[k-1]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[k-1]);
         if ( k+1 > ntoks ) return error_setInpError(ERR_ITEMS, "");
         if ( ! getDouble(tok[k], &f) )
@@ -294,7 +294,7 @@ int subcatch_readLanduseParams(Project *project, char* tok[], int ntoks)
 
 //=============================================================================
 
-int subcatch_readInitBuildup(Project *project, char* tok[], int ntoks)
+int subcatch_readInitBuildup(Project* project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -303,7 +303,7 @@ int subcatch_readInitBuildup(Project *project, char* tok[], int ntoks)
 //           tokenized line of input data.
 //
 //  Data has format:
-//    project->Subcatch  pollut  initLoad .... pollut  initLoad
+//    Subcatch  pollut  initLoad .... pollut  initLoad
 //
 {
     int     j, k, m;
@@ -313,14 +313,14 @@ int subcatch_readInitBuildup(Project *project, char* tok[], int ntoks)
     if ( ntoks < 3 ) return error_setInpError(ERR_ITEMS, "");
 
     // --- check that named subcatch exists
-    j = project__findObject(project, SUBCATCH, tok[0]);
+    j = project_findObject(project,SUBCATCH, tok[0]);
     if ( j < 0 ) return error_setInpError(ERR_NAME, tok[0]);
 
     // --- process each pair of pollutant - init. load items
     for ( k = 2; k <= ntoks; k = k+2)
     {
         // --- check for valid pollutant name and loading value
-        m = project__findObject(project, POLLUT, tok[k-1]);
+        m = project_findObject(project,POLLUT, tok[k-1]);
         if ( m < 0 ) return error_setInpError(ERR_NAME, tok[k-1]);
         if ( k+1 > ntoks ) return error_setInpError(ERR_ITEMS, "");
         if ( ! getDouble(tok[k], &x) )
@@ -334,7 +334,7 @@ int subcatch_readInitBuildup(Project *project, char* tok[], int ntoks)
 
 //=============================================================================
 
-void  subcatch_validate(Project *project, int j)
+void  subcatch_validate(Project* project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  none
@@ -347,10 +347,10 @@ void  subcatch_validate(Project *project, int j)
 
     // --- check for ambiguous outlet name
     if ( project->Subcatch[j].outNode >= 0 && project->Subcatch[j].outSubcatch >= 0 )
-        report_writeErrorMsg(project, ERR_SUBCATCH_OUTLET, project->Subcatch[j].ID);
+        report_writeErrorMsg(project,ERR_SUBCATCH_OUTLET, project->Subcatch[j].ID);
 
     // --- validate subcatchment's groundwater component 
-    gwater_validate(project, j);
+    gwater_validate(project,j);
 
     // --- validate placement of LIDs in the subcatchment
     nonLidArea -= project->Subcatch[j].lidArea;
@@ -379,7 +379,7 @@ void  subcatch_validate(Project *project, int j)
 
 //=============================================================================
 
-void  subcatch_initState(Project *project, int j)
+void  subcatch_initState(Project* project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  none
@@ -406,9 +406,9 @@ void  subcatch_initState(Project *project, int j)
     }
 
     // --- initialize state of infiltration, groundwater, & snow pack objects
-    if ( project->Subcatch[j].infil == j )  infil_initState(j, project->InfilModel);
-    if ( project->Subcatch[j].groundwater ) gwater_initState(project, j);
-    if ( project->Subcatch[j].snowpack )    snow_initSnowpack(project, j);
+    if ( project->Subcatch[j].infil == j )  infil_initState(project,j, project->InfilModel);
+    if ( project->Subcatch[j].groundwater ) gwater_initState(project,j);
+    if ( project->Subcatch[j].snowpack )    snow_initSnowpack(project,j);
 
     // --- initialize state of sub-areas
     for (i = IMPERV0; i <= PERV; i++)
@@ -427,13 +427,13 @@ void  subcatch_initState(Project *project, int j)
     }
 
     // --- initialize pollutant buildup
-	landuse_getInitBuildup(project, project->Subcatch[j].landFactor,  project->Subcatch[j].initBuildup,
+	landuse_getInitBuildup(project,project->Subcatch[j].landFactor,  project->Subcatch[j].initBuildup,
 		project->Subcatch[j].area, project->Subcatch[j].curbLength);
 }
 
 //=============================================================================
 
-void subcatch_setOldState(Project *project, int j)
+void subcatch_setOldState(Project* project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  none
@@ -457,7 +457,7 @@ void subcatch_setOldState(Project *project, int j)
 
 //=============================================================================
 
-double subcatch_getFracPerv(Project *project, int j)
+double subcatch_getFracPerv(Project* project, int j)
 //
 //  Purpose: determines what fraction of subcatchment area, including any LID
 //           area, is pervious.
@@ -469,8 +469,8 @@ double subcatch_getFracPerv(Project *project, int j)
 
     if ( project->Subcatch[j].lidArea > 0.0 )
     {
-        fracPerv = (fracPerv * (project->Subcatch[j].area - project->Subcatch[j].lidArea) +
-                    lid_getPervArea(project, j)) / project->Subcatch[j].area;
+        fracPerv = (fracPerv * (project->Subcatch[j].area - project->Subcatch[j].lidArea) + 
+                    lid_getPervArea(project,j)) / project->Subcatch[j].area;
         fracPerv = MIN(fracPerv, 1.0);
     }
     return fracPerv;
@@ -478,7 +478,7 @@ double subcatch_getFracPerv(Project *project, int j)
 
 //=============================================================================
 
-double subcatch_getStorage(Project *project, int j)
+double subcatch_getStorage(Project* project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  returns total volume of stored water (ft3)
@@ -494,12 +494,12 @@ double subcatch_getStorage(Project *project, int j)
         v += project->Subcatch[j].subArea[i].depth * project->Subcatch[j].subArea[i].fArea;
     }
     return v * (project->Subcatch[j].area - project->Subcatch[j].lidArea) +
-           lid_getStoredVolume(project, j);
+           lid_getStoredVolume(project,j);
 }
 
 //=============================================================================
 
-void subcatch_getRunon(Project *project, int j)
+void subcatch_getRunon(Project* project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  none
@@ -576,13 +576,13 @@ void subcatch_getRunon(Project *project, int j)
         pervArea = project->Subcatch[j].subArea[PERV].fArea *
             (project->Subcatch[j].area - project->Subcatch[j].lidArea);
         if ( pervArea > 0.0 ) project->Subcatch[j].subArea[PERV].inflow +=
-            lid_getFlowToPerv(project, j) / pervArea;
+            lid_getFlowToPerv(project,j) / pervArea;
     }
 }
 
 //=============================================================================
 
-double subcatch_getRunoff(Project *project, int j, double tStep)
+double subcatch_getRunoff(Project* project, int j, double tStep)
 //
 //  Input:   j = subcatchment index
 //           tStep = time step (sec)
@@ -611,10 +611,10 @@ double subcatch_getRunoff(Project *project, int j, double tStep)
     //       LID controls) and is saved to project->Subcatch[j].newRunoff.
 
     // --- save current depth of ponded water over entire subcatchment
-	Vponded = subcatch_getDepth(project, j) * project->Subcatch[j].area;
+	project->Vponded = subcatch_getDepth(project,j) * project->Subcatch[j].area;
 
     // --- get net precipitation (rainfall + snowmelt) on subcatchment
-    getNetPrecip(project, j, netPrecip, tStep);
+    getNetPrecip(project,j, netPrecip, tStep);
 
     if ( project->Evap.dryOnly && project->Subcatch[j].rainfall > 0.0 ) 
 		evapRate = 0.0;
@@ -633,31 +633,31 @@ double subcatch_getRunoff(Project *project, int j, double tStep)
         if ( area > 0.0 )
         {
             // --- get runoff rate from sub-area
-            getSubareaRunoff(project, j, i, netPrecip[i], evapRate, tStep);
+            getSubareaRunoff(project,j, i, netPrecip[i], evapRate, tStep);
             runoff += project->Subcatch[j].subArea[i].runoff * area;
 
             // --- update components of volumetric water balance (in ft3)
             //project->Subcatch[j].losses += Losses * area;
             rainVol    += netPrecip[i] * tStep * area;
-            outflow    += Outflow * area;
-            evapVol    += Vevap * area;
-            infilVol   += Vinfil * area;
+            outflow    += project->Outflow * area;
+            evapVol    += project->Vevap * area;
+            infilVol   += project->Vinfil * area;
 
             // --- save evap losses from pervious area
             //     (needed for groundwater modeling)
-            if ( i == PERV ) pervEvapVol += Vevap * area;
+            if ( i == PERV ) pervEvapVol += project->Vevap * area;
         }
     }
 
     // --- evaluate LID treatment as if it were another type of sub-area
     //     while updating outflow, evap volumes, & infil volumes
     if ( project->Subcatch[j].lidArea > 0.0 )
-        runoff += lid_getRunoff(project, j, &outflow, &evapVol, &pervEvapVol,
+        runoff += lid_getRunoff(project,j, &outflow, &evapVol, &pervEvapVol,
                                 &infilVol, tStep);
 
     // --- update groundwater levels & flows if applicable
     if (!project->IgnoreGwater && project->Subcatch[j].groundwater )
-        gwater_getGroundwater(project, j, pervEvapVol, infilVol, tStep);
+        gwater_getGroundwater(project,j, pervEvapVol, infilVol, tStep);
 
     // --- save subcatchment's outflow (cfs) & total loss rates (ft/s)
     area = project->Subcatch[j].area;
@@ -666,25 +666,25 @@ double subcatch_getRunoff(Project *project, int j, double tStep)
     project->Subcatch[j].infilLoss = infilVol / tStep / area;
 
     // --- save volumes (ft3) for use in pollutant washoff calculation
-    Vrain = rainVol;
-    Vevap = evapVol;
-    Vinfil = infilVol;
-	Voutflow = outflow * tStep;
-	Vrunon = project->Subcatch[j].runon * tStep * area;
+    project->Vrain = rainVol;
+  project->  Vevap = evapVol;
+  project->  Vinfil = infilVol;
+	project->Voutflow = outflow * tStep;
+	project->Vrunon = project->Subcatch[j].runon * tStep * area;
 
     // --- compute water flux volumes over the time step
     rainVol = project->Subcatch[j].rainfall * tStep * area;
-    stats_updateSubcatchStats(j, rainVol, Vrunon, Vevap, Vinfil,
-                              Voutflow, outflow);
+    stats_updateSubcatchStats(project,j, rainVol, project->Vrunon, project->Vevap,project-> Vinfil,
+                             project-> Voutflow, outflow);
 
     // --- update system flow balance
     //     (system outflow is 0 if outlet is another subcatch)
-    outflowVol = Voutflow;
+    outflowVol = project->Voutflow;
     if ( project->Subcatch[j].outNode == -1 && project->Subcatch[j].outSubcatch != j )
     {
         outflowVol = 0.0;
     }
-    massbal_updateRunoffTotals(project, rainVol, evapVol, infilVol, outflowVol);
+    massbal_updateRunoffTotals(project,rainVol, evapVol, infilVol, outflowVol);
 
     // --- return area-averaged runoff (ft/s)
     return runoff / area;
@@ -692,7 +692,7 @@ double subcatch_getRunoff(Project *project, int j, double tStep)
 
 //=============================================================================
 
-void getNetPrecip(Project *project, int j, double* netPrecip, double tStep)
+void getNetPrecip(Project* project, int j, double* netPrecip, double tStep)
 {
 //
 //  Purpose: Finds combined rainfall + snowmelt on a subcatchment.
@@ -708,11 +708,11 @@ void getNetPrecip(Project *project, int j, double* netPrecip, double tStep)
     k = project->Subcatch[j].gage;
     if ( k >= 0 )
     {
-        gage_getPrecip(project, k, &rainfall, &snowfall);
+        gage_getPrecip(project,k, &rainfall, &snowfall);
     }
 	
 	double value = 0;
-	if (containsSubcatchRain(j, &value))
+	if (containsSubcatchRain(project,j, &value))
 	{
 		rainfall = value;
 	}
@@ -726,7 +726,7 @@ void getNetPrecip(Project *project, int j, double* netPrecip, double tStep)
     if ( project->Subcatch[j].snowpack && !project->IgnoreSnowmelt )
     {
         project->Subcatch[j].newSnowDepth = 
-            snow_getSnowMelt(project, j, rainfall, snowfall, tStep, netPrecip);
+            snow_getSnowMelt(project,j, rainfall, snowfall, tStep, netPrecip);
     }
 
     // --- otherwise netPrecip is just sum of rainfall & snowfall
@@ -738,7 +738,7 @@ void getNetPrecip(Project *project, int j, double* netPrecip, double tStep)
 
 //=============================================================================
 
-double subcatch_getDepth(Project *project, int j)
+double subcatch_getDepth(Project* project, int j)
 //
 //  Input:   j = subcatchment index
 //  Output:  returns average depth of water (ft)
@@ -758,14 +758,14 @@ double subcatch_getDepth(Project *project, int j)
     if ( project->Subcatch[j].lidArea > 0.0 ) 
     {
         depth = (depth * (project->Subcatch[j].area - project->Subcatch[j].lidArea) +
-            lid_getSurfaceDepth(project, j) * project->Subcatch[j].lidArea) / project->Subcatch[j].area;
+            lid_getSurfaceDepth(project,j) * project->Subcatch[j].lidArea) / project->Subcatch[j].area;
     }
     return depth;
 }
 
 //=============================================================================
 
-void subcatch_getBuildup(Project *project, int j, double tStep)
+void subcatch_getBuildup(Project* project, int j, double tStep)
 //
 //  Input:   j = subcatchment index
 //           tStep = time step (sec)
@@ -789,7 +789,7 @@ void subcatch_getBuildup(Project *project, int j, double tStep)
         if ( f == 0.0 ) continue;
 
         // --- get land area (in acres or hectares) & curb length
-        area = f * project->Subcatch[j].area * UCF(project, LANDAREA);
+        area = f * project->Subcatch[j].area * UCF(project,LANDAREA);
         curb = f * project->Subcatch[j].curbLength;
 
         // --- examine each pollutant
@@ -801,11 +801,11 @@ void subcatch_getBuildup(Project *project, int j, double tStep)
 
             // --- use land use's buildup function to update buildup amount
             oldBuildup = project->Subcatch[j].landFactor[i].buildup[p];        
-            newBuildup = landuse_getBuildup(project, i, p, area, curb, oldBuildup,
+            newBuildup = landuse_getBuildup(project,i, p, area, curb, oldBuildup,
                          tStep);
             newBuildup = MAX(newBuildup, oldBuildup);
             project->Subcatch[j].landFactor[i].buildup[p] = newBuildup;
-            massbal_updateLoadingTotals(project, BUILDUP_LOAD, p,
+            massbal_updateLoadingTotals(project,BUILDUP_LOAD, p, 
                                        (newBuildup - oldBuildup));
        }
     }
@@ -813,7 +813,7 @@ void subcatch_getBuildup(Project *project, int j, double tStep)
 
 //=============================================================================
 
-void subcatch_sweepBuildup(Project *project, int j, DateTime aDate)
+void subcatch_sweepBuildup(Project* project, int j, DateTime aDate)
 //
 //  Input:   j = subcatchment index
 //  Output:  none
@@ -859,7 +859,7 @@ void subcatch_sweepBuildup(Project *project, int j, DateTime aDate)
                 project->Subcatch[j].landFactor[i].buildup[p] = newBuildup;
 
                 // --- update mass balance totals
-                massbal_updateLoadingTotals(project, SWEEPING_LOAD, p,
+                massbal_updateLoadingTotals(project,SWEEPING_LOAD, p,
                                             oldBuildup - newBuildup);
             }
         }
@@ -868,7 +868,7 @@ void subcatch_sweepBuildup(Project *project, int j, DateTime aDate)
 
 //=============================================================================
 
-void  subcatch_getWashoff(Project *project, int j, double runoff, double tStep)
+void  subcatch_getWashoff(Project* project, int j, double runoff, double tStep)
 //
 //  Input:   j = subcatchment index
 //           runoff = total subcatchment runoff (ft/sec)
@@ -893,14 +893,14 @@ void  subcatch_getWashoff(Project *project, int j, double runoff, double tStep)
     // --- intialize outflow loads to zero
     for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
-        WashoffLoad[p] = 0.0;      // load just from washoff function
-        OutflowLoad[p] = 0.0;      // Washoff load + ponded water load
+        project->WashoffLoad[p] = 0.0;      // load just from washoff function
+        project->OutflowLoad[p] = 0.0;      // Washoff load + ponded water load
     }
 
     // --- add outflow of pollutants in ponded water to outflow loads
     //     (Note: at this point, project->Subcatch.newQual contains mass inflow
     //      from any upstream subcatchments draining to this one)
-    updatePondedQual(project, j, project->Subcatch[j].newQual, project->Subcatch[j].pondedQual, tStep);
+    updatePondedQual(project,j, project->Subcatch[j].newQual, project->Subcatch[j].pondedQual, tStep);
 
     // --- add washoff loads from landuses to outflow loads
     if ( runoff >= MIN_RUNOFF )
@@ -909,16 +909,16 @@ void  subcatch_getWashoff(Project *project, int j, double runoff, double tStep)
         {
             if ( project->Subcatch[j].landFactor[i].fraction > 0.0 )
             {
-                landuse_getWashoff(project, i, project->Subcatch[j].area, project->Subcatch[j].landFactor,
-				    runoff, tStep, WashoffLoad);
+                landuse_getWashoff(project,i, project->Subcatch[j].area, project->Subcatch[j].landFactor,
+				    runoff, tStep, project->WashoffLoad);
             }
         }
 
         // --- compute contribution from any co-pollutant
         for (p = 0; p < project->Nobjects[POLLUT]; p++)
         {
-            WashoffLoad[p] += landuse_getCoPollutLoad(project, p, WashoffLoad);
-            OutflowLoad[p] += WashoffLoad[p];
+            project->WashoffLoad[p] += landuse_getCoPollutLoad(project,p, project->WashoffLoad);
+            project->OutflowLoad[p] += project->WashoffLoad[p];
         }
 
     }
@@ -931,24 +931,24 @@ void  subcatch_getWashoff(Project *project, int j, double runoff, double tStep)
     for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- update subcatchment's total runoff load in lbs (or kg)
-        massLoad = OutflowLoad[p] * project->Pollut[p].mcf;
+        massLoad = project->OutflowLoad[p] * project->Pollut[p].mcf;
         project->Subcatch[j].totalLoad[p] += massLoad;
 
         // --- update overall runoff mass balance if runoff goes to
         //     conveyance system
-        if ( project->Subcatch[j].outNode >= 0 || project->Subcatch[j].outSubcatch == j )
-            massbal_updateLoadingTotals(project, RUNOFF_LOAD, p, massLoad);
+        if ( project->Subcatch[j].outNode >= 0 || project->Subcatch[j].outSubcatch == j ) 
+            massbal_updateLoadingTotals(project,RUNOFF_LOAD, p, massLoad);
         
         // --- save new outflow runoff concentration (in mass/L)
         if ( runoff > MIN_RUNOFF )
-            project->Subcatch[j].newQual[p] = OutflowLoad[p] / (runoff * tStep * LperFT3);
+            project->Subcatch[j].newQual[p] = project->OutflowLoad[p] / (runoff * tStep * LperFT3);
         else project->Subcatch[j].newQual[p] = 0.0;
     }
 }
 
 //=============================================================================
 
-void updatePondedQual(Project *project, int j, double wRunon[], double pondedQual[], double tStep)
+void updatePondedQual(Project* project, int j, double wRunon[], double pondedQual[], double tStep)
 {
     int    p;
     double c;
@@ -958,59 +958,59 @@ void updatePondedQual(Project *project, int j, double wRunon[], double pondedQua
     int    isDry;
 
     // --- total inflow volume
-    vIn = Vrain + Vrunon;
+    vIn = project->Vrain + project->Vrunon;
 
     // --- for dry conditions
-    if ( Vponded + vIn == 0.0 ) isDry = 1;
+    if ( project->Vponded + vIn == 0.0 ) isDry = 1;
     else isDry = 0;
 
     // --- analyze each pollutant
     for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         // --- update mass balance for direct deposition
-        wPpt = project->Pollut[p].pptConcen * LperFT3 * Vrain;                          //(5.1.006 - MT)
-        massbal_updateLoadingTotals(project, DEPOSITION_LOAD, p, wPpt * project->Pollut[p].mcf);
+		wPpt = project->Pollut[p].pptConcen * LperFT3 *project->Vrain;                          //(5.1.006 - MT)
+		massbal_updateLoadingTotals(project,DEPOSITION_LOAD, p, wPpt * project->Pollut[p].mcf);
 
         // --- surface is dry and has no inflow -- add any remaining mass
         //     to overall mass balance's FINAL_LOAD category
         if ( isDry )
         {
-            massbal_updateLoadingTotals(project, FINAL_LOAD, p,
-                pondedQual[p] * project->Pollut[p].mcf);
+            massbal_updateLoadingTotals(project,FINAL_LOAD, p,
+				pondedQual[p] * project->Pollut[p].mcf);
             pondedQual[p] = 0.0;
-            OutflowLoad[p] = 0.0;
+			project->OutflowLoad[p] = 0.0;
         }
         else
         {
             // --- find concen. of ponded water
             w1 = pondedQual[p] + wPpt + wRunon[p]*tStep;
-            c = w1 / (Vponded + vIn);
+            c = w1 / (project->Vponded + vIn);
 
             // --- mass lost to infiltration
-            wInfil = c * Vinfil;
+			wInfil = c * project->Vinfil;
             wInfil = MIN(wInfil, w1);
-            massbal_updateLoadingTotals(project, INFIL_LOAD, p, wInfil * project->Pollut[p].mcf);
+			massbal_updateLoadingTotals(project,INFIL_LOAD, p, wInfil * project->Pollut[p].mcf);
             w1 -= wInfil;
 
             // --- mass lost to outflow
-            OutflowLoad[p] = MIN(w1, (c*Voutflow));
-            w1 -= OutflowLoad[p];
+			project->OutflowLoad[p] = MIN(w1, (c*project->Voutflow));
+			w1 -= project->OutflowLoad[p];
 
             // --- reduce outflow load by average BMP removal
-            bmpRemoval = landuse_getAvgBmpEffic(project, j, p) * OutflowLoad[p];
-            massbal_updateLoadingTotals(project, BMP_REMOVAL_LOAD, p,
-                bmpRemoval*project->Pollut[p].mcf);
-            OutflowLoad[p] -= bmpRemoval;
+			bmpRemoval = landuse_getAvgBmpEffic(project,j, p) * project->OutflowLoad[p];
+            massbal_updateLoadingTotals(project,BMP_REMOVAL_LOAD, p,
+				bmpRemoval*project->Pollut[p].mcf);
+			project->OutflowLoad[p] -= bmpRemoval;
 
             // --- update ponded mass
-            pondedQual[p] = c * subcatch_getDepth(project, j) * project->Subcatch[j].area;       //(5.1.006)
+            pondedQual[p] = c * subcatch_getDepth(project,j) * project->Subcatch[j].area;       //(5.1.006)
         }
     }
 }
 
 //=============================================================================
 
-double subcatch_getWtdOutflow(Project *project, int j, double f)
+double subcatch_getWtdOutflow(Project* project, int j, double f)
 //
 //  Input:   j = subcatchment index
 //           f = weighting factor.
@@ -1024,7 +1024,7 @@ double subcatch_getWtdOutflow(Project *project, int j, double f)
 
 //=============================================================================
 
-double subcatch_getWtdWashoff(Project *project, int j, int p, double f)
+double subcatch_getWtdWashoff(Project* project, int j, int p, double f)
 //
 //  Input:   j = subcatchment index
 //           p = pollutant index
@@ -1039,7 +1039,7 @@ double subcatch_getWtdWashoff(Project *project, int j, int p, double f)
 
 //=============================================================================
 
-void  subcatch_getResults(Project *project, int j, double f, float x[])
+void  subcatch_getResults(Project* project, int j, double f, float x[])
 //
 //  Input:   j = subcatchment index
 //           f = weighting factor
@@ -1061,23 +1061,23 @@ void  subcatch_getResults(Project *project, int j, double f, float x[])
 
     // --- retrieve snow depth
     z = ( f1 * project->Subcatch[j].oldSnowDepth +
-          f * project->Subcatch[j].newSnowDepth ) * UCF(project, RAINDEPTH);
+          f * project->Subcatch[j].newSnowDepth ) * UCF(project,RAINDEPTH);
     x[SUBCATCH_SNOWDEPTH] = (float)z;
 
     // --- retrieve runoff and losses
-    x[SUBCATCH_EVAP] = (float)(project->Subcatch[j].evapLoss * UCF(project, EVAPRATE));
-    x[SUBCATCH_INFIL] = (float)(project->Subcatch[j].infilLoss * UCF(project, RAINFALL));
+    x[SUBCATCH_EVAP] = (float)(project->Subcatch[j].evapLoss * UCF(project,EVAPRATE));
+    x[SUBCATCH_INFIL] = (float)(project->Subcatch[j].infilLoss * UCF(project,RAINFALL));
     runoff = f1 * project->Subcatch[j].oldRunoff + f * project->Subcatch[j].newRunoff;
     if ( runoff < MIN_RUNOFF_FLOW ) runoff = 0.0;
-    x[SUBCATCH_RUNOFF] = (float)(runoff* UCF(project, FLOW));
+    x[SUBCATCH_RUNOFF] = (float)(runoff* UCF(project,FLOW));
 
     // --- retrieve groundwater results
     gw = project->Subcatch[j].groundwater;
     if ( gw )
     {
-        z = (f1 * gw->oldFlow + f * gw->newFlow) * project->Subcatch[j].area * UCF(project, FLOW);
+		z = (f1 * gw->oldFlow + f * gw->newFlow) * project->Subcatch[j].area * UCF(project, FLOW);
         x[SUBCATCH_GW_FLOW] = (float)z;
-        z = (project->Aquifer[gw->aquifer].bottomElev + gw->lowerDepth) * UCF(project, LENGTH);
+		z = (project->Aquifer[gw->aquifer].bottomElev + gw->lowerDepth) * UCF(project, LENGTH);
         x[SUBCATCH_GW_ELEV] = (float)z;
         z = gw->theta;
         x[SUBCATCH_SOIL_MOIST] = (float)z;
@@ -1090,7 +1090,7 @@ void  subcatch_getResults(Project *project, int j, double f, float x[])
     }
 
     // --- retrieve pollutant washoff
-    if ( !project->IgnoreQuality ) for (p = 0; p < project->Nobjects[POLLUT]; p++ )
+	if (!project->IgnoreQuality) for (p = 0; p < project->Nobjects[POLLUT]; p++)
     {
         if ( runoff < MIN_RUNOFF_FLOW ) z = 0.0;
         else z = f1 * project->Subcatch[j].oldQual[p] + f * project->Subcatch[j].newQual[p];
@@ -1103,7 +1103,7 @@ void  subcatch_getResults(Project *project, int j, double f, float x[])
 //                              SUB-AREA METHODS
 //=============================================================================
 
-void getSubareaRunoff(Project *project, int j, int i, double precip, double evap, double tStep)
+void getSubareaRunoff(Project* project, int j, int i, double precip, double evap, double tStep)
 //
 //  Purpose: computes runoff & losses from a subarea over the current time step.
 //  Input:   j = subcatchment index
@@ -1131,11 +1131,11 @@ void getSubareaRunoff(Project *project, int j, int i, double precip, double evap
     oldRunoff = subarea->runoff;
     subarea->runoff = 0.0;
     infil    = 0.0;
-    Vevap    = 0.0;
-    Vinfil   = 0.0;
-    Voutflow = 0.0;
-    Losses   = 0.0;
-    Outflow  = 0.0;
+	project->Vevap = 0.0;
+	project->Vinfil = 0.0;
+	project->Voutflow = 0.0;
+	project->Losses = 0.0;
+	project->Outflow = 0.0;
 
     // --- no runoff if no area
     if ( subarea->fArea == 0.0 ) return;
@@ -1153,20 +1153,20 @@ void getSubareaRunoff(Project *project, int j, int i, double precip, double evap
     surfMoisture += subarea->inflow;
 
     // --- save volumes lost to evaporation & infiltration
-    Vevap = surfEvap * tStep;
-    Vinfil = infil * tStep;
+	project->Vevap = surfEvap * tStep;
+	project->Vinfil = infil * tStep;
 
     // --- if losses exceed available moisture then no ponded water remains
-    Losses = surfEvap + infil;
-    if ( Losses >= surfMoisture )
+	project->Losses = surfEvap + infil;
+	if (project->Losses >= surfMoisture)
     {
-        Losses = surfMoisture;
+       project-> Losses = surfMoisture;
         subarea->depth = 0.0;
     }
 
     // --- otherwise update depth of ponded water
     //     and time over which runoff occurs
-    else updatePondedDepth(project, subarea, &tRunoff);
+	else updatePondedDepth(project, subarea, &tRunoff);
 
     // --- compute runoff based on updated ponded depth
     findSubareaRunoff(subarea, tRunoff);
@@ -1176,15 +1176,15 @@ void getSubareaRunoff(Project *project, int j, int i, double precip, double evap
     //     subcatchment outlet as opposed to another subarea of the subcatchment)
     if ( subarea->fOutlet > 0.0 )
     {
-        Voutflow = 0.5 * (oldRunoff + subarea->runoff) * tRunoff
+		project->Voutflow = 0.5 * (oldRunoff + subarea->runoff) * tRunoff
                   * subarea->fOutlet;
-        Outflow = subarea->fOutlet * subarea->runoff;
+		project->Outflow = subarea->fOutlet * subarea->runoff;
     }
 }
 
 //=============================================================================
 
-double getSubareaInfil(Project *project, int j, TSubarea* subarea, double precip, double tStep)
+double getSubareaInfil(Project* project, int j, TSubarea* subarea, double precip, double tStep)
 //
 //  Purpose: computes infiltration rate at current time step.
 //  Input:   j = subcatchment index
@@ -1196,7 +1196,7 @@ double getSubareaInfil(Project *project, int j, TSubarea* subarea, double precip
     double infil = 0.0;                     // actual infiltration rate (ft/sec)
 
     // --- compute infiltration rate 
-    infil = infil_getInfil(project, j, project->InfilModel, tStep, precip,
+    infil = infil_getInfil(project,j, project->InfilModel, tStep, precip,
                            subarea->inflow, subarea->depth);
 
     // --- limit infiltration rate by available void space in unsaturated
@@ -1244,7 +1244,7 @@ void findSubareaRunoff(TSubarea* subarea, double tRunoff)
 
 //=============================================================================
 
-void updatePondedDepth(Project *project, TSubarea* subarea, double* dt)
+void updatePondedDepth(Project* project, TSubarea* subarea, double* dt)
 //
 //  Input:   subarea = ptr. to a subarea,
 //           dt = time step (sec)
@@ -1257,7 +1257,7 @@ void updatePondedDepth(Project *project, TSubarea* subarea, double* dt)
     double tx = *dt;                   // time over which dx > 0 (sec)
 
     // --- excess inflow = total inflow - losses
-    ix = subarea->inflow - Losses;
+    ix = subarea->inflow - project->Losses;
 
     // --- see if not enough inflow to fill depression storage (dStore)
     if ( subarea->depth + ix * tx <= subarea->dStore )
@@ -1279,8 +1279,8 @@ void updatePondedDepth(Project *project, TSubarea* subarea, double* dt)
         // --- now integrate depth over remaining time step tx
         if ( subarea->alpha > 0.0 && tx > 0.0 )
         {
-            theSubarea = subarea;
-            odesolve_integrate(&(subarea->depth), 1, 0, tx, ODETOL, tx,
+            project->theSubarea = subarea;
+            odesolve_integrate_added(project, &(subarea->depth), 1, 0, tx, ODETOL, tx,
                                getDdDt);
         }
         else
@@ -1300,7 +1300,7 @@ void updatePondedDepth(Project *project, TSubarea* subarea, double* dt)
 
 //=============================================================================
 
-void  getDdDt(double t, double* d, double* dddt)
+void  getDdDt(Project* project, double t, double* d, double* dddt)
 //
 //  Input:   t = current time (not used)
 //           d = stored depth (ft)
@@ -1309,15 +1309,15 @@ void  getDdDt(double t, double* d, double* dddt)
 //           for the subarea whose runoff is being computed.
 //
 {
-    double ix = theSubarea->inflow - Losses;
-    double rx = *d - theSubarea->dStore;
+    double ix =project-> theSubarea->inflow -project-> Losses;
+    double rx = *d - project->theSubarea->dStore;
     if ( rx < 0.0 )
     {
         rx = 0.0;
     }
     else
     {
-        rx = theSubarea->alpha * pow(rx, MEXP);
+        rx = project->theSubarea->alpha * pow(rx, MEXP);
     }
     *dddt = ix - rx;
 }

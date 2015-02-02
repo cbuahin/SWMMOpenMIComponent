@@ -16,26 +16,26 @@
 #include <math.h>
 #include "headers.h"
 
-//-----------------------------------------------------------------------------
-//  Constants
-//-----------------------------------------------------------------------------
-#define MAXSTATION 1500                // max. number of stations in a transect
-
-//-----------------------------------------------------------------------------
-//  Shared variables
-//-----------------------------------------------------------------------------
-static int    Ntransects;              // total number of transects
-static int    Nstations;               // number of stations in current transect
-static double  Station[MAXSTATION+1];  // x-coordinate of each station
-static double  Elev[MAXSTATION+1];     // elevation of each station
-static double  Nleft;                  // Manning's n for left overbank
-static double  Nright;                 // Manning's n for right overbank
-static double  Nchannel;               // Manning's n for main channel
-static double  Xleftbank;              // station where left overbank ends
-static double  Xrightbank;             // station where right overbank begins
-static double  Xfactor;                // multiplier for station spacing
-static double  Yfactor;                // factor added to station elevations
-static double  Lfactor;                // main channel/flood plain length
+////-----------------------------------------------------------------------------
+////  Constants
+////-----------------------------------------------------------------------------
+//#define MAXSTATION 1500                // max. number of stations in a transect
+//
+////-----------------------------------------------------------------------------
+////  Shared variables
+////-----------------------------------------------------------------------------
+//static int    project->Ntransects;              // total number of transects
+//static int    project->Nstations;               // number of stations in current transect
+//static double  project->Station[MAXSTATION+1];  // x-coordinate of each station
+//static double  project->Elev[MAXSTATION+1];     // elevation of each station
+//static double  project->Nleft;                  // Manning's n for left overbank
+//static double  project->Nright;                 // Manning's n for right overbank
+//static double  project->Nchannel;               // Manning's n for main channel
+//static double  project->Xleftbank;              // station where left overbank ends
+//static double  project->Xrightbank;             // station where right overbank begins
+//static double  project->Xfactor;                // multiplier for station spacing
+//static double  project->Yfactor;                // factor added to station elevations
+//static double  project->Lfactor;                // main channel/flood plain length
 
 //-----------------------------------------------------------------------------
 //  External functions (declared in funcs.h)   
@@ -48,52 +48,52 @@ static double  Lfactor;                // main channel/flood plain length
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static int    setParams(Project *project, int transect, char* id, double x[]);
-static int    setManning(double n[]);
-static int    addStation(Project *project, double x, double y);
-static double getFlow(int k, double a, double wp, int findFlow);
-static void   getGeometry(Project *project, int i, int j, double y);
-static void   getSliceGeom(int k, double y, double yu, double yd, double *w,
+static int    setParams(Project* project, int transect, char* id, double x[]);
+static int    setManning(Project* project, double n[]);
+static int    addStation(Project* project, double x, double y);
+static double getFlow(Project* project, int k, double a, double wp, int findFlow);
+static void   getGeometry(Project* project, int i, int j, double y);
+static void   getSliceGeom(Project* project, int k, double y, double yu, double yd, double *w,
               double *a, double *wp);
-static void   setMaxSectionFactor(Project *project, int transect);
+static void   setMaxSectionFactor(Project* project, int transect);
 
 //=============================================================================
 
-int transect_create(Project *project, int n)
+int transect_create(Project* project, int n)
 //
 //  Input:   n = number of transect objects to create
 //  Output:  returns an error code
 //  Purpose: creates an array of cross-section transects.
 //
 {
-    Ntransects = n;
+    project->Ntransects = n;
     if ( n == 0 ) return 0;
-    project->Transect = (TTransect *) calloc(Ntransects, sizeof(TTransect));
+    project->Transect = (TTransect *) calloc(project->Ntransects, sizeof(TTransect));
     if ( project->Transect == NULL ) return ERR_MEMORY;
-    Nchannel = 0.0;
-    Nleft = 0.0;
-    Nright = 0.0;
-    Nstations = 0;
+    project->Nchannel = 0.0;
+    project->Nleft = 0.0;
+    project->Nright = 0.0;
+    project->Nstations = 0;
     return 0;
 }
 
 //=============================================================================
 
-void transect_delete(Project *project)
+void transect_delete(Project* project)
 //
 //  Input:   none
 //  Output:  none
 //  Purpose: deletes memory allocated for all transects.
 //
 {
-    if ( Ntransects == 0 ) return;
+    if ( project->Ntransects == 0 ) return;
     FREE(project->Transect);
-    Ntransects = 0;
+    project->Ntransects = 0;
 }
 
 //=============================================================================
 
-int transect_readParams(Project *project, int* count, char* tok[], int ntoks)
+int transect_readParams(Project* project, int* count, char* tok[], int ntoks)
 //
 //  Input:   count = transect index
 //           tok[] = array of string tokens
@@ -125,7 +125,7 @@ int transect_readParams(Project *project, int* count, char* tok[], int ntoks)
       case 0:
 
         // --- finish processing the previous transect
-        transect_validate(project, index - 1);
+        transect_validate(project,index - 1);
 
         // --- read Manning's n values
         if ( ntoks < 4 ) return error_setInpError(ERR_ITEMS, "");
@@ -134,7 +134,7 @@ int transect_readParams(Project *project, int* count, char* tok[], int ntoks)
             if ( ! getDouble(tok[i], &x[i]) )
                 return error_setInpError(ERR_NUMBER, tok[i]);
         }
-        return setManning(x);
+        return setManning(project,x);
 
       // --- X1 line: identifies start of next transect
       case 1:
@@ -142,7 +142,7 @@ int transect_readParams(Project *project, int* count, char* tok[], int ntoks)
         // --- check that transect was already added to project
         //     (by input_countObjects)
         if ( ntoks < 10 ) return error_setInpError(ERR_ITEMS, "");
-        id = project_findID(project, TRANSECT, tok[1]);
+        id = project_findID(project,TRANSECT, tok[1]);
         if ( id == NULL ) return error_setInpError(ERR_NAME, tok[1]);
 
         // --- read in rest of numerical values on data line
@@ -172,7 +172,7 @@ int transect_readParams(Project *project, int* count, char* tok[], int ntoks)
                 return error_setInpError(ERR_NUMBER, tok[i]);
             if ( ! getDouble(tok[i+1], &x[2]) )
                 return error_setInpError(ERR_NUMBER, tok[i+1]);
-            errcode = addStation(project, x[1], x[2]);
+            errcode = addStation(project,x[1], x[2]);
             if ( errcode ) return errcode;
             i += 2;
         }
@@ -183,7 +183,7 @@ int transect_readParams(Project *project, int* count, char* tok[], int ntoks)
 
 //=============================================================================
 
-void  transect_validate(Project *project, int j)
+void  transect_validate(Project* project, int j)
 //
 //  Input:   j = transect index
 //  Output:  none
@@ -192,57 +192,57 @@ void  transect_validate(Project *project, int j)
 {
     int    i, nLast;
     double dy, y, ymin, ymax;
-    double oldNchannel = Nchannel;
+    double oldNchannel = project->Nchannel;
 
     // --- check for valid transect data
-    if ( j < 0 || j >= Ntransects ) return;
-    if ( Nstations < 2 ) 
+    if ( j < 0 || j >= project->Ntransects ) return;
+    if ( project->Nstations < 2 ) 
     {
-        report_writeErrorMsg(project, ERR_TRANSECT_TOO_FEW, project->Transect[j].ID);
+        report_writeErrorMsg(project,ERR_TRANSECT_TOO_FEW, project->Transect[j].ID);
         return;
     }
-    if ( Nstations >= MAXSTATION )
+    if ( project->Nstations >= MAXSTATION )
     {
-        report_writeErrorMsg(project, ERR_TRANSECT_TOO_MANY, project->Transect[j].ID);
+        report_writeErrorMsg(project,ERR_TRANSECT_TOO_MANY, project->Transect[j].ID);
         return;
     }
-    if ( Nchannel <= 0.0 )
+    if ( project->Nchannel <= 0.0 )
     {
-        report_writeErrorMsg(project, ERR_TRANSECT_MANNING, project->Transect[j].ID);
+        report_writeErrorMsg(project,ERR_TRANSECT_MANNING, project->Transect[j].ID);
         return;
     }
-    if ( Xleftbank > Xrightbank )
+    if ( project->Xleftbank > project->Xrightbank )
     {
-        report_writeErrorMsg(project, ERR_TRANSECT_OVERBANK, project->Transect[j].ID);
+        report_writeErrorMsg(project,ERR_TRANSECT_OVERBANK, project->Transect[j].ID);
         return;
     }
 
     // --- adjust main channel's Mannings n to make its equivalent
     //     length equal to that of entire flood plain
-    Nchannel = Nchannel * sqrt(Lfactor);
-    project->Transect[j].lengthFactor = Lfactor;
+    project->Nchannel = project->Nchannel * sqrt(project->Lfactor);
+    project->Transect[j].lengthFactor = project->Lfactor;
 
     // --- find max. depth across transect
-    ymax = Elev[1];
-    ymin = Elev[1];
-    for (i = 2; i <= Nstations; i++)
+    ymax = project->Elev[1];
+    ymin = project->Elev[1];
+    for (i = 2; i <= project->Nstations; i++)
     {
-        ymax = MAX(Elev[i], ymax);
-        ymin = MIN(Elev[i], ymin);
+        ymax = MAX(project->Elev[i], ymax);
+        ymin = MIN(project->Elev[i], ymin);
     }
     if ( ymin >= ymax )
     {
-        report_writeErrorMsg(project, ERR_TRANSECT_NO_DEPTH, project->Transect[j].ID);
+        report_writeErrorMsg(project,ERR_TRANSECT_NO_DEPTH, project->Transect[j].ID);
         return;
     }
     project->Transect[j].yFull = ymax - ymin;
 
     // --- add vertical sides to transect to reach full ht. on both ends
-    Station[0] = Station[1];
-    Elev[0] = ymax;
-    Nstations++;
-    Station[Nstations] = Station[Nstations-1];
-    Elev[Nstations] = Elev[0];
+    project->Station[0] = project->Station[1];
+    project->Elev[0] = ymax;
+    project->Nstations++;
+    project->Station[project->Nstations] = project->Station[project->Nstations-1];
+    project->Elev[project->Nstations] = project->Elev[0];
 
     // --- determine size & depth increment for geometry tables
     project->Transect[j].nTbl = N_TRANSECT_TBL;
@@ -291,7 +291,7 @@ void  transect_validate(Project *project, int j)
 
 //=============================================================================
 
-int  setManning(double n[])
+int  setManning(Project* project, double n[])
 //
 //  Input:   n[] = array of Manning's n values
 //  Output:  returns an error code
@@ -303,17 +303,17 @@ int  setManning(double n[])
     {
         if ( n[i] < 0.0 ) return ERR_NUMBER;
     }
-    if ( n[1] > 0.0 ) Nleft = n[1];
-    if ( n[2] > 0.0 ) Nright = n[2];
-    if ( n[3] > 0.0 ) Nchannel = n[3];
-    if ( Nleft == 0.0  ) Nleft = Nchannel;
-    if ( Nright == 0.0 ) Nright = Nchannel;
+    if ( n[1] > 0.0 ) project->Nleft = n[1];
+    if ( n[2] > 0.0 ) project->Nright = n[2];
+    if ( n[3] > 0.0 ) project->Nchannel = n[3];
+    if ( project->Nleft == 0.0  ) project->Nleft = project->Nchannel;
+    if ( project->Nright == 0.0 ) project->Nright = project->Nchannel;
     return 0;
 }
 
 //=============================================================================
 
-int  setParams(Project *project, int j, char* id, double x[])
+int  setParams(Project* project, int j, char* id, double x[])
 //
 //  Input:   j = transect index
 //           id = transect ID name
@@ -322,24 +322,24 @@ int  setParams(Project *project, int j, char* id, double x[])
 //  Purpose: assigns parameter values to current transect being processed.
 //
 {
-    if ( j < 0 || j >= Ntransects ) return ERR_NUMBER;
+    if ( j < 0 || j >= project->Ntransects ) return ERR_NUMBER;
     project->Transect[j].ID = id;                         // ID name
-    Xleftbank = x[3] / UCF(project, LENGTH);              // left overbank location
-    Xrightbank = x[4] / UCF(project, LENGTH);             // right overbank location
-    Lfactor = x[7];                              // channel/bank length
-    if ( Lfactor == 0.0 ) Lfactor = 1.0;
-    Xfactor = x[8];                              // station location multiplier
-    if ( Xfactor == 0.0 ) Xfactor = 1.0;
-    Xleftbank *= Xfactor;                        // adjusted left bank
-    Xrightbank *= Xfactor;                       // adjusted right bank
-    Yfactor = x[9] / UCF(project, LENGTH);                // elevation offset
-    Nstations = 0;
+    project->Xleftbank = x[3] / UCF(project,LENGTH);              // left overbank location
+    project->Xrightbank = x[4] / UCF(project,LENGTH);             // right overbank location
+    project->Lfactor = x[7];                              // channel/bank length
+    if ( project->Lfactor == 0.0 ) project->Lfactor = 1.0;
+    project->Xfactor = x[8];                              // station location multiplier
+    if ( project->Xfactor == 0.0 ) project->Xfactor = 1.0;
+    project->Xleftbank *= project->Xfactor;                        // adjusted left bank
+    project->Xrightbank *= project->Xfactor;                       // adjusted right bank
+    project->Yfactor = x[9] / UCF(project,LENGTH);                // elevation offset
+    project->Nstations = 0;
     return 0;
 }
 
 //=============================================================================
 
-int  addStation(Project *project, double y, double x)
+int  addStation(Project* project, double y, double x)
 //
 //  Input:   y = station elevation value
 //           x = station distance value
@@ -348,26 +348,26 @@ int  addStation(Project *project, double y, double x)
 //
 {
     // --- check for valid number of stations
-    if ( Nstations < 0 ) return ERR_TRANSECT_UNKNOWN;
-    Nstations++;
-    if ( Nstations >= MAXSTATION ) return 0;
+    if ( project->Nstations < 0 ) return ERR_TRANSECT_UNKNOWN;
+    project->Nstations++;
+    if ( project->Nstations >= MAXSTATION ) return 0;
 
     // --- add station distance, modified by distance multiplier
-    Station[Nstations] = x * Xfactor / UCF(project, LENGTH);
+    project->Station[project->Nstations] = x * project->Xfactor / UCF(project,LENGTH);
 
     // --- add station elevation, modified by offset elevation
-    Elev[Nstations] = (y + Yfactor) / UCF(project, LENGTH);
+    project->Elev[project->Nstations] = (y + project->Yfactor) / UCF(project,LENGTH);
 
     // --- check if station distances are non-increasing
-    if ( Nstations > 1
-        && Station[Nstations] < Station[Nstations-1] )
+    if ( project->Nstations > 1
+        && project->Station[project->Nstations] < project->Station[project->Nstations-1] )
         return ERR_TRANSECT_SEQUENCE;
     return 0;    
 }
 
 //=============================================================================
 
-void  getGeometry(Project *project,  int i, int j, double y)
+void  getGeometry(Project* project, int i, int j, double y)
 //
 //  Input:   i = index of current entry in geometry tables
 //           j = transect index
@@ -394,18 +394,18 @@ void  getGeometry(Project *project,  int i, int j, double y)
     qSum = 0.0;
 
     // --- examine each horizontal station from left to right
-    for (k = 1; k <= Nstations; k++)
+    for (k = 1; k <= project->Nstations; k++)
     {
         // --- determine low & high elevations for transect sub-section
-        if ( Elev[k-1] >= Elev[k] )
+        if ( project->Elev[k-1] >= project->Elev[k] )
         {
-            yhi = Elev[k-1];
-            ylo = Elev[k];
+            yhi = project->Elev[k-1];
+            ylo = project->Elev[k];
         }
         else
         {
-            yhi = Elev[k];
-            ylo = Elev[k-1];
+            yhi = project->Elev[k];
+            ylo = project->Elev[k-1];
         }
 
         // --- skip station if its totally dry
@@ -413,7 +413,7 @@ void  getGeometry(Project *project,  int i, int j, double y)
 
         // --- get top width, area & wetted perimeter values for transect
         //     slice between station k and k-1
-        getSliceGeom(k, y, ylo, yhi, &w, &a, &wp);
+        getSliceGeom(project,k, y, ylo, yhi, &w, &a, &wp);
 
         // --- update total transect values
         wpSum += wp;
@@ -422,11 +422,11 @@ void  getGeometry(Project *project,  int i, int j, double y)
         project->Transect[j].widthTbl[i] += w;
 
         // --- must update flow if station elevation is above water level
-        if ( Elev[k] >= y ) findFlow = TRUE;
+        if ( project->Elev[k] >= y ) findFlow = TRUE;
         else findFlow = FALSE;
 
         // --- update flow across transect if called for
-        q = getFlow(k, aSum, wpSum, findFlow);
+        q = getFlow(project,k, aSum, wpSum, findFlow);
         if ( q > 0.0 )
         {
             qSum += q;
@@ -440,12 +440,12 @@ void  getGeometry(Project *project,  int i, int j, double y)
     //     total flow, total area, and main channel n
     aSum = project->Transect[j].areaTbl[i];
     if ( aSum == 0.0 ) project->Transect[j].hradTbl[i] = project->Transect[j].hradTbl[i-1];
-    else project->Transect[j].hradTbl[i] = pow(qSum * Nchannel / 1.49 / aSum, 1.5);
+    else project->Transect[j].hradTbl[i] = pow(qSum * project->Nchannel / 1.49 / aSum, 1.5);
 }
 
 //=============================================================================
 
-void getSliceGeom(int k, double y, double ylo, double yhi, double *w,
+void getSliceGeom(Project* project, int k, double y, double ylo, double yhi, double *w,
                   double *a, double *wp)
 //
 //  Input:   k = station index
@@ -472,7 +472,7 @@ void getSliceGeom(int k, double y, double ylo, double yhi, double *w,
     double width, ratio;
 
     // --- compute width & wetted perimeter of transect slice
-    width = fabs(Station[k] - Station[k-1]);
+    width = fabs(project->Station[k] - project->Station[k-1]);
     (*w) = width;
     (*wp) = sqrt(width * width + (yhi - ylo) * (yhi - ylo));
     (*a)  = 0.0;
@@ -496,7 +496,7 @@ void getSliceGeom(int k, double y, double ylo, double yhi, double *w,
 
 //=============================================================================
 
-double getFlow(int k, double a, double wp, int findFlow)
+double getFlow(Project* project, int k, double a, double wp, int findFlow)
 //
 //  Input:   k = index of station at end of transect sub-section
 //           a = flow area of sub-section
@@ -511,22 +511,22 @@ double getFlow(int k, double a, double wp, int findFlow)
     if ( findFlow == FALSE)
     {
         // --- flow needs updating if we are at last station
-        if ( k == Nstations - 1 ) findFlow = TRUE;
+        if ( k == project->Nstations - 1 ) findFlow = TRUE;
 
         // --- flow needs updating if we are at end of left overbank and
         //     there is a change in Manning's n and section not vertical
-        else if ( Station[k] == Xleftbank )
+        else if ( project->Station[k] == project->Xleftbank )
         {
-            if ( Nleft != Nchannel &&
-                Station[k] != Station[k-1] ) findFlow = TRUE;
+            if ( project->Nleft != project->Nchannel &&
+                project->Station[k] != project->Station[k-1] ) findFlow = TRUE;
         }
 
         // --- flow needs updating if we are at start of right overbank and
         //     there is a change in Manning's n and section not vertical
-        else if ( Station[k] == Xrightbank )
+        else if ( project->Station[k] == project->Xrightbank )
         {
-            if ( Nright != Nchannel &&
-                Station[k] != Station[k+1] ) findFlow = TRUE;
+            if ( project->Nright != project->Nchannel &&
+                project->Station[k] != project->Station[k+1] ) findFlow = TRUE;
         }
     }
 
@@ -534,9 +534,9 @@ double getFlow(int k, double a, double wp, int findFlow)
     if ( findFlow )
     {
         // --- find value of Manning's n to use
-        n = Nchannel;
-        if ( Station[k-1] < Xleftbank ) n = Nleft;
-        if ( Station[k] > Xrightbank )  n = Nright;
+        n = project->Nchannel;
+        if ( project->Station[k-1] < project->Xleftbank ) n = project->Nleft;
+        if ( project->Station[k] > project->Xrightbank )  n = project->Nright;
 
         // --- compute flow through flow area
         return PHI / n * a * pow(a/wp, 2./3.);
@@ -546,7 +546,7 @@ double getFlow(int k, double a, double wp, int findFlow)
 
 //=============================================================================
 
-void setMaxSectionFactor(Project *project, int j)
+void setMaxSectionFactor(Project* project, int j)
 //
 //  Input:   j = transect index
 //  Output:  none

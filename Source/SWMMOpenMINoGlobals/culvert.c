@@ -133,7 +133,7 @@ static const double Params[58][5] = {
 //-----------------------------------------------------------------------------
 //  Culvert data structure
 //-----------------------------------------------------------------------------
-typedef struct
+struct TCulvert
 {
     double  yFull;                  // full depth of culvert (ft)
     double  scf;                    // slope correction factor
@@ -144,7 +144,9 @@ typedef struct
     double  ad;
 	double  hPlus;                  // Intermediate terms
     TXsect* xsect;                  // Pointer to culvert cross section
-} TCulvert;
+};
+
+typedef struct TCulvert TCulvert;
 
 //-----------------------------------------------------------------------------
 //  External functions (declared in funcs.h)
@@ -154,20 +156,19 @@ typedef struct
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static double getUnsubmergedFlow(int code, double h, TCulvert* culvert);
+static double getUnsubmergedFlow(Project* project, int code, double h, TCulvert* culvert);
 static double getSubmergedFlow(int code, double h, TCulvert* culvert);
-static double getTransitionFlow(int code, double h, double h1, double h2,
-	          TCulvert* culvert);
-static double getForm1Flow(double h, TCulvert* culvert);
-static double form1Eqn(Project *project, double yc, void* p);
+static double getTransitionFlow(Project* project, int code, double h, double h1, double h2, TCulvert* culvert);
+static double getForm1Flow(Project* project, double h, TCulvert* culvert);
+static double form1Eqn(Project* project, double yc, void* p);
 
-static void report_CulvertControl(Project *project, int j, double q0, double q, int condition,
+static void report_CulvertControl(Project* project, int j, double q0, double q, int condition,
 	        double yRatio);                                                  //for debugging only
 
 
 //=============================================================================
 
-double culvert_getInflow(Project *project, int j, double q0, double h)
+double culvert_getInflow(Project* project, int j, double q0, double h)
 //
 //  Input:   j  = link index
 //           q0 = unmodified flow rate (cfs)
@@ -223,13 +224,13 @@ double culvert_getInflow(Project *project, int j, double q0, double h)
         y1 = 0.95 * culvert.yFull;
         if ( y <= y1 )
         {
-            q = getUnsubmergedFlow(code, y, &culvert);
+            q = getUnsubmergedFlow(project,code, y, &culvert);
             condition = 1;
         }
         // --- flow is in transition zone
         else
         {
-            q = getTransitionFlow(code, y, y1, y2, &culvert);
+            q = getTransitionFlow(project,code, y, y1, y2, &culvert);
             condition = 0;
         }
     }
@@ -238,7 +239,7 @@ double culvert_getInflow(Project *project, int j, double q0, double h)
     if ( q < q0 )
     {
         // --- for debugging only
-        //if ( project->RptFlags.controls ) report_CulvertControl(j, q0, q, condition,
+        //if ( RptFlags.controls ) report_CulvertControl(j, q0, q, condition,
 		//                                               y / culvert.yFull);
 
         project->Link[j].inletControl = TRUE;
@@ -250,7 +251,7 @@ double culvert_getInflow(Project *project, int j, double q0, double h)
 
 //=============================================================================
 
-double getUnsubmergedFlow(int code, double h, TCulvert* culvert)
+double getUnsubmergedFlow(Project* project, int code, double h, TCulvert* culvert)
 //
 //  Input:   code  = culvert type code number
 //           h     = inlet water depth above culvert invert
@@ -272,7 +273,7 @@ double getUnsubmergedFlow(int code, double h, TCulvert* culvert)
     // --- evaluate correct equation form
     if ( Params[code][FORM] == 1.0)
     {
-        q = getForm1Flow(h, culvert);
+        q = getForm1Flow(project,h, culvert);
     }
     else q = culvert->ad * pow(arg, 1.0/culvert->mm);
     culvert->dQdH = q / h / culvert->mm;
@@ -309,7 +310,7 @@ double getSubmergedFlow(int code, double h, TCulvert* culvert)
 
 //=============================================================================
 
-double getTransitionFlow(int code, double h, double h1, double h2, TCulvert* culvert)
+double getTransitionFlow(Project* project, int code, double h, double h1, double h2, TCulvert* culvert)
 //
 //  Input:   code    = culvert type code number
 //           h       = inlet water depth above culvert invert (ft)
@@ -323,7 +324,7 @@ double getTransitionFlow(int code, double h, double h1, double h2, TCulvert* cul
 //           submerged and unsubmerged conditions.
 //
 {
-    double q1 = getUnsubmergedFlow(code, h1, culvert);
+    double q1 = getUnsubmergedFlow(project,code, h1, culvert);
     double q2 = getSubmergedFlow(code, h2, culvert);
     double q = q1 + (q2 - q1) * (h - h1) / (h2 - h1);
     culvert->dQdH = (q2 - q1) / (h2 - h1);
@@ -332,7 +333,7 @@ double getTransitionFlow(int code, double h, double h1, double h2, TCulvert* cul
 
 //=============================================================================
 
-double getForm1Flow(double h, TCulvert* culvert)
+double getForm1Flow(Project* project, double h, TCulvert* culvert)
 //
 //  Input:   h       = inlet water depth above culvert invert
 //           culvert = pointer to a culvert data structure
@@ -350,7 +351,7 @@ double getForm1Flow(double h, TCulvert* culvert)
 
     // --- use Ridder's method to solve Equation Form 1 for critical depth
     //     between a range of 0.01h and h
-    yc = findroot_Ridder(0.01*h, h, 0.001, form1Eqn, culvert);
+    yc = findroot_Ridder_added(0.01*h, h, 0.001, form1Eqn, culvert,project);
 
     // --- return the flow value used in evaluating Equation Form 1
     return culvert->qc;
@@ -358,7 +359,7 @@ double getForm1Flow(double h, TCulvert* culvert)
 
 //=============================================================================
 
-double form1Eqn(Project *project, double yc, void* p)
+double form1Eqn(Project* project, double yc, void* p)
 //
 //  Input:   yc = critical depth
 //           p  = pointer to a TCulvert object
@@ -380,8 +381,8 @@ double form1Eqn(Project *project, double yc, void* p)
     double ac, wc, yh;
 	TCulvert* culvert = (TCulvert *)p;
 
-	ac = xsect_getAofY(project, culvert->xsect, yc);
-    wc = xsect_getWofY(project, culvert->xsect, yc);
+	ac = xsect_getAofY(project,culvert->xsect, yc);
+    wc = xsect_getWofY(project,culvert->xsect, yc);
     yh = ac/wc;
     
     culvert->qc = ac * sqrt(GRAVITY * yh);
@@ -391,7 +392,7 @@ double form1Eqn(Project *project, double yc, void* p)
 
 //=============================================================================
 
-void report_CulvertControl(Project *project, int j, double q0, double q, int condition, double yRatio)
+void report_CulvertControl(Project* project, int j, double q0, double q, int condition, double yRatio)
 //
 //  Used for debugging only
 //
@@ -399,7 +400,7 @@ void report_CulvertControl(Project *project, int j, double q0, double q, int con
     static   char* conditionTxt[] = {"transition", "unsubmerged", "submerged"};
     char     theDate[12];
     char     theTime[9];
-	DateTime aDate = getDateTime(project, project->NewRoutingTime);
+	DateTime aDate = getDateTime(project,project->NewRoutingTime);
     datetime_dateToStr(aDate, theDate);
     datetime_timeToStr(aDate, theTime);
     fprintf(project->Frpt.file,

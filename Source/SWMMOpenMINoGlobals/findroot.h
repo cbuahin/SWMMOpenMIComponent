@@ -5,8 +5,19 @@
 //
 //   Last modified on 11/19/13.
 //-----------------------------------------------------------------------------
+
+typedef struct Project Project;
+
 int findroot_Newton(double x1, double x2, double* rts, double xacc,
                     void (*func) (double x, double* f, double* df, void* p),
 					void* p);
+
+int findroot_Newton_added(double x1, double x2, double* rts, double xacc,
+	void(*func) (Project* project, double x, double* f, double* df, void* p),
+	void* p, Project* project);
+
 double findroot_Ridder(double x1, double x2, double xacc,
 	                   double (*func)(double, void* p), void* p);
+
+double findroot_Ridder_added(double x1, double x2, double xacc,
+	double(*func)(Project* project, double, void* p), void* p, Project* project);

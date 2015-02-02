@@ -10,7 +10,9 @@
 #ifndef EXPRNODE_H
 #define EXPRNODE_H
 
-//  project->Node in a tokenized math expression list
+typedef struct Project Project;
+
+//  Node in a tokenized math expression list
 struct ExprNode
 {
     int    opcode;                // operator code
@@ -24,8 +26,14 @@ typedef struct ExprNode MathExpr;
 //  Creates a tokenized math expression from a string
 MathExpr* mathexpr_create(char* s, int (*getVar) (char *));
 
+//  Creates a tokenized math expression from a string
+MathExpr* mathexpr_create_added(Project* project, char* s, int(*getVar) (Project*, char *));
+
 //  Evaluates a tokenized math expression
 double mathexpr_eval(MathExpr* expr, double (*getVal) (int));
+
+//  Evaluates a tokenized math expression
+double mathexpr_eval_added(Project* project , MathExpr* expr, double(*getVal) (Project*, int));
 
 //  Deletes a tokenized math expression
 void  mathexpr_delete(MathExpr* expr);

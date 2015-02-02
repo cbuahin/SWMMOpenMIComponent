@@ -220,7 +220,7 @@ typedef struct TGroundwater TGroundwater;
 //----------------
 // SNOWMELT OBJECT
 //----------------
-// project->Snowmelt objects contain parameters that describe the melting
+// Snowmelt objects contain parameters that describe the melting
 // process of snow packs on 3 different types of surfaces:
 //   1 - plowable impervious area
 //   2 - non-plowable impervious area
@@ -1006,5 +1006,26 @@ struct TRptField
 
 typedef struct TRptField TRptField;
 
+typedef struct                         // Data for a single unit hydrograph
+{                                      // -------------------------------------
+	double*   pastRain;                 // array of past rainfall values
+	char*     pastMonth;                // month in which past rainfall occurred
+	int       period;                   // current UH time period
+	int       hasPastRain;              // true if > 0 past periods with rain
+	int       maxPeriods;               // max. past rainfall periods
+	long      drySeconds;               // time since last nonzero rainfall
+	double    iaUsed;                   // initial abstraction used (in or mm)
+}  TUHData;
+
+typedef struct                         // Data for a unit hydrograph group
+{                                      //---------------------------------
+	int       isUsed;                   // true if UH group used by any nodes
+	int       rainInterval;             // time interval for RDII processing (sec)
+	double    area;                     // sewered area covered by UH's gage (ft2)
+	double    rdii;                     // rdii flow (in rainfall units)
+	DateTime  gageDate;                 // calendar date of rain gage period
+	DateTime  lastDate;                 // date of last rdii computed
+	TUHData   uh[3];                    // data for each unit hydrograph
+}  TUHGroup;
 
 #endif //OBJECTS_H

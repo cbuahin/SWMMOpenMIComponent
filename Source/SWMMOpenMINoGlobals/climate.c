@@ -35,32 +35,32 @@ static char* ClimateVarWords[] = {"TMIN", "TMAX", "EVAP", "WDMV", NULL};
 //  Shared variables
 //-----------------------------------------------------------------------------
 // Temperature variables
-static double    Tmin;                 // min. daily temperature (deg F)
-static double    Tmax;                 // max. daily temperature (deg F)
-static double    Trng;                 // 1/2 range of daily temperatures
-static double    Trng1;                // prev. max - current min. temp.
-static double    Tave;                 // average daily temperature (deg F)
-static double    Hrsr;                 // time of min. temp. (hrs)
-static double    Hrss;                 // time of max. temp (hrs) 
-static double    Hrday;                // avg. of min/max temp times
-static double    Dhrdy;                // hrs. between min. & max. temp. times
-static double    Dydif;                // hrs. between max. & min. temp. times
-static DateTime  LastDay;              // date of last day with temp. data
-
-// Evaporation variables
-static DateTime  NextEvapDate;         // next date when evap. rate changes
-static double    NextEvapRate;         // next evaporation rate (user units)
-
-// Climate file variables
-static int      FileFormat;            // file format (see ClimateFileFormats)
-static int      FileYear;              // current year of file data
-static int      FileMonth;             // current month of year of file data
-static int      FileDay;               // current day of month of file data
-static int      FileLastDay;           // last day of current month of file data
-static int      FileElapsedDays;       // number of days read from file
-static double   FileValue[4];          // current day's values of climate data
-static double   FileData[4][32];       // month's worth of daily climate data
-static char     FileLine[MAXLINE+1];   // line from climate data file
+//static double    Tmin;                 // min. daily temperature (deg F)
+//static double    Tmax;                 // max. daily temperature (deg F)
+//static double    Trng;                 // 1/2 range of daily temperatures
+//static double    Trng1;                // prev. max - current min. temp.
+//static double    Tave;                 // average daily temperature (deg F)
+//static double    Hrsr;                 // time of min. temp. (hrs)
+//static double    Hrss;                 // time of max. temp (hrs) 
+//static double    Hrday;                // avg. of min/max temp times
+//static double    Dhrdy;                // hrs. between min. & max. temp. times
+//static double    Dydif;                // hrs. between max. & min. temp. times
+//static DateTime  LastDay;              // date of last day with temp. data
+//
+//// Evaporation variables
+//static DateTime  NextEvapDate;         // next date when evap. rate changes
+//static double    NextEvapRate;         // next evaporation rate (user units)
+//
+//// Climate file variables
+//static int      FileFormat;            // file format (see ClimateFileFormats)
+//static int      FileYear;              // current year of file data
+//static int      FileMonth;             // current month of year of file data
+//static int      FileDay;               // current day of month of file data
+//static int      FileLastDay;           // last day of current month of file data
+//static int      FileElapsedDays;       // number of days read from file
+//static double   FileValue[4];          // current day's values of climate data
+//static double   FileData[4][32];       // month's worth of daily climate data
+//static char     FileLine[MAXLINE+1];   // line from climate data file
 
 //-----------------------------------------------------------------------------
 //  External functions (defined in funcs.h)
@@ -76,28 +76,28 @@ static char     FileLine[MAXLINE+1];   // line from climate data file
 //-----------------------------------------------------------------------------
 //  Local functions
 //-----------------------------------------------------------------------------
-static int  getFileFormat(Project *project);
-static void readFileLine(Project *project, int *year, int *month);
-static void readUserFileLine(Project *project, int *year, int *month);
-static void readTD3200FileLine(Project *project, int *year, int *month);
-static void readDLY0204FileLine(Project *project, int *year, int *month);
-static void readFileValues(Project *project);
+static int  getFileFormat(Project* project);
+static void readFileLine(Project* project, int *year, int *month);
+static void readUserFileLine(Project* project, int *year, int *month);
+static void readTD3200FileLine(Project* project, int *year, int *month);
+static void readDLY0204FileLine(Project* project, int *year, int *month);
+static void readFileValues(Project* project);
 static void setFileValues(int param);
-static void setEvap(Project *project, DateTime theDate);
-static void setTemp(Project *project, DateTime theDate);
-static void setWind(Project *project, DateTime theDate);
-static void updateTempTimes(Project *project, int day);
-static double getTempEvap(Project *project, int day);
-static void updateFileValues(Project *project, DateTime theDate);
-static void parseUserFileLine(Project *project);
-static void parseTD3200FileLine(Project *project);
-static void parseDLY0204FileLine(Project *project);
-static void setTD3200FileValues(Project *project, int param);
+static void setEvap(Project* project, DateTime theDate);
+static void setTemp(Project* project, DateTime theDate);
+static void setWind(Project* project, DateTime theDate);
+static void updateTempTimes(Project* project, int day);
+static double getTempEvap(Project* project, int day);
+static void updateFileValues(Project* project, DateTime theDate);
+static void parseUserFileLine(Project* project);
+static void parseTD3200FileLine(Project* project);
+static void parseDLY0204FileLine(Project* project);
+static void setTD3200FileValues(Project* project, int param);
 
 
 //=============================================================================
 
-int  climate_readParams(Project *project, char* tok[], int ntoks)
+int  climate_readParams(Project* project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -125,59 +125,59 @@ int  climate_readParams(Project *project, char* tok[], int ntoks)
       case 0: // Time series name
         // --- check that time series name exists
         if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
-        i = project__findObject(project, TSERIES, tok[1]);
+        i = project_findObject(project, TSERIES, tok[1]);
         if ( i < 0 ) return error_setInpError(ERR_NAME, tok[1]);
 
         // --- record the time series as being the data source for temperature
-        project->Temp.dataSource = TSERIES_TEMP;
-        project->Temp.tSeries = i;
-        project->Tseries[i].refersTo = TSERIES_TEMP;
+		project->Temp.dataSource = TSERIES_TEMP;
+		project->Temp.tSeries = i;
+		project->Tseries[i].refersTo = TSERIES_TEMP;
         break;
 
       case 1: // Climate file
         // --- record file as being source of temperature data
         if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
-        project->Temp.dataSource = FILE_TEMP;
+		project->Temp.dataSource = FILE_TEMP;
 
         // --- save name and usage mode of external climate file
-        project->Fclimate.mode = USE_FILE;
-        sstrncpy(project->Fclimate.name, tok[1], MAXFNAME);
+		project->Fclimate.mode = USE_FILE;
+		sstrncpy(project->Fclimate.name, tok[1], MAXFNAME);
 
         // --- save starting date to read from file if one is provided
-        project->Temp.fileStartDate = NO_DATE;
+		project->Temp.fileStartDate = NO_DATE;
         if ( ntoks > 2 )
         {
             if ( *tok[2] != '*')
             {
                 if ( !datetime_strToDate(tok[2], &aDate) )
                     return error_setInpError(ERR_DATETIME, tok[2]);
-                project->Temp.fileStartDate = aDate;
+				project->Temp.fileStartDate = aDate;
             }
         }
         break;
 
-      case 2: // project->Wind speeds
+      case 2: // Wind speeds
         // --- check if wind speeds will be supplied from climate file
         if ( strcomp(tok[1], w_FILE) )
         {
-            project->Wind.type = FILE_WIND;
+			project->Wind.type = FILE_WIND;
         }
 
         // --- otherwise read 12 monthly avg. wind speed values
         else
         {
             if ( ntoks < 14 ) return error_setInpError(ERR_ITEMS, "");
-            project->Wind.type = MONTHLY_WIND;
+			project->Wind.type = MONTHLY_WIND;
             for (i=0; i<12; i++)
             {
                 if ( !getDouble(tok[i+2], &y) )
                     return error_setInpError(ERR_NUMBER, tok[i+2]);
-                project->Wind.aws[i] = y;
+				project->Wind.aws[i] = y;
             }
         }
         break;
 
-      case 3: // project->Snowmelt params
+      case 3: // Snowmelt params
         if ( ntoks < 7 ) return error_setInpError(ERR_ITEMS, "");
         for (i=1; i<7; i++)
         {
@@ -185,16 +185,16 @@ int  climate_readParams(Project *project, char* tok[], int ntoks)
                 return error_setInpError(ERR_NUMBER, tok[i]);
         }
         // --- convert deg. C to deg. F for snowfall temperature
-        if ( project->UnitSystem == SI ) x[0] = 9./5.*x[0] + 32.0;
-        project->Snow.snotmp = x[0];
-        project->Snow.tipm   = x[1];
-        project->Snow.rnm    = x[2];
-        project->Temp.elev   = x[3] / UCF(project, LENGTH);
-        project->Temp.anglat = x[4];
-        project->Temp.dtlong = x[5] / 60.0;
+		if (project->UnitSystem == SI) x[0] = 9. / 5.*x[0] + 32.0;
+		project->Snow.snotmp = x[0];
+		project->Snow.tipm = x[1];
+		project->Snow.rnm = x[2];
+		project->Temp.elev = x[3] / UCF(project,LENGTH);
+		project->Temp.anglat = x[4];
+		project->Temp.dtlong = x[5] / 60.0;
         break;
 
-      case 4:  // Areal Depletion project->Curve data
+      case 4:  // Areal Depletion Curve data
         // --- check if data is for impervious or pervious areas
         if ( ntoks < 12 ) return error_setInpError(ERR_ITEMS, "");
         if      ( match(tok[1], w_IMPERV) ) i = 0;
@@ -206,7 +206,7 @@ int  climate_readParams(Project *project, char* tok[], int ntoks)
         {
             if ( !getDouble(tok[j+2], &y) || y < 0.0 || y > 1.0 ) 
                 return error_setInpError(ERR_NUMBER, tok[j+2]);
-            project->Snow.adc[i][j] = y;
+			project->Snow.adc[i][j] = y;
         }
         break;
     }
@@ -215,7 +215,7 @@ int  climate_readParams(Project *project, char* tok[], int ntoks)
 
 //=============================================================================
 
-int climate_readEvapParams(Project *project, char* tok[], int ntoks)
+int climate_readEvapParams(Project* project, char* tok[], int ntoks)
 //
 //  Input:   tok[] = array of string tokens
 //           ntoks = number of tokens
@@ -243,9 +243,9 @@ int climate_readEvapParams(Project *project, char* tok[], int ntoks)
     if ( k == RECOVERY )
     {
         if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
-        i = project__findObject(project, TIMEPATTERN, tok[1]);
+		i = project_findObject(project, TIMEPATTERN, tok[1]);
         if ( i < 0 ) return error_setInpError(ERR_NAME, tok[1]);
-        project->Evap.recoveryPattern = i;
+		project->Evap.recoveryPattern = i;
         return 0;
     }
 
@@ -253,14 +253,14 @@ int climate_readEvapParams(Project *project, char* tok[], int ntoks)
     if ( k == DRYONLY )
     {
         if ( ntoks < 2 ) return error_setInpError(ERR_ITEMS, "");
-        if      ( strcomp(tok[1], w_NO ) )  project->Evap.dryOnly = FALSE;
-        else if ( strcomp(tok[1], w_YES ) ) project->Evap.dryOnly = TRUE;
+		if (strcomp(tok[1], w_NO))  project->Evap.dryOnly = FALSE;
+		else if (strcomp(tok[1], w_YES)) project->Evap.dryOnly = TRUE;
         else return error_setInpError(ERR_KEYWORD, tok[1]);
         return 0;
     }
 
     // --- process data depending on its form
-    project->Evap.type = k;
+	project->Evap.type = k;
     if ( k != TEMPERATURE_EVAP && ntoks < 2 )
         return error_setInpError(ERR_ITEMS, "");
     switch ( k )
@@ -269,23 +269,23 @@ int climate_readEvapParams(Project *project, char* tok[], int ntoks)
         // --- for constant evap., fill monthly avg. values with same number
         if ( !getDouble(tok[1], &x) )
             return error_setInpError(ERR_NUMBER, tok[1]);
-        for (i=0; i<12; i++) project->Evap.monthlyEvap[i] = x;
+		for (i = 0; i<12; i++) project->Evap.monthlyEvap[i] = x;
         break;
 
       case MONTHLY_EVAP:
         // --- for monthly evap., read a value for each month of year
         if ( ntoks < 13 ) return error_setInpError(ERR_ITEMS, "");
         for ( i=0; i<12; i++)
-            if ( !getDouble(tok[i+1], &project->Evap.monthlyEvap[i]) )
+			if (!getDouble(tok[i + 1], &project->Evap.monthlyEvap[i]))
                 return error_setInpError(ERR_NUMBER, tok[i+1]);
         break;           
 
       case TIMESERIES_EVAP:
         // --- for time series evap., read name of time series
-        i = project__findObject(project, TSERIES, tok[1]);
+		  i = project_findObject(project, TSERIES, tok[1]);
         if ( i < 0 ) return error_setInpError(ERR_NAME, tok[1]);
-        project->Evap.tSeries = i;
-        project->Tseries[i].refersTo = TIMESERIES_EVAP;
+		project->Evap.tSeries = i;
+		project->Tseries[i].refersTo = TIMESERIES_EVAP;
         break;
 
       case FILE_EVAP:
@@ -296,7 +296,7 @@ int climate_readEvapParams(Project *project, char* tok[], int ntoks)
             if ( ntoks < 13 ) return error_setInpError(ERR_ITEMS, "");
             for (i=0; i<12; i++)
             {
-                if ( !getDouble(tok[i+1], &project->Evap.panCoeff[i]) )
+				if (!getDouble(tok[i + 1], &project->Evap.panCoeff[i]))
                     return error_setInpError(ERR_NUMBER, tok[i+1]);
             }
         }
@@ -307,7 +307,7 @@ int climate_readEvapParams(Project *project, char* tok[], int ntoks)
 
 //=============================================================================
 
-void climate_validate(Project *project)
+void climate_validate(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -318,37 +318,37 @@ void climate_validate(Project *project)
 
     // --- check if climate file was specified when used 
     //     to supply wind speed or evap rates
-    if ( project->Wind.type == FILE_WIND || project->Evap.type == FILE_EVAP ||
-         project->Evap.type == TEMPERATURE_EVAP )
+	if (project->Wind.type == FILE_WIND || project->Evap.type == FILE_EVAP ||
+		project->Evap.type == TEMPERATURE_EVAP)
     {
-        if ( project->Fclimate.mode == NO_FILE )
+		if (project->Fclimate.mode == NO_FILE)
         {
-            report_writeErrorMsg(project, ERR_NO_CLIMATE_FILE, "");
+            report_writeErrorMsg(project,ERR_NO_CLIMATE_FILE, "");
         }
     }
 
     // --- snow melt parameters tipm & rnm must be fractions
-    if ( project->Snow.tipm < 0.0 ||
-         project->Snow.tipm > 1.0 ||
-         project->Snow.rnm  < 0.0 ||
-         project->Snow.rnm  > 1.0 ) report_writeErrorMsg(project, ERR_SNOWMELT_PARAMS, "");
+	if (project->Snow.tipm < 0.0 ||
+		project->Snow.tipm > 1.0 ||
+		project->Snow.rnm  < 0.0 ||
+		project->Snow.rnm  > 1.0) report_writeErrorMsg(project,ERR_SNOWMELT_PARAMS, "");
 
     // --- latitude should be between -90 & 90 degrees
-    a = project->Temp.anglat;
+	a = project->Temp.anglat;
     if ( a <= -89.99 ||
-         a >= 89.99  ) report_writeErrorMsg(project, ERR_SNOWMELT_PARAMS, "");
-    else project->Temp.tanAnglat = tan(a * PI / 180.0); 
+         a >= 89.99  ) report_writeErrorMsg(project,ERR_SNOWMELT_PARAMS, "");
+	else project->Temp.tanAnglat = tan(a * PI / 180.0);
 
     // --- compute psychrometric constant
-    z = project->Temp.elev / 1000.0;
+	z = project->Temp.elev / 1000.0;
     if ( z <= 0.0 ) pa = 29.9;
     else  pa = 29.9 - 1.02*z + 0.0032*pow(z, 2.4); // atmos. pressure
-    project->Temp.gamma = 0.000359 * pa;
+	project->Temp.gamma = 0.000359 * pa;
 }
 
 //=============================================================================
 
-void climate_openFile(Project *project)
+void climate_openFile(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -358,101 +358,101 @@ void climate_openFile(Project *project)
     int i, m, y;
 
     // --- open the file
-    if ( (project->Fclimate.file = fopen(project->Fclimate.name, "rt")) == NULL )
+	if ((project->Fclimate.file = fopen(project->Fclimate.name, "rt")) == NULL)
     {
-        report_writeErrorMsg(project, ERR_CLIMATE_FILE_OPEN, project->Fclimate.name);
+		report_writeErrorMsg(project,ERR_CLIMATE_FILE_OPEN, project->Fclimate.name);
         return;
     }
 
     // --- initialize values of file's climate variables
-    //     (project->Temp.ta was previously initialized in project.c)
-    FileValue[TMIN] = project->Temp.ta;
-    FileValue[TMAX] = project->Temp.ta;
-    FileValue[EVAP] = 0.0;
-    FileValue[WIND] = 0.0;
+    //     (Temp.ta was previously initialized in project.c)
+	project->FileValue[TMIN] = project->Temp.ta;
+	project->FileValue[TMAX] = project->Temp.ta;
+	project->FileValue[EVAP] = 0.0;
+	project->FileValue[WIND] = 0.0;
 
     // --- find climate file's format
-    FileFormat = getFileFormat(project);
-    if ( FileFormat == UNKNOWN_FORMAT )
+	project->FileFormat = getFileFormat(project);
+	if (project->FileFormat == UNKNOWN_FORMAT)
     {
-        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+		report_writeErrorMsg(project,ERR_CLIMATE_FILE_READ, project->Fclimate.name);
         return;
     }
 
     // --- position file to begin reading climate file at either user-specified
     //     month/year or at start of simulation period.
-    rewind(project->Fclimate.file);
-    strcpy(FileLine, "");
-    if ( project->Temp.fileStartDate == NO_DATE )
-        datetime_decodeDate(project->StartDate, &FileYear, &FileMonth, &FileDay); 
+	rewind(project->Fclimate.file);
+	strcpy(project->FileLine, "");
+	if (project->Temp.fileStartDate == NO_DATE)
+		datetime_decodeDate(project->StartDate, &project->FileYear, &project->FileMonth, &project->FileDay);
     else
-        datetime_decodeDate(project->Temp.fileStartDate, &FileYear, &FileMonth, &FileDay);
-    while ( !feof(project->Fclimate.file) )
+		datetime_decodeDate(project->Temp.fileStartDate, &project->FileYear, &project->FileMonth, &project->FileDay);
+	while (!feof(project->Fclimate.file))
     {
-        strcpy(FileLine, "");
-        readFileLine(project, &y, &m);
-        if ( y == FileYear && m == FileMonth ) break;
+		strcpy(project->FileLine, "");
+        readFileLine(project,&y, &m);
+		if (y == project->FileYear && m == project->FileMonth) break;
     }
-    if ( feof(project->Fclimate.file) )
+	if (feof(project->Fclimate.file))
     {
-        report_writeErrorMsg(project, ERR_CLIMATE_END_OF_FILE, project->Fclimate.name);
+		report_writeErrorMsg(project,ERR_CLIMATE_END_OF_FILE, project->Fclimate.name);
         return;
     }
     
     // --- initialize file dates and current climate variable values 
-    if ( !project->ErrorCode )
+	if (!project->ErrorCode)
     {
-        FileElapsedDays = 0;
-        FileLastDay = datetime_daysPerMonth(FileYear, FileMonth);
+		project->FileElapsedDays = 0;
+		project->FileLastDay = datetime_daysPerMonth(project->FileYear, project->FileMonth);
         readFileValues(project);
         for (i=TMIN; i<=WIND; i++)
         {
-            if ( FileData[i][FileDay] == MISSING ) continue;
-            FileValue[i] = FileData[i][FileDay];
+			if (project->FileData[i][project->FileDay] == MISSING) continue;
+			project->FileValue[i] = project->FileData[i][project->FileDay];
         }
     }
 }
 
 //=============================================================================
 
-void climate_initState(Project *project)
+void climate_initState(Project* project)
 //
 //  Input:   none
 //  Output:  none
 //  Purpose: initializes climate state variables.
 //
 {
-    LastDay = NO_DATE;
-    project->Temp.tmax = MISSING;
-    project->Snow.removed = 0.0;
+	project->LastDay = NO_DATE;
+	project->Temp.tmax = MISSING;
+	project->Snow.removed = 0.0;
 
 ////  Following code added for release 5.0.019  ////
-    NextEvapDate = project->StartDate;
-    NextEvapRate = 0.0;
-    if ( project->Evap.type == TIMESERIES_EVAP && project->Evap.tSeries >= 0  )
-        NextEvapRate = table_intervalLookup(&project->Tseries[project->Evap.tSeries],
-                                            project->StartDate-1.0);
+	project->NextEvapDate = project->StartDate;
+	project->NextEvapRate = 0.0;
+	if (project->Evap.type == TIMESERIES_EVAP && project->Evap.tSeries >= 0)
+		project->NextEvapRate = table_intervalLookup(&project->Tseries[project->Evap.tSeries],
+		project->StartDate - 1.0);
 ////////////////////////////////////////////////////
 }
 
 //=============================================================================
 
-void climate_setState(Project *project, DateTime theDate)
+void climate_setState(Project* project, DateTime theDate)
 //
 //  Input:   theDate = simulation date
 //  Output:  none
 //  Purpose: sets climate variables for current date.
 //
 {
-    if ( project->Fclimate.mode == USE_FILE ) updateFileValues(project,theDate);
-    if ( project->Temp.dataSource != NO_TEMP ) setTemp(project,theDate);
-    setEvap(project,theDate);
-    setWind(project,theDate);
+	if (project->Fclimate.mode == USE_FILE) updateFileValues(project, theDate);
+	if (project->Temp.dataSource != NO_TEMP) setTemp(project, theDate);
+	setEvap(project, theDate); 
+	setWind(project, theDate);
 }
 
 //=============================================================================
 
-DateTime climate_getNextEvap(Project *project, DateTime days)
+DateTime climate_getNextEvap(Project* project, DateTime days)
 //
 //  Input:   days = current simulation date
 //  Output:  returns date (in whole days) when evaporation rate next changes
@@ -463,7 +463,7 @@ DateTime climate_getNextEvap(Project *project, DateTime days)
     double d, e;
 
     days = floor(days);
-    switch ( project->Evap.type )
+	switch (project->Evap.type)
     {
       case CONSTANT_EVAP:
         return days + 365.;
@@ -479,17 +479,17 @@ DateTime climate_getNextEvap(Project *project, DateTime days)
         return datetime_encodeDate(yr, mon, 1);
 
       case TIMESERIES_EVAP:
-        if ( NextEvapDate > days ) return NextEvapDate;
-        k = project->Evap.tSeries;
+		  if (project->NextEvapDate > days) return project->NextEvapDate;
+		  k = project->Evap.tSeries;
         if ( k >= 0 )
         {    
-            while ( table_getNextEntry(&project->Tseries[k], &d, &e) &&
-                    d <= project->EndDateTime )
+			while (table_getNextEntry(&project->Tseries[k], &d, &e) &&
+				d <= project->EndDateTime)
             {
                 if ( d > days )
                 {
-                    NextEvapDate = d;
-                    NextEvapRate = e;
+					project->NextEvapDate = d;
+					project->NextEvapRate = e;
                     return d;
                 }
             }
@@ -505,7 +505,7 @@ DateTime climate_getNextEvap(Project *project, DateTime days)
 
 //=============================================================================
 
-void updateFileValues(Project *project, DateTime theDate)
+void updateFileValues(Project* project, DateTime theDate)
 //
 //  Input:   theDate = current simulation date
 //  Output:  none
@@ -520,40 +520,40 @@ void updateFileValues(Project *project, DateTime theDate)
     int deltaDays;
 
     // --- see if a new day has begun
-    deltaDays = (int)(floor(theDate) - floor(project->StartDateTime));
-    if ( deltaDays > FileElapsedDays )
+	deltaDays = (int)(floor(theDate) - floor(project->StartDateTime));
+	if (deltaDays >project->FileElapsedDays)
     {
         // --- advance day counters
-        FileElapsedDays++;
-        FileDay++;
+		project->FileElapsedDays++;
+		project->FileDay++;
 
         // --- see if new month of data needs to be read from file
-        if ( FileDay > FileLastDay )
+		if (project->FileDay > project->FileLastDay)
         {
-            FileMonth++;
-            if ( FileMonth > 12 )
+			project->FileMonth++;
+			if (project->FileMonth > 12)
             {
-                FileMonth = 1;
-                FileYear++;
+				project->FileMonth = 1;
+				project->FileYear++;
             }
             readFileValues(project);
-            FileDay = 1;
-            FileLastDay = datetime_daysPerMonth(FileYear, FileMonth);
+			project->FileDay = 1;
+			project->FileLastDay = datetime_daysPerMonth(project->FileYear, project->FileMonth);
         }
 
         // --- set climate variables for new day
         for (i=TMIN; i<=WIND; i++)
         {
             // --- no change in current value if its missing
-            if ( FileData[i][FileDay] == MISSING ) continue;
-            FileValue[i] = FileData[i][FileDay];
+			if (project->FileData[i][project->FileDay] == MISSING) continue;
+			project->FileValue[i] = project->FileData[i][project->FileDay];
         }
     }
 }
 
 //=============================================================================
 
-void setTemp(Project *project, DateTime theDate)
+void setTemp(Project* project, DateTime theDate)
 //
 //  Input:   theDate = simulation date
 //  Output:  none
@@ -569,73 +569,73 @@ void setTemp(Project *project, DateTime theDate)
 
     // --- see if a new day has started
     theDay = floor(theDate);
-    if ( theDay > LastDay )
+	if (theDay > project->LastDay)
     {
         // --- update min. & max. temps & their time of day
         day = datetime_dayOfYear(theDate);
-        if ( project->Temp.dataSource == FILE_TEMP )
+		if (project->Temp.dataSource == FILE_TEMP)
         {
-            Tmin = FileValue[TMIN];
-            Tmax = FileValue[TMAX];
-            if ( Tmin > Tmax )
+			project->Tmin = project->FileValue[TMIN];
+			project->Tmax = project->FileValue[TMAX];
+			if (project->Tmin > project->Tmax)
             {
-                tmp = Tmin;
-                Tmin = Tmax;
-                Tmax = tmp;
+				tmp = project->Tmin;
+				project->Tmin = project->Tmax;
+				project->Tmax = tmp;
             } 
-            updateTempTimes(project,day);
-            if ( project->Evap.type == TEMPERATURE_EVAP )
-                FileValue[EVAP] = getTempEvap(project,day);
+			updateTempTimes(project, day);
+			if (project->Evap.type == TEMPERATURE_EVAP)
+				project->FileValue[EVAP] = getTempEvap(project, day);
         }
 
         // --- compute snow melt coefficients based on day of year
-        project->Snow.season = sin(0.0172615*(day-81.0));
-        for (j=0; j<project->Nobjects[SNOWMELT]; j++)
+		project->Snow.season = sin(0.0172615*(day - 81.0));
+		for (j = 0; j<project->Nobjects[SNOWMELT]; j++)
         {
-            snow_setMeltCoeffs(project, j, project->Snow.season);
+			snow_setMeltCoeffs(project, j, project->Snow.season);
         }
 
         // --- update date of last day analyzed
-        LastDay = theDate;
+		project->LastDay = theDate;
     }
 
     // --- for min/max daily temps. from climate file,
     //     compute hourly temp. by sinusoidal interp.
-    if ( project->Temp.dataSource == FILE_TEMP )
+	if (project->Temp.dataSource == FILE_TEMP)
     {
         hour = (theDate - theDay) * 24.0;
-        if ( hour < Hrsr )
-            project->Temp.ta = Tmin + Trng1/2.0 * sin(PI/Dydif * (Hrsr - hour));
-        else if ( hour >= Hrsr && hour <= Hrss )
-            project->Temp.ta = Tave + Trng * sin(PI/Dhrdy * (Hrday - hour));
+		if (hour < project->Hrsr)
+			project->Temp.ta = project->Tmin + project->Trng1 / 2.0 * sin(PI / project->Dydif * (project->Hrsr - hour));
+		else if (hour >= project->Hrsr && hour <= project->Hrss)
+			project->Temp.ta = project->Tave + project->Trng * sin(PI / project->Dhrdy * (project->Hrday - hour));
         else
-            project->Temp.ta = Tmax - Trng * sin(PI/Dydif * (hour - Hrss));
+			project->Temp.ta = project->Tmax - project->Trng * sin(PI / project->Dydif * (hour - project->Hrss));
     }
 
     // --- for user-supplied temperature time series,
     //     get temperature value from time series
-    if ( project->Temp.dataSource == TSERIES_TEMP )
+	if (project->Temp.dataSource == TSERIES_TEMP)
     {
-        k = project->Temp.tSeries;
+		k = project->Temp.tSeries;
         if ( k >= 0)
         {
-            project->Temp.ta = table_tseriesLookup(&project->Tseries[k], theDate, TRUE);
+			project->Temp.ta = table_tseriesLookup(&project->Tseries[k], theDate, TRUE);
 
             // --- convert from deg. C to deg. F if need be
-            if ( project->UnitSystem == SI )
+			if (project->UnitSystem == SI)
             {
-                project->Temp.ta = (9./5.) * project->Temp.ta + 32.0;
+				project->Temp.ta = (9. / 5.) * project->Temp.ta + 32.0;
             }
         }
     }
 
     // --- compute saturation vapor pressure
-    project->Temp.ea = 8.1175e6 * exp(-7701.544 / (project->Temp.ta + 405.0265) );
+	project->Temp.ea = 8.1175e6 * exp(-7701.544 / (project->Temp.ta + 405.0265));
 }
 
 //=============================================================================
 
-void setEvap(Project *project, DateTime theDate)
+void setEvap(Project* project, DateTime theDate)
 //
 //  Input:   theDate = simulation date
 //  Output:  none
@@ -644,48 +644,48 @@ void setEvap(Project *project, DateTime theDate)
 {
     int yr, mon, day, k;
 
-    switch ( project->Evap.type )
+	switch (project->Evap.type)
     {
       case CONSTANT_EVAP:
-        project->Evap.rate = project->Evap.monthlyEvap[0] / UCF(project, EVAPRATE);
+		  project->Evap.rate = project->Evap.monthlyEvap[0] / UCF(project,EVAPRATE);
         break;
 
       case MONTHLY_EVAP:
         datetime_decodeDate(theDate, &yr, &mon, &day);
-        project->Evap.rate = project->Evap.monthlyEvap[mon-1] / UCF(project, EVAPRATE);
+		project->Evap.rate = project->Evap.monthlyEvap[mon - 1] / UCF(project, EVAPRATE);
         break;
 
       case TIMESERIES_EVAP:
-        if ( theDate >= NextEvapDate )
-            project->Evap.rate = NextEvapRate / UCF(project, EVAPRATE);
+		  if (theDate >= project->NextEvapDate)
+			  project->Evap.rate = project->NextEvapRate / UCF(project, EVAPRATE);
         break;
 
       case FILE_EVAP:
-        project->Evap.rate = FileValue[EVAP] / UCF(project, EVAPRATE);
+		  project->Evap.rate = project->FileValue[EVAP] / UCF(project,EVAPRATE);
         datetime_decodeDate(theDate, &yr, &mon, &day);
-        project->Evap.rate *= project->Evap.panCoeff[mon-1];
+		project->Evap.rate *= project->Evap.panCoeff[mon - 1];
         break;
 
       case TEMPERATURE_EVAP:
-        project->Evap.rate = FileValue[EVAP] / UCF(project, EVAPRATE);
+		  project->Evap.rate = project->FileValue[EVAP] / UCF(project,EVAPRATE);
         break;
 
-      default: project->Evap.rate = 0.0;
+	  default: project->Evap.rate = 0.0;
     }
 
     // --- set soil recovery factor
-    project->Evap.recoveryFactor = 1.0;
-    k = project->Evap.recoveryPattern;
-    if ( k >= 0 && project->Pattern[k].type == MONTHLY_PATTERN )
+	project->Evap.recoveryFactor = 1.0;
+	k = project->Evap.recoveryPattern;
+	if (k >= 0 && project->Pattern[k].type == MONTHLY_PATTERN)
     {
         mon = datetime_monthOfYear(theDate) - 1;
-        project->Evap.recoveryFactor = project->Pattern[k].factor[mon];
+		project->Evap.recoveryFactor = project->Pattern[k].factor[mon];
     }
 }
 
 //=============================================================================
 
-void setWind(Project *project, DateTime theDate)
+void setWind(Project* project, DateTime theDate)
 //
 //  Input:   theDate = simulation date
 //  Output:  none
@@ -694,24 +694,24 @@ void setWind(Project *project, DateTime theDate)
 {
     int yr, mon, day;
 
-    switch ( project->Wind.type )
+	switch (project->Wind.type)
     {
       case MONTHLY_WIND:
         datetime_decodeDate(theDate, &yr, &mon, &day);
-        project->Wind.ws = project->Wind.aws[mon-1] / UCF(project, WINDSPEED);
+		project->Wind.ws = project->Wind.aws[mon - 1] / UCF(project,WINDSPEED);
         break;
 
       case FILE_WIND:
-        project->Wind.ws = FileValue[WIND];
+		  project->Wind.ws = project->FileValue[WIND];
         break;
 
-      default: project->Wind.ws = 0.0;
+	  default: project->Wind.ws = 0.0;
     }
 }
 
 //=============================================================================
 
-void updateTempTimes(Project *project, int day)
+void updateTempTimes(Project* project, int day)
 //
 //  Input:   day = day of year
 //  Output:  none
@@ -724,26 +724,26 @@ void updateTempTimes(Project *project, int day)
     double arg;
 
     decl  = 0.40928*cos(0.017202*(172.0-day));
-    arg = -tan(decl)*project->Temp.tanAnglat;
+	arg = -tan(decl)*project->Temp.tanAnglat;
     if      ( arg <= -1.0 ) arg = PI;
     else if ( arg >= 1.0 )  arg = 0.0;
     else                    arg = acos(arg);
     hrang = 3.8197 * arg;
-    Hrsr  = 12.0 - hrang + project->Temp.dtlong;
-    Hrss  = 12.0 + hrang + project->Temp.dtlong - 3.0;
-    Dhrdy = Hrsr - Hrss;
-    Dydif = 24.0 + Hrsr - Hrss;
-    Hrday = (Hrsr + Hrss) / 2.0;
-    Tave  = (Tmin + Tmax) / 2.0;
-    Trng  = (Tmax - Tmin) / 2.0;
-    if ( project->Temp.tmax == MISSING ) Trng1 = Tmax - Tmin;
-    else                        Trng1 = project->Temp.tmax - Tmin;
-    project->Temp.tmax = Tmax;
+	project->Hrsr = 12.0 - hrang + project->Temp.dtlong;
+	project->Hrss = 12.0 + hrang + project->Temp.dtlong - 3.0;
+	project->Dhrdy = project->Hrsr - project->Hrss;
+	project->Dydif = 24.0 + project->Hrsr - project->Hrss;
+	project->Hrday = (project->Hrsr + project->Hrss) / 2.0;
+	project->Tave = (project->Tmin + project->Tmax) / 2.0;
+	project->Trng = (project->Tmax - project->Tmin) / 2.0;
+	if (project->Temp.tmax == MISSING)project->Trng1 = project->Tmax - project->Tmin;
+	else                       project->Trng1 = project->Temp.tmax - project->Tmin;
+	project->Temp.tmax = project->Tmax;
 }
 
 //=============================================================================
 
-double getTempEvap(Project *project, int day)
+double getTempEvap(Project* project, int day)
 //
 //  Input:   day = day of year
 //  Output:  returns evaporation rate in in/day
@@ -752,11 +752,11 @@ double getTempEvap(Project *project, int day)
 //
 {
     double a = 2.0*PI/365.0;
-    double ta = (Tave - 32.0)*5.0/9.0;           //average temperature (deg C)
-    double tr = (Tmax - Tmin)*5.0/9.0;           //temperature range (deg C)
+	double ta = (project->Tave - 32.0)*5.0 / 9.0;           //average temperature (deg C)
+	double tr = (project->Tmax - project->Tmin)*5.0 / 9.0;           //temperature range (deg C)
     double lamda = 2.50 - 0.002361 * ta;         //latent heat of vaporization
     double dr = 1.0 + 0.033*cos(a*day);          //relative earth-sun distance
-    double phi = project->Temp.anglat*2.0*PI/360.0;       //latitude angle (rad)
+	double phi = project->Temp.anglat*2.0*PI / 360.0;       //latitude angle (rad)
     double del = 0.4093*sin(a*(284+day));        //solar declination angle (rad)
     double omega = acos(-tan(phi)*tan(del));     //sunset hour angle (rad)
     double ra = 37.6*dr*                         //extraterrestrial radiation
@@ -764,13 +764,13 @@ double getTempEvap(Project *project, int day)
                  cos(phi)*cos(del)*sin(omega));
     double e = 0.0023*ra/lamda*sqrt(tr)*(ta+17.8);    //evap. rate (mm/day)
     if ( e < 0.0 ) e = 0.0; 
-    if ( project->UnitSystem == US ) e /= MMperINCH;
+	if (project->UnitSystem == US) e /= MMperINCH;
     return e;
 }
 
 //=============================================================================
 
-int  getFileFormat(Project *project)
+int  getFileFormat(Project* project)
 //
 //  Input:   none
 //  Output:  returns code number of climate file's format
@@ -786,7 +786,7 @@ int  getFileFormat(Project *project)
     int  y, m, d, n;
 
     // --- read first line of file
-    if ( fgets(line, MAXLINE, project->Fclimate.file) == NULL ) return UNKNOWN_FORMAT;
+	if (fgets(line, MAXLINE, project->Fclimate.file) == NULL) return UNKNOWN_FORMAT;
 
     // --- check for TD3200 format
     sstrncpy(recdType, line, 3);
@@ -810,7 +810,7 @@ int  getFileFormat(Project *project)
 
 //=============================================================================
 
-void readFileLine(Project *project, int *y, int *m)
+void readFileLine(Project* project, int *y, int *m)
 //
 //  Input:   none
 //  Output:  y = year
@@ -819,16 +819,16 @@ void readFileLine(Project *project, int *y, int *m)
 //
 {
     // --- read next line from climate data file
-    while ( strlen(FileLine) == 0 )
+	while (strlen(project->FileLine) == 0)
     {
-        if ( fgets(FileLine, MAXLINE, project->Fclimate.file) == NULL ) return;
-     	if ( FileLine[0] == '\n' ) FileLine[0] = '\0'; 
+		if (fgets(project->FileLine, MAXLINE, project->Fclimate.file) == NULL) return;
+		if (project->FileLine[0] == '\n')project->FileLine[0] = '\0';
     }
 
     // --- parse year & month from line
-    switch (FileFormat)
+	switch (project->FileFormat)
     {
-    case  USER_PREPARED: readUserFileLine(project,y, m);   break;
+	case  USER_PREPARED: readUserFileLine(project, y, m);   break;
     case  TD3200:        readTD3200FileLine(project,y,m);  break;
     case  DLY0204:       readDLY0204FileLine(project,y,m); break;
     }
@@ -836,7 +836,7 @@ void readFileLine(Project *project, int *y, int *m)
 
 //=============================================================================
 
-void readUserFileLine(Project *project, int* y, int* m)
+void readUserFileLine(Project* project, int* y, int* m)
 //
 //  Input:   none
 //  Output:  y = year
@@ -846,16 +846,16 @@ void readUserFileLine(Project *project, int* y, int* m)
 {
     int n;
     char staID[80];
-    n = sscanf(FileLine, "%s %d %d", staID, y, m);
+	n = sscanf(project->FileLine, "%s %d %d", staID, y, m);
     if ( n < 3 )
     {
-        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+		report_writeErrorMsg(project,ERR_CLIMATE_FILE_READ, project->Fclimate.name);
     }
 }
 
 //=============================================================================
 
-void readTD3200FileLine(Project *project, int* y, int* m)
+void readTD3200FileLine(Project* project, int* y, int* m)
 //
 //  Input:   none
 //  Output:  y = year
@@ -869,31 +869,31 @@ void readTD3200FileLine(Project *project, int* y, int* m)
     int  len;
 
     // --- check for minimum number of characters
-    len = strlen(FileLine);
+	len = strlen(project->FileLine);
     if ( len < 30 )
     {
-        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+		report_writeErrorMsg(project,ERR_CLIMATE_FILE_READ, project->Fclimate.name);
         return;
     }
 
     // --- check for proper type of record
-    sstrncpy(recdType, FileLine, 3);
+	sstrncpy(recdType, project->FileLine, 3);
     if ( strcmp(recdType, "DLY") != 0 )
     {
-        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+		report_writeErrorMsg(project,ERR_CLIMATE_FILE_READ, project->Fclimate.name);
         return;
     }
 
     // --- get record's date 
-    sstrncpy(year,  &FileLine[17], 4);
-    sstrncpy(month, &FileLine[21], 2);
+	sstrncpy(year, &project->FileLine[17], 4);
+	sstrncpy(month, &project->FileLine[21], 2);
     *y = atoi(year);
     *m = atoi(month);
 }
 
 //=============================================================================
 
-void readDLY0204FileLine(Project *project, int* y, int* m)
+void readDLY0204FileLine(Project* project, int* y, int* m)
 //
 //  Input:   none
 //  Output:  y = year
@@ -906,23 +906,23 @@ void readDLY0204FileLine(Project *project, int* y, int* m)
     int  len;
 
     // --- check for minimum number of characters
-    len = strlen(FileLine);
+	len = strlen(project->FileLine);
     if ( len < 16 )
     {
-        report_writeErrorMsg(project, ERR_CLIMATE_FILE_READ, project->Fclimate.name);
+		report_writeErrorMsg(project,ERR_CLIMATE_FILE_READ, project->Fclimate.name);
         return;
     }
 
     // --- get record's date 
-    sstrncpy(year,  &FileLine[7], 4);
-    sstrncpy(month, &FileLine[11], 2);
+	sstrncpy(year, &project->FileLine[7], 4);
+	sstrncpy(month, &project->FileLine[11], 2);
     *y = atoi(year);
     *m = atoi(month);
 }
 
 //=============================================================================
 
-void readFileValues(Project *project)
+void readFileValues(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -935,30 +935,30 @@ void readFileValues(Project *project)
     // --- initialize FileData array to missing values
     for ( i=0; i<MAXCLIMATEVARS; i++)
     {
-        for (j=0; j<MAXDAYSPERMONTH; j++) FileData[i][j] = MISSING;
+		for (j = 0; j<MAXDAYSPERMONTH; j++) project->FileData[i][j] = MISSING;
     }
 
-    while ( !project->ErrorCode )
+	while (!project->ErrorCode)
     {
         // --- return when date on line is after current file date
-        if ( feof(project->Fclimate.file) ) return;
+		if (feof(project->Fclimate.file)) return;
         readFileLine(project,&y, &m);
-        if ( y > FileYear || m > FileMonth ) return;
+		if (y > project->FileYear || m >project->FileMonth) return;
 
         // --- parse climate values from file line
-        switch (FileFormat)
+		switch (project->FileFormat)
         {
         case  USER_PREPARED: parseUserFileLine(project);   break;
-        case  TD3200:        parseTD3200FileLine(project);  break;
-        case  DLY0204:       parseDLY0204FileLine(project); break;
+		case  TD3200:        parseTD3200FileLine(project);  break;
+		case  DLY0204:       parseDLY0204FileLine(project); break;
         }
-        strcpy(FileLine, "");
+		strcpy(project->FileLine, "");
     }
 }
 
 //=============================================================================
 
-void parseUserFileLine(Project *project)
+void parseUserFileLine(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -975,8 +975,8 @@ void parseUserFileLine(Project *project)
     char  s3[80];
     double x;
 
-    // --- read day, Tmax, Tmin, project->Evap, & project->Wind from file line
-    n = sscanf(FileLine, "%s %d %d %d %s %s %s %s",
+    // --- read day, Tmax, Tmin, Evap, & Wind from file line
+	n = sscanf(project->FileLine, "%s %d %d %d %s %s %s %s",
         staID, &y, &m, &d, s0, s1, s2, s3);
     if ( n < 4 ) return;
     if ( d < 1 || d > 31 ) return;
@@ -985,8 +985,8 @@ void parseUserFileLine(Project *project)
     if ( strlen(s0) > 0 && *s0 != '*' )
     {
         x = atof(s0);
-        if ( project->UnitSystem == SI ) x = 9./5.*x + 32.0;
-        FileData[TMAX][d] =  x;
+		if (project->UnitSystem == SI) x = 9. / 5.*x + 32.0;
+		project->FileData[TMAX][d] = x;
     }
  
     // --- process TMIN
@@ -994,19 +994,19 @@ void parseUserFileLine(Project *project)
     {
         x = atof(s1);
         if ( project->UnitSystem == SI ) x = 9./5.*x + 32.0;
-        FileData[TMIN][d] =  x;
+		project->FileData[TMIN][d] = x;
     }
 
     // --- process EVAP
-    if ( strlen(s2) > 0 && *s2 != '*' ) FileData[EVAP][d] = atof(s2);
+	if (strlen(s2) > 0 && *s2 != '*') project->FileData[EVAP][d] = atof(s2);
 
     // --- process WIND
-    if ( strlen(s3) > 0 && *s3 != '*' ) FileData[WIND][d] = atof(s3);
+	if (strlen(s3) > 0 && *s3 != '*') project->FileData[WIND][d] = atof(s3);
 }
 
 //=============================================================================
 
-void parseTD3200FileLine(Project *project)
+void parseTD3200FileLine(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -1017,18 +1017,18 @@ void parseTD3200FileLine(Project *project)
     char param[5] = "";
 
     // --- parse parameter name
-    sstrncpy(param, &FileLine[11], 4);
+	sstrncpy(param, &project->FileLine[11], 4);
 
     // --- see if parameter is temperature, evaporation or wind speed
     for (i=0; i<MAXCLIMATEVARS; i++)
     {
-        if (strcmp(param, ClimateVarWords[i]) == 0 ) setTD3200FileValues(project, i);
+		if (strcmp(param, ClimateVarWords[i]) == 0) setTD3200FileValues(project,i);
     }
 }
 
 //=============================================================================
 
-void setTD3200FileValues(Project *project, int i)
+void setTD3200FileValues(Project* project, int i)
 //
 //  Input:   i = climate variable code
 //  Output:  none
@@ -1046,9 +1046,9 @@ void setTD3200FileValues(Project *project, int i)
     int  lineLength;
 
     // --- parse number of days with data from cols. 27-29 of file line
-    sstrncpy(valCount, &FileLine[27], 3);
+	sstrncpy(valCount, &project->FileLine[27], 3);
     nValues = atoi(valCount);
-    lineLength = strlen(FileLine);
+	lineLength = strlen(project->FileLine);
 
     // --- check for enough characters on line
     if ( lineLength >= 12*nValues + 30 )
@@ -1058,10 +1058,11 @@ void setTD3200FileValues(Project *project, int i)
         {
             // --- parse day, value & flag from file line
             k = 30 + j*12;
-            sstrncpy(day,   &FileLine[k], 2);
-            sstrncpy(sign,  &FileLine[k+4], 1);
-            sstrncpy(value, &FileLine[k+5], 5);
-            sstrncpy(flag2, &FileLine[k+11], 1);
+			
+			sstrncpy(day, &project->FileLine[k], 2);
+			sstrncpy(sign, &project->FileLine[k + 4], 1);
+			sstrncpy(value, &project->FileLine[k + 5], 5);
+			sstrncpy(flag2, &project->FileLine[k + 11], 1);
 
             // --- if value is valid then store it in FileData array
             d = atoi(day);
@@ -1080,14 +1081,14 @@ void setTD3200FileValues(Project *project, int i)
                     x /= 100.0;
 
                     // --- convert to mm if using SI units
-                    if ( project->UnitSystem == SI ) x *= MMperINCH;
+					if (project->UnitSystem == SI) x *= MMperINCH;
                 }
                 
                 // --- convert wind speed from miles/day to miles/hour
                 if ( i == WIND ) x /= 24.0;
  
                 // --- store value
-                FileData[i][d] = x;
+				project->FileData[i][d] = x;
             }
         }
     }
@@ -1095,7 +1096,7 @@ void setTD3200FileValues(Project *project, int i)
 
 //=============================================================================
 
-void parseDLY0204FileLine(Project *project)
+void parseDLY0204FileLine(Project* project)
 //
 //  Input:   none
 //  Output:  none
@@ -1111,7 +1112,7 @@ void parseDLY0204FileLine(Project *project)
     double x;
 
     // --- parse parameter name
-    sstrncpy(param, &FileLine[13], 3);
+	sstrncpy(param, &project->FileLine[13], 3);
 
     // --- see if parameter is min or max temperature
     p = atoi(param);
@@ -1121,16 +1122,16 @@ void parseDLY0204FileLine(Project *project)
     else return;
 
     // --- check for 233 characters on line
-    if ( strlen(FileLine) < 233 ) return;
+	if (strlen(project->FileLine) < 233) return;
 
     // --- for each of 31 days
     k = 16;
     for (j=1; j<=31; j++)
     {
         // --- parse value & flag from file line
-        sstrncpy(sign,  &FileLine[k], 1);
-        sstrncpy(value, &FileLine[k+1], 5);
-        sstrncpy(code,  &FileLine[k+6], 1);
+		sstrncpy(sign, &project->FileLine[k], 1);
+		sstrncpy(value, &project->FileLine[k + 1], 5);
+		sstrncpy(code, &project->FileLine[k + 6], 1);
         k += 7;
 
         // --- if value is valid then store it in FileData array
@@ -1149,11 +1150,11 @@ void parseDLY0204FileLine(Project *project)
             case EVAP:
                 // --- convert from 0.1 mm to inches or mm
                 x = atof(value) / 10.0;
-                if ( project->UnitSystem == US ) x /= MMperINCH;
+				if (project->UnitSystem == US) x /= MMperINCH;
                 break;
 			default: return;
             }
-            FileData[p][j] = x;
+			project->FileData[p][j] = x;
         }
     }
 }
