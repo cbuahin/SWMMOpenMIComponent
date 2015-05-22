@@ -12,7 +12,7 @@ map<Project*, map<int, double>> SubcatchRainfall;
 
 typedef struct OpenMIDataCache OpenMIDataCache;
 
-
+//node lateral inflow
 void addNodeLateralInflow(Project* project, int index, double value)
 {
 	NodeLateralInflows[project][index] = value;

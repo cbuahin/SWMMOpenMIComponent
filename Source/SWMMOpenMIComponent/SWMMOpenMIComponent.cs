@@ -96,7 +96,7 @@ namespace SWMMOpenMIComponent
             timeExtent.Times.Add(new Time(date));
 
             requiredArguments = new String[] { "ModelID", "Caption", "Description", "SWMMLibrary", "ProjectFile", "ReportFile", "OutputFile" };
-           
+
             //Initialize arguments
             arguments.Add("ModelID", new ArgumentString("ModelID") { Caption = "ModelID", Description = "SWMM Model Component Identifier", DefaultValue = "SWMM Model Component", IsOptional = false, IsReadOnly = true, Value = "SWMM Model " + Guid.NewGuid() });
             arguments.Add("Caption", new ArgumentString("Caption") { Caption = "ModelCaption", Description = "SWMM Model Component Caption", DefaultValue = "SWMM OpenMI 2.0 Component", IsOptional = false, IsReadOnly = true, Value = "SWMM OpenMI 2.0 Component" });
@@ -287,7 +287,7 @@ namespace SWMMOpenMIComponent
             }
 
             // Prepare the engine
-            model.StartModel();
+            //model.StartModel();
 
             UpdateRequiredOutputExchangeItems();
 
@@ -310,19 +310,14 @@ namespace SWMMOpenMIComponent
 
                 DateTime earliestTimeRequired = GetEarliestTimeRequiredConsumers(requiredOutput);
 
-                if (model.CurrentDateTime < earliestTimeRequired)
-                {
-                    while (model.CurrentDateTime < earliestTimeRequired)
-                    {
-                        model.PerformTimeStep();
-                    }
-                }
-                else
+
+                while (model.CurrentDateTime <= earliestTimeRequired)
                 {
                     model.PerformTimeStep();
                 }
 
-                Time time  =timeExtent.Times[0] as Time;
+
+                Time time = timeExtent.Times[0] as Time;
                 time.StampAsModifiedJulianDay = model.CurrentDateTime.ToModifiedJulianDay();
                 UpdateRequiredOutputExchangeItems(requiredOutput);
             }
@@ -338,7 +333,7 @@ namespace SWMMOpenMIComponent
 
             model.EndRun();
             model.CloseModel();
-         
+
             isInitialized = false;
             isPrepared = false;
 
@@ -402,10 +397,8 @@ namespace SWMMOpenMIComponent
 
                                 if (File.Exists(temp.FullName))
                                 {
-                                    Guid tempID = Guid.NewGuid();
-                                    string newFileName = temp.FullName.Replace(temp.Extension, tempID.ToString() + temp.Extension);
-                                    File.Copy(temp.FullName, newFileName);
-                                    SWMMLibrary = new FileInfo(newFileName);
+                                    SWMMLibrary = temp;
+
                                 }
                                 else
                                 {
@@ -881,7 +874,7 @@ namespace SWMMOpenMIComponent
 
         void InitializeInputLinks()
         {
-            
+
             Dictionary<string, Link> links = model.Links;
             List<string> keys = links.Keys.ToList<string>();
             List<PropertyInfo> properties = SWMMObject.GetAvailableProperties(typeof(Link));
@@ -892,7 +885,7 @@ namespace SWMMOpenMIComponent
                 PropertyInfo property = properties[i];
                 SWMMVariableDefinitionAttribute attribute = property.GetCustomAttribute<SWMMVariableDefinitionAttribute>();
                 IValueDefinition valueDefinition = Link.GetValueDefinition(attribute.ValueDefinition);
-                 
+
                 if (attribute.IsInput)
                 {
                     SWMMInputExchangeItem allInput = null;
@@ -1026,7 +1019,7 @@ namespace SWMMOpenMIComponent
                         CacheValues = false,
                         ValueDefinition = valueDefinition,
                         TimeSet = new TimeSet(timeExtent),
-                        Component = this ,
+                        Component = this,
                         Model = model,
                     };
 
@@ -1089,7 +1082,7 @@ namespace SWMMOpenMIComponent
                         ValueDefinition = valueDefinition,
                         TimeSet = new TimeSet(timeExtent),
                         Component = this,
-                            Model = model,
+                        Model = model,
                     };
 
                     all.ElementSet.ElementType = ElementType.IdBased;
@@ -1248,22 +1241,15 @@ namespace SWMMOpenMIComponent
 
         void UpdateRequiredOutputExchangeItems(IBaseOutput[] required = null)
         {
-            if (required == null || required.Length == 0)
-            {
+      
+      
                 for (int i = 0; i < requiredOutputs.Length; i++)
                 {
                     SWMMOutputExchangeItem output = (SWMMOutputExchangeItem)requiredOutputs[i];
                     output.Update();
                 }
-            }
-            else
-            {
-                for (int i = 0; i < required.Length; i++)
-                {
-                    SWMMOutputExchangeItem output = (SWMMOutputExchangeItem)required[i];
-                    output.Update();
-                }
-            }
+      
+
         }
 
         bool OutputItemsStillRequireData()

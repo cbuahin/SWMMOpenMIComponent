@@ -24,27 +24,27 @@ namespace SWMMOpenMIComponent
         # region SWMMDelegates
 
 
-        delegate int OpenDelegate([MarshalAs(UnmanagedType.LPStr)]string inputFile, [MarshalAs(UnmanagedType.LPStr)]string reportFile, [MarshalAs(UnmanagedType.LPStr)]string outFile);
+        delegate IntPtr OpenDelegate([MarshalAs(UnmanagedType.LPStr)]string inputFile, [MarshalAs(UnmanagedType.LPStr)]string reportFile, [MarshalAs(UnmanagedType.LPStr)]string outFile);
 
-        delegate int StartModelDelegate(int saveResults);
+        delegate int StartModelDelegate(IntPtr project, int saveResults);
 
-        delegate int PerformTimeStepDelegate(out double elapsedTime);
+        delegate int PerformTimeStepDelegate(IntPtr project, out double elapsedTime);
 
-        delegate int IntReturnDelegate();
+        delegate int IntReturnDelegate(IntPtr project);
 
         delegate string GetErrorMessageDelegate(int errorCode);
 
         delegate void DecodeDateTimeDelegate(double dateTime, out int year, out int month, out int day, out int hour, out int minute, out int second);
 
-        delegate double GetDateTimeDelegate([MarshalAs(UnmanagedType.LPStr)] string name);
+        delegate double GetDateTimeDelegate(IntPtr project, [MarshalAs(UnmanagedType.LPStr)] string name);
 
-        public delegate int GetObjectTypeCountDelegate(ObjectType type);
+        public delegate int GetObjectTypeCountDelegate(IntPtr project, ObjectType type);
 
-        delegate IntPtr GetObjectDelegate(int index);
+        delegate IntPtr GetObjectDelegate(IntPtr project, int index);
 
-        delegate IntPtr GetObjectByIdDelegate([MarshalAs(UnmanagedType.LPStr)]string id);
+        delegate IntPtr GetObjectByIdDelegate(IntPtr project, [MarshalAs(UnmanagedType.LPStr)]string id);
 
-        delegate void SetObjectValue(IntPtr ptrToObject, [MarshalAs(UnmanagedType.LPStr)]string propertyName);
+        delegate void SetObjectValue(IntPtr project, IntPtr ptrToObject, [MarshalAs(UnmanagedType.LPStr)]string propertyName);
 
        
 
@@ -60,6 +60,7 @@ namespace SWMMOpenMIComponent
 
         //Library
         IntPtr hModule;
+        IntPtr currentProject;
 
         # region Delegates
 
@@ -239,40 +240,54 @@ namespace SWMMOpenMIComponent
 
         public void StartModel()
         {
-            bool op = true;
-            int error = startModel(Convert.ToInt32(op));
-            SetError(error);
-            
+
+            if (currentProject != IntPtr.Zero)
+            {
+                bool op = true;
+                int error = startModel(currentProject, Convert.ToInt32(op));
+                SetError(error);
+            }
+            else
+            {
+                throw new Exception("Current Project is Invalid");
+            }
         }
 
         public void Initialize()
         {
 
 
-            int error = open(inputFile, reportFile, outPutFile);
-            SetError(error);
+            currentProject = open(inputFile, reportFile, outPutFile);
 
-            StartModel();
+            if (currentProject != IntPtr.Zero)
+            {
 
-            int year, month, day, hour, minute, second;
-            year = month = day = hour = minute = second = 0;
+                StartModel();
 
-
-            endDateTimeD = getDateTime("end");
-            decodeDateTime(endDateTimeD, out year, out month, out day, out hour, out minute, out second);
-            endDateTime = new DateTime(year, month, day, hour, minute, second);
-
-            startDateTimeD = getDateTime("begin");
-            decodeDateTime(startDateTimeD, out year, out month, out day, out hour, out minute, out second);
-            startDateTime = new DateTime(year, month, day, hour, minute, second);
-
-            currentDateTime = startDateTime;
+                int year, month, day, hour, minute, second;
+                year = month = day = hour = minute = second = 0;
 
 
-            //Initialize Objects
-            InitializeNodes();
-            InitializeLinks();
-            InitializeCatchments();
+                endDateTimeD = getDateTime(currentProject, "end");
+                decodeDateTime(endDateTimeD, out year, out month, out day, out hour, out minute, out second);
+                endDateTime = new DateTime(year, month, day, hour, minute, second);
+
+                startDateTimeD = getDateTime(currentProject, "begin");
+                decodeDateTime(startDateTimeD, out year, out month, out day, out hour, out minute, out second);
+                startDateTime = new DateTime(year, month, day, hour, minute, second);
+
+                currentDateTime = startDateTime;
+
+
+                //Initialize Objects
+                InitializeNodes();
+                InitializeLinks();
+                InitializeCatchments();
+            }
+            else
+            {
+                throw new Exception("Looding input files failed");
+            }
 
 
         }
@@ -282,7 +297,7 @@ namespace SWMMOpenMIComponent
             nodes = new Dictionary<string, Node>();
             nodeIndexes = new Dictionary<int, string>();
 
-            int nodeCount = GetObjectTypeCount(ObjectType.NODE);
+            int nodeCount = GetObjectTypeCount(currentProject, ObjectType.NODE);
 
             for (int i = 0; i < nodeCount; i++)
             {
@@ -305,7 +320,7 @@ namespace SWMMOpenMIComponent
         {
             links = new Dictionary<string, Link>();
 
-            int linkCount = GetObjectTypeCount(ObjectType.LINK);
+            int linkCount = GetObjectTypeCount(currentProject, ObjectType.LINK);
 
             for (int i = 0; i < linkCount; i++)
             {
@@ -327,7 +342,7 @@ namespace SWMMOpenMIComponent
         {
             subCatchments = new Dictionary<string, SubCatchment>();
 
-            int subCatchCount = GetObjectTypeCount(ObjectType.SUBCATCH);
+            int subCatchCount = GetObjectTypeCount(currentProject, ObjectType.SUBCATCH);
 
             for (int i = 0; i < subCatchCount; i++)
             {
@@ -346,7 +361,7 @@ namespace SWMMOpenMIComponent
         public bool PerformTimeStep()
         {
             double timeElapsed = currentDateTime.ToOADate();
-            int error = performTimeStep(out timeElapsed);
+            int error = performTimeStep(currentProject, out timeElapsed);
             SetError(error);
 
             if (timeElapsed == 0)
@@ -368,16 +383,16 @@ namespace SWMMOpenMIComponent
 
         public void EndRun()
         {
-            int error = endRun();
+            int error = endRun(currentProject);
             SetError(error);
 
-            error =  reportModelResults();
+            error =  reportModelResults(currentProject);
             SetError(error);
         }
 
         public void CloseModel()
         {
-            int error = closeModel();
+            int error = closeModel(currentProject);
             SetError(error);
         }
 
@@ -396,18 +411,12 @@ namespace SWMMOpenMIComponent
 
                 }
 
-                endRun();
-                closeModel();
+                endRun(currentProject);
+                closeModel(currentProject);
 
                 if (hModule != IntPtr.Zero && !WinLibraryLoader.FreeLibrary(hModule))
                 {
                     Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
-                }
-
-
-                if (File.Exists(library.FullName))
-                {
-                    File.Delete(library.FullName);
                 }
 
                 GC.Collect();
@@ -440,42 +449,42 @@ namespace SWMMOpenMIComponent
 
         public TNode GetNode(int index)
         {
-            IntPtr nodePtr = getNode(index);
+            IntPtr nodePtr = getNode(currentProject, index);
             TNode node = (TNode)Marshal.PtrToStructure(nodePtr, typeof(TNode));
             return node;
         }
 
         public TNode GetNodeById(string id)
         {
-            IntPtr nodePtr = getNodeById(id);
+            IntPtr nodePtr = getNodeById(currentProject, id);
             TNode node = (TNode)Marshal.PtrToStructure(nodePtr, typeof(TNode));
             return node;
         }
 
         public TLink GetLink(int index)
         {
-            IntPtr linkPtr = getLink(index);
+            IntPtr linkPtr = getLink(currentProject, index);
             TLink link = (TLink)Marshal.PtrToStructure(linkPtr, typeof(TLink));
             return link;
         }
 
         public TLink GetLinkById(string id)
         {
-            IntPtr linkPtr = getLinkById(id);
+            IntPtr linkPtr = getLinkById(currentProject, id);
             TLink link = (TLink)Marshal.PtrToStructure(linkPtr, typeof(TLink));
             return link;
         }
 
         public TSubcatch GetSubCatchment(int index)
         {
-            IntPtr subCatchPtr  = getSubCatchment(index);
+            IntPtr subCatchPtr = getSubCatchment(currentProject, index);
             TSubcatch subCatch = (TSubcatch)Marshal.PtrToStructure(subCatchPtr, typeof(TSubcatch));
             return subCatch;
         }
 
         public TSubcatch GetSubCatchmentById(string id)
         {
-            IntPtr subCatchPtr = getSubCatchmentById(id);
+            IntPtr subCatchPtr = getSubCatchmentById(currentProject, id);
             TSubcatch subCatch = (TSubcatch)Marshal.PtrToStructure(subCatchPtr, typeof(TSubcatch));
             return subCatch; ;
         }
@@ -489,7 +498,7 @@ namespace SWMMOpenMIComponent
                         Node node = (Node)swmmObject;
                         IntPtr nodePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TNode)));
                         Marshal.StructureToPtr(node.NativeNode, nodePtr, false);
-                        setNodeObjectValue(nodePtr, propertyName);
+                        setNodeObjectValue(currentProject, nodePtr, propertyName);
 
                     }
                     break;
@@ -498,7 +507,7 @@ namespace SWMMOpenMIComponent
                         Link link = (Link)swmmObject;
                         IntPtr linkPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TLink)));
                         Marshal.StructureToPtr(link.NativeLink, linkPtr, false);
-                        setLinkObjectValue(linkPtr, propertyName);
+                        setLinkObjectValue(currentProject, linkPtr, propertyName);
                     }
                     break;
                 case ObjectType.SUBCATCH:
@@ -506,7 +515,7 @@ namespace SWMMOpenMIComponent
                         SubCatchment subCatch = (SubCatchment)swmmObject;
                         IntPtr subCatchPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(TSubcatch)));
                         Marshal.StructureToPtr(subCatch.NativeSubCatchment, subCatchPtr, false);
-                        setSubCatchmentObjectValue(subCatchPtr, propertyName);
+                        setSubCatchmentObjectValue(currentProject, subCatchPtr, propertyName);
                     }
                     break;
             }

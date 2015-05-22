@@ -293,7 +293,7 @@ namespace SWMMOpenMIComponent
 
         public ITimeSpaceValueSet GetValues(IBaseExchangeItem querySpecifier)
         {
-            ITimeSpaceExchangeItem timeSpaceQuery = querySpecifier as ITimeSpaceExchangeItem;
+            ITimeSpaceInput timeSpaceQuery = querySpecifier as ITimeSpaceInput;
 
             ITimeSet qTimeSet = timeSpaceQuery.TimeSet;
 
@@ -307,9 +307,10 @@ namespace SWMMOpenMIComponent
 
             IBaseLinkableComponent component = Component;
 
-            while ((component.Status == LinkableComponentStatus.Valid || component.Status == LinkableComponentStatus.Updated) && availableTimeMjd < queryTimeMjd)
+            while ((component.Status == LinkableComponentStatus.Valid || component.Status == LinkableComponentStatus.Updated) && availableTimeMjd <= queryTimeMjd)
             {
-                component.Update();
+
+                component.Update( new IBaseOutput[]{ timeSpaceQuery.Provider });
                 availableTimeMjd = timeSet.Times[tindex].End().StampAsModifiedJulianDay;
             }
 
