@@ -1,0 +1,60 @@
+<opr
+  version="2.0">
+  <models>
+    <model
+      omi="Model1.omi"
+      rect_x="30"
+      rect_y="30"
+      rect_width="87"
+      rect_height="51"
+      is_trigger="true" />
+    <model
+      omi="Model2.omi"
+      rect_x="180"
+      rect_y="131"
+      rect_width="87"
+      rect_height="51" />
+  </models>
+  <connections>
+    <connection
+      source_model_index="0"
+      target_model_index="1">
+      <links>
+        <link
+          target_item_id="Lateral Inflow (cfs) | Node = N2">
+          <source_item_id
+            source_item_id="Flowrate (cfs) | Link = Link1"
+            source_item_is_adaptedoutput="false"
+            source_item_adpatedoutput_index="-1" />
+          <multi_input_exchangeitem_sources>
+            <source
+              source_item_id="Flowrate (cfs) | Link = Link1"
+              source_item_is_adaptedoutput="false"
+              source_item_adpatedoutput_index="-1" />
+          </multi_input_exchangeitem_sources>
+        </link>
+      </links>
+      <decorators />
+    </connection>
+    <connection
+      source_model_index="1"
+      target_model_index="0">
+      <links>
+        <link
+          target_item_id="Water Depth (ft) | Node = N2">
+          <source_item_id
+            source_item_id="Water Depth (ft) | Node = O3"
+            source_item_is_adaptedoutput="false"
+            source_item_adpatedoutput_index="-1" />
+          <multi_input_exchangeitem_sources>
+            <source
+              source_item_id="Water Depth (ft) | Node = O3"
+              source_item_is_adaptedoutput="false"
+              source_item_adpatedoutput_index="-1" />
+          </multi_input_exchangeitem_sources>
+        </link>
+      </links>
+      <decorators />
+    </connection>
+  </connections>
+</opr>

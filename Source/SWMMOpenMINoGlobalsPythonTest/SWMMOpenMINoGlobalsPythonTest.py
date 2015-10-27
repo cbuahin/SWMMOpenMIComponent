@@ -1,13 +1,13 @@
-from ctypes import*
+﻿from ctypes import*
 import math
 
-lib = cdll.LoadLibrary("C:\\Users\\Caleb\\Desktop\\Projects\\SWMMOpenMIComponent\\Source\\SWMMOpenMINoGlobals\\x64\\Debug\\SWMMOpenMINoGlobals.dll")
+lib = cdll.LoadLibrary("Z:\\Documents\Projects\\SWMMOpenMIComponent\\Source\\SWMMOpenMIComponent\\bin\\Debug\\SWMMComponent.dll")
 print(lib)  
 print("\n")
 
-finp = b"C:\\Users\\Caleb\\Desktop\\Projects\\SWMMOpenMIComponent\\Source\\SWMMOpenMINoGlobalsPythonTest\\test.inp"
-frpt = b"C:\\Users\\Caleb\\Desktop\\Projects\\SWMMOpenMIComponent\\Source\\SWMMOpenMINoGlobalsPythonTest\\test.rpt"
-fout = b"C:\\Users\\Caleb\\Desktop\\Projects\\SWMMOpenMIComponent\\Source\\SWMMOpenMINoGlobalsPythonTest\\test.out"
+finp = b"Z:\\Documents\\Projects\\SWMMOpenMIComponent\\Source\\SWMMOpenMINoGlobalsPythonTest\\test.inp"
+frpt = b"Z:\\Documents\\Projects\\SWMMOpenMIComponent\\Source\\SWMMOpenMINoGlobalsPythonTest\\test.rpt"
+fout = b"Z:\\Documents\\Projects\\SWMMOpenMIComponent\\Source\\SWMMOpenMINoGlobalsPythonTest\\test.out"
 
 project = lib.swmm_open(finp , frpt , fout)
 print(project)

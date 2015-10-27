@@ -28,49 +28,50 @@ ROUTING_STEP         0:00:30
 INERTIAL_DAMPING     NONE
 NORMAL_FLOW_LIMITED  BOTH
 FORCE_MAIN_EQUATION  H-W
-VARIABLE_STEP        0.00
+VARIABLE_STEP        0.75
 LENGTHENING_STEP     0
 MIN_SURFAREA         12.557
 MAX_TRIALS           8
 HEAD_TOLERANCE       0.005
 SYS_FLOW_TOL         5
 LAT_FLOW_TOL         5
-MINIMUM_STEP         0.5
-THREADS              1
 
 [EVAPORATION]
-;;Data Source    Parameters
+;;Evap Data      Parameters
 ;;-------------- ----------------
 CONSTANT         0.0
 DRY_ONLY         NO
 
 [JUNCTIONS]
-;;Name           Elevation  MaxDepth   InitDepth  SurDepth   Aponded   
+;;Junction       Invert     MaxDepth   InitDepth  SurDepth   Aponded   
 ;;-------------- ---------- ---------- ---------- ---------- ----------
 N1               40         0          0          0          0         
+N2               10         0          0          0          0         
 
 [OUTFALLS]
-;;Name           Elevation  Type       Stage Data       Gated    Route To        
-;;-------------- ---------- ---------- ---------------- -------- ----------------
-N2               10         FIXED      11               NO                       
+;;Outfall        Invert     Type       Stage Data       Gated   
+;;-------------- ---------- ---------- ---------------- --------
+O3               0          FREE                        NO
 
 [CONDUITS]
-;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
+;;Conduit        From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
 ;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
 Link1            N1               N2               100        0.03       0          0          0          0         
+Link2            N2               O3               100        0.03       0          0          0          0         
 
 [XSECTIONS]
-;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   
-;;-------------- ------------ ---------------- ---------- ---------- ---------- ---------- ----------
+;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels   
+;;-------------- ------------ ---------------- ---------- ---------- ---------- ----------
 Link1            RECT_OPEN    3                5          0          0          1                    
+Link2            RECT_OPEN    3                5          0          0          1                    
 
 [INFLOWS]
-;;Node           Constituent      Time Series      Type     Mfactor  Sfactor  Baseline Pattern
+;;Node           Inflow           Time Series      Type     Funits   Fscale   Baseline Pattern
 ;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
 N1               FLOW             Sine             FLOW     1.0      1.0      1       
 
 [TIMESERIES]
-;;Name           Date       Time       Value     
+;;Time Series    Date       Time       Value     
 ;;-------------- ---------- ---------- ----------
 sine             1/1/2015   0:00       0         
 sine             1/1/2015   0:02       0         
@@ -380,6 +381,7 @@ Units      None
 ;;-------------- ------------------ ------------------
 N1               1365.063           5533.473          
 N2               4743.724           4246.862          
+O3               9126.569           3765.690          
 
 [VERTICES]
 ;;Link           X-Coord            Y-Coord           

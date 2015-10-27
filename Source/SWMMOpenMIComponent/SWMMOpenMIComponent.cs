@@ -41,7 +41,7 @@ using System.Runtime.InteropServices;
 
 namespace SWMMOpenMIComponent
 {
-    public class SWMMOpenMIComponent : Identifiable, ITimeSpaceComponent, IDisposable
+    public class SWMMOpenMIComponent : Identifiable, ITimeSpaceComponent
     {
         # region variables
 
@@ -308,23 +308,27 @@ namespace SWMMOpenMIComponent
 
                 UpdateRequiredInputExchangeItems();
 
-                DateTime earliestTimeRequired = GetEarliestTimeRequiredConsumers(requiredOutput);
+                //DateTime earliestTimeRequired = GetEarliestTimeRequiredConsumers(requiredOutput);
 
 
-                while (model.CurrentDateTime <= earliestTimeRequired)
-                {
+                //while (model.CurrentDateTime <= earliestTimeRequired)
+                //{
                     model.PerformTimeStep();
-                }
+                //}
 
 
                 Time time = timeExtent.Times[0] as Time;
                 time.StampAsModifiedJulianDay = model.CurrentDateTime.ToModifiedJulianDay();
+
                 UpdateRequiredOutputExchangeItems(requiredOutput);
             }
 
-            Status = model.CurrentDateTime >= model.EndDateTime ?
-                           (OutputItemsStillRequireData() ? LinkableComponentStatus.Done : LinkableComponentStatus.Finishing)
-                           : LinkableComponentStatus.Updated;
+
+            Status = model.CurrentDateTime >= model.EndDateTime ?   LinkableComponentStatus.Finishing : LinkableComponentStatus.Updated;
+
+            //Status = model.CurrentDateTime >= model.EndDateTime ?
+            //               (OutputItemsStillRequireData() ? LinkableComponentStatus.Done : LinkableComponentStatus.Finishing)
+            //               : LinkableComponentStatus.Updated;
         }
 
         public void Finish()
@@ -332,6 +336,7 @@ namespace SWMMOpenMIComponent
             Status = LinkableComponentStatus.Finishing;
 
             model.EndRun();
+
             model.CloseModel();
 
             isInitialized = false;
@@ -344,25 +349,6 @@ namespace SWMMOpenMIComponent
 
         #region IDisposable
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!isDisposed)
-            {
-                if (disposing)
-                {
-
-                }
-
-                model.Dispose();
-                isDisposed = true;
-            }
-        }
 
         #endregion
 
