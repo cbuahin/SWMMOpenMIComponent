@@ -4,7 +4,7 @@
     <Argument Key="ModelID" ReadOnly="true" Value="Model1" />
 	<Argument Key="Caption" ReadOnly="true" Value="Model1" />
 	<Argument Key="Description" ReadOnly="true" Value="Model1" />
-	<Argument Key="SWMMLibrary" ReadOnly="true" Value="..\SWMMOpenMINoGlobals.dll"  IsOptional = "false" />
+	<Argument Key="SWMMLibrary" ReadOnly="true" Value="..\NativeSWMMLibrary\SWMMComponent.dll"  IsOptional = "false" />
     <Argument Key="ProjectFile" ReadOnly="true" Value="Model1.inp"  IsOptional = "false"/>
     <Argument Key="ReportFile" ReadOnly="true" Value="Model1.rpt" />
     <Argument Key="OutputFile" ReadOnly="true" Value="Model1.out" />

@@ -74,6 +74,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="NativeSWMMLibrary\libSWMMComponent.1.0.0.dylib">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="uml\ExchangeItems.cd" />
     <None Include="uml\SWMMOpenMIComponent.cd" />
     <None Include="TestProjects\FullTestModel.ini">
@@ -107,10 +110,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <None Include="SWMMComponent.dll">
+    <Content Include="NativeSWMMLibrary\SWMMComponent.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

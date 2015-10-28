@@ -18,9 +18,8 @@ namespace SWMMOpenMIComponent
     /// SWMM Engine Model Wrapper
     /// </summary>
     /// <remarks>Responsible for managing the SWMM engine library. It marshalls SWMM objects via Platform invoke</remarks>
-    public class SWMM 
+    public class SWMM
     {
-
         # region SWMMDelegates
 
 
@@ -45,7 +44,7 @@ namespace SWMMOpenMIComponent
         delegate IntPtr GetObjectByIdDelegate(IntPtr project, [MarshalAs(UnmanagedType.LPStr)]string id);
 
         delegate void SetObjectValue(IntPtr project, [MarshalAs(UnmanagedType.LPStr)]string objectId, [MarshalAs(UnmanagedType.LPStr)]string propertyName, double value);
-       
+
 
         # endregion
 
@@ -58,38 +57,38 @@ namespace SWMMOpenMIComponent
         double startDateTimeD, endDateTimeD;
 
         //Library
-         IntPtr hModule;
+        static IntPtr hModule;
         IntPtr projectPointer;
 
         # region Delegates
 
         //Internal delegates
-         OpenDelegate open;
-         StartModelDelegate startModel;
-         PerformTimeStepDelegate performTimeStep;
-         IntReturnDelegate endRun;
-         IntReturnDelegate closeModel;
-         IntReturnDelegate reportModelResults;
-         GetErrorMessageDelegate getErrorMessage;
-          DecodeDateTimeDelegate decodeDateTime;
-         GetDateTimeDelegate getDateTime;
+        OpenDelegate open;
+        StartModelDelegate startModel;
+        PerformTimeStepDelegate performTimeStep;
+        IntReturnDelegate endRun;
+        IntReturnDelegate closeModel;
+        IntReturnDelegate reportModelResults;
+        GetErrorMessageDelegate getErrorMessage;
+        DecodeDateTimeDelegate decodeDateTime;
+        GetDateTimeDelegate getDateTime;
 
-          GetObjectDelegate getNode;
-         GetObjectByIdDelegate getNodeById;
+        GetObjectDelegate getNode;
+        GetObjectByIdDelegate getNodeById;
 
-          GetObjectDelegate getLink;
-         GetObjectByIdDelegate getLinkById;
+        GetObjectDelegate getLink;
+        GetObjectByIdDelegate getLinkById;
 
-         GetObjectDelegate getSubCatchment;
-         GetObjectByIdDelegate getSubCatchmentById;
+        GetObjectDelegate getSubCatchment;
+        GetObjectByIdDelegate getSubCatchmentById;
 
-         SetObjectValue setNodeObjectValue;
-         SetObjectValue setLinkObjectValue;
-         SetObjectValue setSubCatchmentObjectValue;
-      
+        SetObjectValue setNodeObjectValue;
+        SetObjectValue setLinkObjectValue;
+        SetObjectValue setSubCatchmentObjectValue;
+
         //Direct delegate calls
-        public  GetObjectTypeCountDelegate GetObjectTypeCount;
-        
+        public GetObjectTypeCountDelegate GetObjectTypeCount;
+
 
         #endregion
 
@@ -102,7 +101,7 @@ namespace SWMMOpenMIComponent
         # endregion
 
         #region Constructor
-      
+
         public SWMM(FileInfo library, string inputFile, string outputFile, string reportFile = "")
         {
             //dictionary
@@ -110,7 +109,7 @@ namespace SWMMOpenMIComponent
             this.library = library;
             hModule = WinLibraryLoader.LoadLibrary(library.FullName);
             CheckIfLibraryError();
-           
+
             if (hModule == IntPtr.Zero)
             {
                 throw new FileLoadException("Unable to load library located at " + library.FullName, library.FullName);
@@ -164,7 +163,7 @@ namespace SWMMOpenMIComponent
         public Dictionary<string, SubCatchment> SubCatchments
         {
             get { return subCatchments; }
-          
+
         }
 
         #endregion
@@ -221,7 +220,7 @@ namespace SWMMOpenMIComponent
 
             setLinkObjectValue = WinLibraryLoader.LoadFunction<SetObjectValue>(ref hModule, "setLink");
             CheckIfLibraryError();
-            
+
             getLinkById = WinLibraryLoader.LoadFunction<GetObjectByIdDelegate>(ref hModule, "getLinkById");
             CheckIfLibraryError();
 
@@ -309,7 +308,7 @@ namespace SWMMOpenMIComponent
                 TNode tnode = GetNode(i);
                 node.NativeNode = tnode;
                 node.ObjectIndex = i;
-                string id =Marshal.PtrToStringAnsi(tnode.ID);
+                string id = Marshal.PtrToStringAnsi(tnode.ID);
                 nodes.Add(id, node);
                 nodeIndexes.Add(i, id);
             }
@@ -351,7 +350,7 @@ namespace SWMMOpenMIComponent
                     ObjectIndex = i,
                 };
 
-                TSubcatch tsub = GetSubCatchment (i);
+                TSubcatch tsub = GetSubCatchment(i);
                 subCatch.NativeSubCatchment = tsub;
                 subCatch.ObjectIndex = i;
                 subCatchments.Add(Marshal.PtrToStringAnsi(tsub.ID), subCatch);
@@ -383,16 +382,17 @@ namespace SWMMOpenMIComponent
 
         public void EndRun()
         {
+            
             int error = endRun(projectPointer);
             SetError(error);
 
-            error =  reportModelResults(projectPointer);
+            error = reportModelResults(projectPointer);
             SetError(error);
         }
 
         public void CloseModel()
         {
-           
+
             int error = closeModel(projectPointer);
             SetError(error);
         }
@@ -415,7 +415,7 @@ namespace SWMMOpenMIComponent
 
             if (error != 0)
             {
-               Win32Exception except =  new Win32Exception(error);
+                Win32Exception except = new Win32Exception(error);
             }
         }
 
@@ -461,7 +461,7 @@ namespace SWMMOpenMIComponent
             return subCatch; ;
         }
 
-        public void UpdateSWMMObject(SWMMObject swmmObject , string propertyName )
+        public void UpdateSWMMObject(SWMMObject swmmObject, string propertyName)
         {
             switch (swmmObject.ObjectType)
             {
@@ -469,7 +469,7 @@ namespace SWMMOpenMIComponent
                     {
                         Node node = (Node)swmmObject;
                         double value = (double)typeof(TNode).GetField(propertyName).GetValue(node.NativeNode);
-                        setNodeObjectValue(projectPointer, node.ObjectId , propertyName , value);
+                        setNodeObjectValue(projectPointer, node.ObjectId, propertyName, value);
 
                     }
                     break;

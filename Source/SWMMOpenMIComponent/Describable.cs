@@ -14,7 +14,6 @@ namespace SWMMOpenMIComponent
     /// </summary>
     public class Describable : IDescribable
     {
-
         /// <summary>
         /// Caption string (not to be used as an id)
         /// </summary>
@@ -23,7 +22,6 @@ namespace SWMMOpenMIComponent
             get;
             set;
         }
-
         /// <summary>
         /// Additional descriptive information about the entity.
         /// </summary>

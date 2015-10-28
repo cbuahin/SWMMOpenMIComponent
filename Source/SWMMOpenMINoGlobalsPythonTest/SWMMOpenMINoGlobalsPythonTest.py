@@ -23,7 +23,7 @@ if(lib.swmm_getErrorCode(project) == 0):
     lib.swmm_start(project, 1)
     
     if(lib.swmm_getErrorCode(project) == 0):
-        print("Simulating day: 0  Hour:0")
+        print("Simulating day: 0  Hour: 0")
         print("\n")
 
         while True:
@@ -36,10 +36,11 @@ if(lib.swmm_getErrorCode(project) == 0):
                 temp = (elapsedTime.value - temp) * 24.0
                 theHour = int(temp)
 
-                print("\b\b\b\b\b\b\b\b\b\b\b\b\b\b")
-                print("\n")
-                print("Hour" + str(theHour) + " Day" + str(theDay))
-                print("\n")
+                #print("\b\b\b\b\b\b\b\b\b\b\b\b\b\b")
+                #print("\n")
+                print "Hour " ,  str(theHour) , " Day " , str(theDay) , '            \r',
+                
+                #print("\n")
                 oldHour = newHour
 
             if(elapsedTime.value <= 0 or not lib.swmm_getErrorCode(project) == 0):
@@ -47,4 +48,6 @@ if(lib.swmm_getErrorCode(project) == 0):
 
 
     lib.swmm_end(project)
+    lib.swmm_report(project)
+    lib.swmm_close(project)
    
